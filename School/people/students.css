@@ -1,0 +1,199 @@
+/* ═══════════════════════════════════════════════════════════
+   students.css  –  Students page
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Section wrapper ─────────────────────────────────────── */
+.students-section {
+    padding: 50px 0 80px;
+    background: #f4f7fb;
+    min-height: 60vh;
+}
+
+/* ── Filter bar ──────────────────────────────────────────── */
+.students-filter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+    background: #fff;
+    padding: 22px 28px;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+
+.students-filter label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0f2027;
+    white-space: nowrap;
+}
+
+.students-filter select {
+    padding: 8px 16px;
+    font-size: 0.92rem;
+    border: 1.5px solid #b0c8e0;
+    border-radius: 6px;
+    background: #f9fcff;
+    color: #0f2027;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    min-width: 160px;
+}
+
+.students-filter select:focus {
+    outline: none;
+    border-color: #17a2b8;
+    box-shadow: 0 0 0 3px rgba(23,162,184,0.15);
+}
+
+/* ── Placeholder message ─────────────────────────────────── */
+.students-placeholder {
+    text-align: center;
+    padding: 60px 20px;
+    color: #7a8fa6;
+}
+
+.students-placeholder .placeholder-icon {
+    font-size: 3.5rem;
+    margin-bottom: 14px;
+    opacity: 0.45;
+}
+
+.students-placeholder p {
+    font-size: 1.05rem;
+    font-weight: 500;
+}
+
+/* ── Class panel ─────────────────────────────────────────── */
+.class-panel {
+    display: none;
+}
+
+.class-panel.active {
+    display: block;
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Class title ─────────────────────────────────────────── */
+.class-title {
+    text-align: center;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #0f2027;
+    margin-bottom: 32px;
+    position: relative;
+}
+
+.class-title::after {
+    content: '';
+    display: block;
+    width: 50px;
+    height: 3px;
+    background: #17a2b8;
+    margin: 8px auto 0;
+    border-radius: 2px;
+}
+
+/* ── Section label ───────────────────────────────────────── */
+.section-label {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a72b8;
+    letter-spacing: 1.5px;
+    text-align: center;
+    margin: 36px 0 16px;
+    text-transform: uppercase;
+}
+
+/* ── Table wrapper ───────────────────────────────────────── */
+.student-table-wrapper {
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.07);
+    margin-bottom: 30px;
+}
+
+/* ── Table ───────────────────────────────────────────────── */
+.student-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.student-table thead tr {
+    background: #17a2b8;
+    color: #fff;
+}
+
+.student-table thead th {
+    padding: 11px 16px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.student-table thead th:last-child {
+    text-align: left;
+}
+
+.student-table tbody tr {
+    border-bottom: 1px solid #e8f1f8;
+    transition: background 0.15s;
+}
+
+.student-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.student-table tbody tr:hover {
+    background: #f0fafc;
+}
+
+.student-table tbody td {
+    padding: 10px 16px;
+    text-align: center;
+    color: #333;
+}
+
+.student-table tbody td:last-child {
+    text-align: left;
+}
+
+/* SL column */
+.student-table .col-sl   { width: 60px; }
+.student-table .col-id   { width: 140px; }
+.student-table .col-roll { width: 90px; }
+.student-table .col-name { }
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 576px) {
+    .students-filter {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .students-filter select {
+        width: 100%;
+    }
+
+    .student-table {
+        font-size: 0.8rem;
+    }
+
+    .student-table thead th,
+    .student-table tbody td {
+        padding: 8px 10px;
+    }
+}
