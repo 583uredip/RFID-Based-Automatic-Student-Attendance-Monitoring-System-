@@ -1,0 +1,162 @@
+/* ── Base / Shared Styles ── */
+/* Used by all subpages to provide common layout and utility styles */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    background-color: #fff;
+}
+
+/* ── Page Banner (cover image + overlay title) ── */
+.page-banner {
+    position: relative;
+    width: 100%;
+    height: 280px;
+    overflow: hidden;
+}
+
+.page-banner-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+
+.page-banner-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.page-banner-title {
+    color: #fff;
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    margin: 0 0 8px;
+}
+
+.page-banner-sub {
+    color: #e0e0e0;
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* ── Cover Wrapper (used in about & gallery pages) ── */
+.cover-wrapper {
+    position: relative;
+    width: 100%;
+    height: 280px;
+    overflow: hidden;
+}
+
+.cover-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+
+.cover-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.page-title {
+    color: #fff;
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    margin: 0 0 8px;
+}
+
+.page-subtitle {
+    color: #e0e0e0;
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* ── Back to Top Button ── */
+.back-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #1e88e5;
+    color: #fff;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    transition: background 0.3s ease, transform 0.2s ease;
+    z-index: 999;
+}
+
+.back-to-top:hover {
+    background: #1565c0;
+    transform: translateY(-3px);
+    color: #fff;
+}
+
+/* ── Utility ── */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+a {
+    text-decoration: none;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .page-banner {
+        height: 200px;
+    }
+
+    .page-banner-title,
+    .page-title {
+        font-size: 1.6rem;
+    }
+
+    .cover-wrapper {
+        height: 200px;
+    }
+
+    .back-to-top {
+        bottom: 20px;
+        right: 20px;
+        width: 38px;
+        height: 38px;
+        font-size: 1.2rem;
+    }
+}
