@@ -1,0 +1,70 @@
+/* ── Founders Page ───────────────────────────────────────── */
+/* Banner + avatar base styles → people-shared.css           */
+
+.founders-section {
+    padding: 60px 0 80px;
+    background: #fff;
+}
+
+/* ── Intro paragraph ─────────────────────────────────────── */
+.founders-intro {
+    font-size: 0.95rem;
+    color: #444;
+    line-height: 1.75;
+    max-width: 860px;
+    margin: 0 0 56px;
+}
+
+/* ── Individual founder card ─────────────────────────────── */
+.founder-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* ── Avatar circle ───────────────────────────────────────── */
+.founder-avatar-wrapper {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid #b0c8e0;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+    margin-bottom: 18px;
+    flex-shrink: 0;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.founder-avatar-wrapper:hover {
+    transform: scale(1.06);
+    box-shadow: 0 8px 28px rgba(26, 114, 184, 0.25);
+}
+
+.founder-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+}
+
+/* ── Name ────────────────────────────────────────────────── */
+.founder-name {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #0f2027;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .founders-intro { font-size: 0.9rem; }
+    .founder-name   { font-size: 0.8rem; }
+}
+
+@media (max-width: 480px) {
+    .founder-name   { font-size: 0.75rem; }
+}

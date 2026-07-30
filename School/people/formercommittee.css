@@ -1,0 +1,130 @@
+/* ── Former Committees Page ──────────────────────────────── */
+/* Banner + avatar base styles → people-shared.css           */
+
+.former-section {
+    padding: 70px 0 80px;
+    background: #fff;
+}
+
+/* ── Session row ─────────────────────────────────────────── */
+/*
+  Default : text LEFT  · image RIGHT
+  Reversed: add  .fc-row--reverse  →  image LEFT · text RIGHT
+*/
+.fc-row {
+    display: flex;
+    align-items: center;
+    gap: 60px;
+    padding-bottom: 64px;
+    margin-bottom: 64px;
+    border-bottom: 1px solid #eaf2f8;
+}
+
+/* Remove divider on the last row */
+.fc-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+.fc-row--reverse {
+    flex-direction: row-reverse;
+}
+
+/* ── Text column ─────────────────────────────────────────── */
+.fc-text {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.fc-session-title {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #0f2027;
+    margin-bottom: 16px;
+    line-height: 1.25;
+}
+
+.fc-description {
+    font-size: 0.93rem;
+    color: #555;
+    line-height: 1.8;
+    margin-bottom: 28px;
+}
+
+/* ── View Members button ─────────────────────────────────── */
+.fc-view-btn {
+    display: inline-block;
+    padding: 9px 28px;
+    border: 2px solid #1a72b8;
+    color: #1a72b8;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background 0.25s ease, color 0.25s ease;
+}
+
+.fc-view-btn:hover {
+    background: #1a72b8;
+    color: #fff;
+}
+
+/* ── Image column ────────────────────────────────────────── */
+.fc-image {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.fc-img {
+    width: 100%;
+    height: 280px;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 900px) {
+    /* Stack columns — reverse class has no effect on mobile */
+    .fc-row,
+    .fc-row--reverse {
+        flex-direction: column;
+        gap: 28px;
+    }
+
+    .fc-img {
+        height: 220px;
+    }
+
+    .fc-session-title {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .former-section {
+        padding: 48px 0 56px;
+    }
+
+    .fc-row {
+        padding-bottom: 48px;
+        margin-bottom: 48px;
+    }
+}
+
+@media (max-width: 480px) {
+    .fc-img {
+        height: 180px;
+    }
+
+    .fc-session-title {
+        font-size: 1.1rem;
+    }
+
+    .fc-description {
+        font-size: 0.87rem;
+    }
+}

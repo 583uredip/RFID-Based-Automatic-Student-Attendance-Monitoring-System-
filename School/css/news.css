@@ -1,0 +1,125 @@
+/* ── Recent News ── */
+.news-section {
+    padding: 80px 20px;
+    background-color: #f8fafc;
+}
+
+.news-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    text-align: center;
+    margin-bottom: 12px;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+}
+
+/* News – Mobile */
+@media (max-width: 768px) {
+    .news-section {
+        padding: 50px 16px;
+    }
+
+    .news-title {
+        font-size: 1.5rem;
+    }
+}
+
+/* ── Event-list card (shared structure with Events page) ── */
+.event-list-card {
+    border: 1px solid #dde6ee;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: #ffffff;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.35s ease, transform 0.35s ease;
+}
+
+.event-list-card:hover {
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.13);
+    transform: translateY(-6px);
+}
+
+.event-list-img-wrapper {
+    width: 100%;
+    overflow: hidden;
+}
+
+.event-list-img {
+    width: 100%;
+    height: 210px;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.45s ease;
+}
+
+.event-list-card:hover .event-list-img {
+    transform: scale(1.06);
+}
+
+.event-list-body {
+    padding: 20px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.event-list-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    line-height: 1.4;
+}
+
+.event-list-excerpt {
+    font-size: 0.88rem;
+    color: #555;
+    line-height: 1.7;
+    margin-bottom: 16px;
+    flex: 1;
+}
+
+.event-list-read-more {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #1e88e5;
+    border: 1.5px solid #1e88e5;
+    padding: 6px 16px;
+    border-radius: 20px;
+    text-decoration: none;
+    width: fit-content;
+    margin-bottom: 16px;
+    transition: background 0.3s ease, color 0.3s ease, transform 0.2s ease;
+}
+
+.event-list-read-more:hover {
+    background-color: #1e88e5;
+    color: #fff;
+    transform: translateX(3px);
+}
+
+.event-list-date {
+    font-size: 0.82rem;
+    color: #888;
+    margin: 0;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Calendar icon before date */
+.event-list-date::before {
+    content: '📅';
+    font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+    .event-list-img { height: 180px; }
+}

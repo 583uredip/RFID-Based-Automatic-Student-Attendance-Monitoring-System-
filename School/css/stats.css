@@ -1,0 +1,81 @@
+/* ── Stats Counter ── */
+.stats-section {
+    position: relative;
+    background-color: #ffffff;
+    margin: 0;
+    padding: 0;
+}
+
+.stats-wave-top,
+.stats-wave-bottom {
+    display: block;
+    line-height: 0;
+    overflow: hidden;
+}
+
+.stats-wave-top svg,
+.stats-wave-bottom svg {
+    display: block;
+    width: 100%;
+    height: 80px;
+}
+
+.stats-inner {
+    background: linear-gradient(135deg, #1565c0, #1a72b8, #1e88e5);
+    padding: 50px 20px;
+}
+
+.stat-item {
+    padding: 10px 20px;
+    position: relative;
+}
+
+/* Vertical divider between stats on larger screens */
+.stat-item + .stat-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    height: 60%;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.stat-number {
+    font-size: 3.4rem;
+    font-weight: 900;
+    color: #ffffff;
+    line-height: 1;
+    margin-bottom: 10px;
+    font-family: Arial, sans-serif;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.stat-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(205, 232, 247, 0.9);
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* Stats – Mobile */
+@media (max-width: 576px) {
+    .stats-wave-top svg,
+    .stats-wave-bottom svg {
+        height: 50px;
+    }
+
+    .stat-number {
+        font-size: 2.4rem;
+    }
+
+    .stat-item {
+        padding: 16px 10px;
+    }
+
+    .stat-item + .stat-item::before {
+        display: none;
+    }
+}

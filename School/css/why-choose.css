@@ -1,0 +1,87 @@
+.why-choose-section {
+    padding: 80px 20px;
+    background: linear-gradient(160deg, #f0f7ff 0%, #f9fbfd 60%, #ffffff 100%);
+    text-align: center;
+}
+
+.why-choose-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #0f2027;
+    margin-bottom: 14px;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+}
+
+.why-choose-card {
+    border: 1.5px solid #cce0f5;
+    border-radius: 16px;
+    padding: 40px 28px 36px;
+    background-color: #ffffff;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: box-shadow 0.35s ease, transform 0.35s ease, border-color 0.35s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Top color bar that slides in on hover */
+.why-choose-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #1e88e5, #1565c0);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.35s ease;
+    border-radius: 16px 16px 0 0;
+}
+
+.why-choose-card:hover::before {
+    transform: scaleX(1);
+}
+
+.why-choose-card:hover {
+    box-shadow: 0 12px 36px rgba(26, 115, 232, 0.18);
+    transform: translateY(-6px);
+    border-color: #a6c8f0;
+}
+
+.why-choose-icon {
+    margin-bottom: 24px;
+    transition: transform 0.3s ease;
+}
+
+.why-choose-card:hover .why-choose-icon {
+    transform: scale(1.1);
+}
+
+.why-choose-icon img {
+    width: 72px;
+    height: 72px;
+}
+
+.why-choose-text {
+    font-size: 0.95rem;
+    color: #444;
+    line-height: 1.8;
+    text-align: center;
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+}
+
+/* Why choose – Mobile */
+@media (max-width: 768px) {
+    .why-choose-section {
+        padding: 50px 16px;
+    }
+
+    .why-choose-title {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
+}

@@ -1,0 +1,119 @@
+/* ── Footer ── */
+.footer-section {
+    background-color: #f4f8fb;
+}
+
+.footer-main {
+    padding: 50px 60px;
+}
+
+.footer-map iframe {
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.footer-contact-info {
+    padding-left: 30px;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+}
+
+.footer-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #0f2027;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+}
+
+.footer-subtitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 6px;
+}
+
+.footer-text {
+    font-size: 0.95rem;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+.footer-email {
+    color: #1e88e5;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.footer-email:hover {
+    text-decoration: underline;
+}
+
+.footer-message-btn {
+    display: inline-block;
+    margin-top: 14px;
+    color: #1e88e5;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    border: 2px solid #1e88e5;
+    padding: 8px 20px;
+    border-radius: 6px;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+.footer-message-btn:hover {
+    background-color: #1e88e5;
+    color: #fff;
+}
+
+/* Bottom Bar */
+.footer-bottom {
+    background: linear-gradient(90deg, #0f2027, #203a43, #2c5364);
+    color: #cde8f5;
+    padding: 16px 60px;
+    font-size: 0.9rem;
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+.footer-bottom strong {
+    color: #ffffff;
+}
+
+.footer-brand-name {
+    color: #1565c0;
+}
+
+.footer-link {
+    color: #a0c8e8;
+    text-decoration: none;
+}
+
+.footer-link:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+.supported-by {
+    font-size: 0.85rem;
+    color: #a0c8e8;
+}
+
+/* Footer – Mobile */
+@media (max-width: 768px) {
+    .footer-main {
+        padding: 30px 20px;
+    }
+
+    .footer-contact-info {
+        padding-left: 0;
+        margin-top: 20px;
+    }
+
+    .footer-bottom {
+        padding: 16px 20px;
+    }
+
+    .footer-title {
+        font-size: 1.5rem;
+    }
+}

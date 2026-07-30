@@ -1,0 +1,91 @@
+/* ── Advisers Page ───────────────────────────────────────── */
+/* Banner styles → people-shared.css                         */
+
+.adviser-section {
+    padding: 60px 0 80px;
+    background: #fff;
+}
+
+/* ── Intro paragraph ─────────────────────────────────────── */
+.adviser-intro {
+    font-size: 0.95rem;
+    color: #444;
+    line-height: 1.8;
+    max-width: 860px;
+    margin: 0 0 56px;
+}
+
+/* ── Individual adviser card ─────────────────────────────── */
+.adviser-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* ── Avatar circle ───────────────────────────────────────── */
+.adviser-avatar-wrapper {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid #b0c8e0;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+    margin-bottom: 18px;
+    flex-shrink: 0;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.adviser-avatar-wrapper:hover {
+    transform: scale(1.06);
+    box-shadow: 0 8px 28px rgba(26, 114, 184, 0.25);
+}
+
+.adviser-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+}
+
+/* ── Name ────────────────────────────────────────────────── */
+.adviser-name {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #0f2027;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+/* ── Role lines ──────────────────────────────────────────── */
+.adviser-role {
+    font-size: 0.8rem;
+    color: #666;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .adviser-intro          { font-size: 0.9rem; }
+
+    .adviser-avatar-wrapper {
+        width: 110px;
+        height: 110px;
+    }
+
+    .adviser-name           { font-size: 0.82rem; }
+    .adviser-role           { font-size: 0.75rem; }
+}
+
+@media (max-width: 480px) {
+    .adviser-avatar-wrapper {
+        width: 90px;
+        height: 90px;
+    }
+
+    .adviser-name           { font-size: 0.76rem; }
+    .adviser-role           { font-size: 0.7rem;  }
+}

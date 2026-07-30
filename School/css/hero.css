@@ -1,0 +1,93 @@
+/* ── Hero / Group Photo ── */
+.group-photo-wrapper {
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+    position: relative;
+}
+
+/* Subtle dark gradient at the bottom so the page transition feels smooth */
+.group-photo-wrapper::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 120px;
+    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.85));
+    pointer-events: none;
+}
+
+.group-photo {
+    padding: 7px;
+    border-radius: 20px;
+    width: 100%;
+    height: auto;
+    display: block;
+    /* Smooth fade-in on page load */
+    animation: heroFadeIn 1.2s ease forwards;
+}
+
+@keyframes heroFadeIn {
+    from { opacity: 0; transform: scale(1.03); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Scroll-reveal base (used across all sections) ── */
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ── Back-to-top button ── */
+.back-to-top {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 46px;
+    height: 46px;
+    background: linear-gradient(135deg, #1e88e5, #1565c0);
+    color: #fff;
+    font-size: 1.5rem;
+    line-height: 46px;
+    text-align: center;
+    border-radius: 50%;
+    text-decoration: none;
+    box-shadow: 0 4px 16px rgba(30, 136, 229, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.25s ease;
+    z-index: 999;
+}
+
+.back-to-top.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.back-to-top:hover {
+    transform: translateY(-4px);
+    background: linear-gradient(135deg, #1565c0, #0d47a1);
+    color: #fff;
+}
+
+/* ── Shared section-title accent bar ── */
+.section-title-accent {
+    display: block;
+    width: 56px;
+    height: 4px;
+    background: linear-gradient(90deg, #1e88e5, #1565c0);
+    border-radius: 2px;
+    margin: 0 auto 40px;
+}
+
+/* left-aligned variant */
+.section-title-accent.left {
+    margin: 0 0 28px;
+}

@@ -1,0 +1,172 @@
+/* ── OSA Page ────────────────────────────────────────────── */
+/* Banner + avatar base styles → people-shared.css           */
+
+/* ── OSA banner ─────────────────────────────────────────── */
+.page-banner.osa-banner {
+    height: 200px;
+}
+
+.page-banner.osa-banner .page-banner-title {
+    font-size: 2.2rem;
+    letter-spacing: 2.5px;
+}
+
+/* ── Section wrapper ─────────────────────────────────────── */
+.osa-section {
+    padding: 60px 0 80px;
+    background: #fff;
+}
+
+/* ── Tier layout ─────────────────────────────────────────── */
+.osa-tier {
+    display: flex;
+    justify-content: center;
+}
+
+.osa-tier--row {
+    flex-wrap: wrap;
+    gap: 28px 20px;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+/* ── Vertical connector ──────────────────────────────────── */
+.osa-connector {
+    width: 2px;
+    height: 48px;
+    background: #b0c8e0;
+    margin: 0 auto;
+}
+
+/* ── Section sub-label ───────────────────────────────────── */
+.osa-section-label {
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #1a72b8;
+    margin: 32px 0 20px;
+    position: relative;
+}
+
+.osa-section-label::before,
+.osa-section-label::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 30%;
+    height: 1px;
+    background: #d0e4f0;
+    transform: translateY(-50%);
+}
+
+.osa-section-label::before { right: calc(50% + 8px + 50%/2); }
+.osa-section-label::after  { left:  calc(50% + 8px + 50%/2); }
+
+/* ── Row divider between tiers ───────────────────────────── */
+.osa-row-divider {
+    height: 1px;
+    background: #e8f1f8;
+    margin: 40px auto;
+    max-width: 700px;
+}
+
+/* ── Individual card ─────────────────────────────────────── */
+.osa-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 10px;
+}
+
+.osa-card--top {
+    padding: 0;
+}
+
+/* ── Avatar wrappers ─────────────────────────────────────── */
+.osa-avatar-wrapper {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid #b0c8e0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    margin-bottom: 14px;
+    flex-shrink: 0;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.osa-avatar-wrapper--sm {
+    width: 100px;
+    height: 100px;
+    border-width: 3px;
+    margin-bottom: 12px;
+}
+
+.osa-avatar-wrapper:hover {
+    transform: scale(1.06);
+    box-shadow: 0 8px 26px rgba(26, 114, 184, 0.25);
+}
+
+.osa-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+}
+
+/* ── Name ────────────────────────────────────────────────── */
+.osa-name {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #0f2027;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+
+.osa-name--sm {
+    font-size: 0.78rem;
+}
+
+/* ── Role / Department ───────────────────────────────────── */
+.osa-role {
+    font-size: 0.82rem;
+    color: #666;
+    margin-bottom: 2px;
+    line-height: 1.45;
+}
+
+.osa-role--sm {
+    font-size: 0.72rem;
+    max-width: 140px;
+}
+
+.osa-dept {
+    font-size: 0.75rem;
+    color: #999;
+    margin: 0;
+    font-style: italic;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .page-banner.osa-banner            { height: 150px; }
+    .page-banner.osa-banner .page-banner-title { font-size: 1.5rem; letter-spacing: 1.5px; }
+    .osa-tier--row                     { gap: 20px 12px; }
+
+    .osa-section-label::before,
+    .osa-section-label::after          { width: 15%; }
+}
+
+@media (max-width: 480px) {
+    .page-banner.osa-banner .page-banner-title { font-size: 1.15rem; letter-spacing: 1px; }
+    .osa-name--sm  { font-size: 0.7rem; }
+    .osa-role--sm  { font-size: 0.65rem; max-width: 110px; }
+
+    .osa-section-label::before,
+    .osa-section-label::after          { display: none; }
+}
