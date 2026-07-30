@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activities &amp; News – Kapotaksha High School</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/navbar.css">
+    <link rel="stylesheet" href="../css/footer.css">
+    <link rel="stylesheet" href="activity-news.css">
+    <link rel="icon" href="../photos/AHS Logo.png" type="image/png">
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark custom-navbar">
+        <div class="container-fluid">
+
+            <a class="navbar-brand" href="../index.html">
+                <img src="../photos/AHS Logo.png" alt="AHS Logo" class="logo">
+            </a>
+
+            <button class="navbar-toggler" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarMain"
+                aria-controls="navbarMain"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+
+                    <!-- About -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            About
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="../index.html#about-ahs">About KHS</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="../about/RulesRegulation.html">Rules &amp; Regulation</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="../about/IntimidationPolicy.html">Intimidation Policy</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- People -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            People
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="../people/OSA.html">OSA</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="../people/Founders.html">Founders</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="../people/executivecommittee2025-26.html">Executive Committee</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="../people/formercommittee.html">Former Committee</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="../people/adviser.html">Adviser</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Activities & News (active) -->
+                    <li class="nav-item">
+                        <a class="nav-link active" href="ActivityAndNews.html">Activities &amp; News</a>
+                    </li>
+
+                    <!-- Events -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="../events/Events.html">Events</a>
+                    </li>
+
+                    <!-- Media -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            Media
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="../Media/Gallery.html">Gallery</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Contact -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html#contact">Contact</a>
+                    </li>
+
+                </ul>
+            </div>
+
+        </div>
+    </nav>
+
+    <!-- Page Banner -->
+    <div class="page-banner">
+        <img src="../photos/Cover.gif" alt="KHS Cover" class="page-banner-img">
+        <div class="page-banner-overlay">
+            <h1 class="page-banner-title">Activities &amp; News</h1>
+            <p class="page-banner-sub">Stay updated with the latest notices, activities, and school announcements</p>
+        </div>
+    </div>
+
+    <!-- ── NOTICE BOARD ─────────────────────────────────────────────────── -->
+    <section class="notice-section">
+        <div class="container">
+
+            <div class="section-header">
+                <h2 class="section-title">Notice Board</h2>
+                <span class="section-title-accent"></span>
+                <p class="section-subtitle">Official announcements and notices from Kapotaksha High School</p>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="notice-filter-tabs" role="tablist" aria-label="Notice filter">
+                <button class="filter-tab active" data-filter="all" role="tab" aria-selected="true">All</button>
+                <button class="filter-tab" data-filter="notice" role="tab" aria-selected="false">Notices</button>
+                <button class="filter-tab" data-filter="activity" role="tab" aria-selected="false">Activities</button>
+                <button class="filter-tab" data-filter="news" role="tab" aria-selected="false">News</button>
+                <button class="filter-tab" data-filter="exam" role="tab" aria-selected="false">Exams</button>
+            </div>
+
+            <!-- Notice List -->
+            <div class="notice-list" id="noticeList">
+
+                <!-- ══════════════════════════════════════════════════════════
+                     HOW TO ADD A NEW POST:
+                     1. Copy any <article class="notice-card"> block below.
+                     2. Paste it at the TOP of this list (newest first).
+                     3. Update: data-type, badge, title, date, excerpt text.
+                     4. Set href on "Read More" to the correct template file:
+                          Notice   → templates/notice-template.html
+                          Activity → templates/activity-template.html
+                          News     → templates/news-template.html
+                          Exam     → templates/exam-template.html
+                        (copy the template, rename it, then link to the copy)
+                ═══════════════════════════════════════════════════════════ -->
+
+                <!-- ── SAMPLE NOTICE 1 ── -->
+                <article class="notice-card" data-type="notice">
+                    <div class="notice-meta">
+                        <span class="notice-badge badge-notice">Notice</span>
+                        <time class="notice-date" datetime="2026-07-25">July 25, 2026</time>
+                    </div>
+                    <div class="notice-body">
+                        <h3 class="notice-title">Annual Exam Schedule – 2026</h3>
+                        <p class="notice-text">
+                            The annual examination for all classes will commence from <strong>1st August 2026</strong>. Students are advised to collect admit cards from their class teachers by <strong>28th July 2026</strong>. Attendance in all exams is compulsory.
+                        </p>
+                        <div class="notice-actions">
+                            <a href="templates/notice-template.html" class="notice-read-more">Read More</a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- ── SAMPLE NOTICE 2 ── -->
+                <article class="notice-card" data-type="activity">
+                    <div class="notice-meta">
+                        <span class="notice-badge badge-activity">Activity</span>
+                        <time class="notice-date" datetime="2026-07-20">July 20, 2026</time>
+                    </div>
+                    <div class="notice-body">
+                        <h3 class="notice-title">Inter-School Science Fair – Participation Open</h3>
+                        <p class="notice-text">
+                            Kapotaksha High School is participating in the District Inter-School Science Fair on <strong>15th August 2026</strong>. Students from classes 8–10 may register by submitting a project proposal before <strong>30th July 2026</strong>.
+                        </p>
+                        <div class="notice-actions">
+                            <a href="templates/activity-template.html" class="notice-read-more">Read More</a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- ── SAMPLE NOTICE 3 ── -->
+                <article class="notice-card" data-type="news">
+                    <div class="notice-meta">
+                        <span class="notice-badge badge-news">News</span>
+                        <time class="notice-date" datetime="2026-07-10">July 10, 2026</time>
+                    </div>
+                    <div class="notice-body">
+                        <h3 class="notice-title">KHS Students Excel in SSC Result 2026</h3>
+                        <p class="notice-text">
+                            We are proud to announce a <strong>98% pass rate</strong> in the SSC Examination 2026, with <strong>42 students securing GPA 5.0</strong>. The school management congratulates all successful students.
+                        </p>
+                        <div class="notice-actions">
+                            <a href="templates/news-template.html" class="notice-read-more">Read More</a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- ── SAMPLE NOTICE 4 ── -->
+                <article class="notice-card" data-type="exam">
+                    <div class="notice-meta">
+                        <span class="notice-badge badge-exam">Exam</span>
+                        <time class="notice-date" datetime="2026-07-05">July 5, 2026</time>
+                    </div>
+                    <div class="notice-body">
+                        <h3 class="notice-title">Half-Yearly Exam Results Published</h3>
+                        <p class="notice-text">
+                            Results of the Half-Yearly Examination 2026 have been published. Students may collect mark sheets from <strong>8th July 2026</strong>. Parent–Teacher Meeting: <strong>12th July at 10:00 AM</strong>.
+                        </p>
+                        <div class="notice-actions">
+                            <a href="templates/exam-template.html" class="notice-read-more">Read More</a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- ── SAMPLE NOTICE 5 ── -->
+                <article class="notice-card" data-type="activity">
+                    <div class="notice-meta">
+                        <span class="notice-badge badge-activity">Activity</span>
+                        <time class="notice-date" datetime="2026-06-28">June 28, 2026</time>
+                    </div>
+                    <div class="notice-body">
+                        <h3 class="notice-title">Annual Sports Day – Registration Now Open</h3>
+                        <p class="notice-text">
+                            The Annual Sports Day will be held on <strong>20th September 2026</strong>. Students interested in athletic events must register with their Physical Education teacher by <strong>10th September 2026</strong>.
+                        </p>
+                        <div class="notice-actions">
+                            <a href="templates/activity-template.html" class="notice-read-more">Read More</a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- ── SAMPLE NOTICE 6 ── -->
+                <article class="notice-card" data-type="notice">
+                    <div class="notice-meta">
+                        <span class="notice-badge badge-notice">Notice</span>
+                        <time class="notice-date" datetime="2026-06-15">June 15, 2026</time>
+                    </div>
+                    <div class="notice-body">
+                        <h3 class="notice-title">School Fees Payment Reminder – July 2026</h3>
+                        <p class="notice-text">
+                            All students are reminded to clear their fees for July 2026 by <strong>15th July 2026</strong>. Late payment will attract a fine as per school policy. Queries: school accounts office 9 AM – 2 PM.
+                        </p>
+                        <div class="notice-actions">
+                            <a href="templates/notice-template.html" class="notice-read-more">Read More</a>
+                        </div>
+                    </div>
+                </article>
+
+            </div><!-- /#noticeList -->
+
+            <!-- Empty state (shown by JS when no notices match filter) -->
+            <div class="notice-empty" id="noticeEmpty" style="display:none;">
+                <p>No notices found for this category.</p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Back to Top -->
+    <a href="#" class="back-to-top" aria-label="Back to top">&#8679;</a>
+
+    <!-- Footer -->
+    <footer id="contact" class="footer-section">
+
+        <div class="footer-main container-fluid">
+            <div class="row align-items-center">
+
+                <div class="col-lg-6 col-md-6 mb-4 mb-md-0">
+                    <div class="footer-map">
+                        <iframe
+                            src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d1300.7262361565315!2d89.31998855041762!3d22.26300098192899!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a01c98b1b60534d%3A0xc65a0c449df069bf!2sKapotaksh%20Secondary%20School!5e1!3m2!1sen!2sbd!4v1785303969981!5m2!1sen!2sbd"
+                            width="100%"
+                            height="280"
+                            style="border:0;"
+                            allowfullscreen=""
+                            loading="lazy"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            title="Kapotaksha High School Location">
+                        </iframe>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 col-md-6">
+                    <div class="footer-contact-info">
+                        <h2 class="footer-title">GET IN TOUCH</h2>
+
+                        <h3 class="footer-subtitle">Location</h3>
+                        <p class="footer-text">Kapotaksha High School</p>
+                        <p class="footer-text">Padmapukur, Koyra, Khulna</p>
+
+                        <h3 class="footer-subtitle mt-3">Contact</h3>
+                        <p class="footer-text">
+                            Email: <a href="mailto:kapotakshahighschool@gmail.com" class="footer-email">kapotakshahighschool@gmail.com</a>
+                        </p>
+
+                        <a href="mailto:kapotakshahighschool@gmail.com" class="footer-message-btn">
+                            Send us a message
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div class="container-fluid">
+                <div class="row align-items-center text-center">
+                    <div class="col-md-4 col-12 mb-2 mb-md-0">
+                        <span>Powered By <strong class="footer-brand-name">Kapotaksha High School</strong></span>
+                    </div>
+                    <div class="col-md-4 col-12 mb-2 mb-md-0">
+                        <span class="supported-by">Supported By <a href="https://bangladesh.gov.bd" class="footer-link">Bangladesh Government</a></span>
+                    </div>
+                    <div class="col-md-4 col-12">
+                        <span>Developed by <strong><a href="https://shovanmondal1910.github.io/Shovan-Mondal-Web-Portfolio/" class="footer-link">Shovan Mondal</a></strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+        /* ── Notice filter tabs ─────────────────────────────────────── */
+        const tabs    = document.querySelectorAll('.filter-tab');
+        const notices = document.querySelectorAll('.notice-card');
+        const empty   = document.getElementById('noticeEmpty');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Update active tab
+                tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+                tab.classList.add('active');
+                tab.setAttribute('aria-selected', 'true');
+
+                const filter = tab.dataset.filter;
+                let visible = 0;
+
+                notices.forEach(card => {
+                    const match = filter === 'all' || card.dataset.type === filter;
+                    card.style.display = match ? '' : 'none';
+                    if (match) visible++;
+                });
+
+                empty.style.display = visible === 0 ? 'block' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>
