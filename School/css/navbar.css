@@ -1,3 +1,5 @@
+@import "search.css";
+
 /* ── Navbar ── */
 .custom-navbar {
     background: linear-gradient(90deg, #71798a, #515e63, #151b1e);

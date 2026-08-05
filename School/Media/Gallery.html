@@ -64,6 +64,7 @@
                     </li>
                     <li class="nav-item"><a class="nav-link" href="../index.html#contact">Contact</a></li>
                 </ul>
+                <button class="btn btn-search ms-lg-2" type="button" aria-label="Search">Search</button>
             </div>
         </div>
     </nav>
@@ -76,45 +77,104 @@
         </div>
     </div>
 
-    <!-- Event Category Grid -->
+    <!-- Event Category & Photo Lightbox Gallery Section -->
     <section class="gallery-section">
+        <!-- Interactive Category Filters -->
+        <div class="gallery-filter-container">
+            <button class="gallery-filter-btn active" data-filter="all">All Photos</button>
+            <button class="gallery-filter-btn" data-filter="saraswati-puja">Saraswati Puja</button>
+            <button class="gallery-filter-btn" data-filter="durga-puja">Durga Puja</button>
+            <button class="gallery-filter-btn" data-filter="holi">Holi</button>
+            <button class="gallery-filter-btn" data-filter="cultural-evening">Cultural Evening</button>
+            <button class="gallery-filter-btn" data-filter="orientation">Orientation</button>
+            <button class="gallery-filter-btn" data-filter="ahs-photos">AHS &amp; Team Photos</button>
+        </div>
+
         <div class="gallery-grid">
 
-            <!-- -- Saraswati Puja -- -->
-            <a href="events/saraswati-puja.html" class="gallery-item">
-                <img src="../photos/SaraswatiPuja2026.jpg" alt="Saraswati Puja" loading="lazy">
-                <div class="gallery-label">SARASWATI PUJA</div>
-            </a>
+            <!-- -- Saraswati Puja 2026 -- -->
+            <div class="photo-item" data-lightbox="true" data-category="saraswati-puja" data-year="2026" data-title="Saraswati Puja 2026">
+                <img src="../photos/SaraswatiPuja2026.jpg" alt="Saraswati Puja 2026" loading="lazy">
+                <span class="photo-badge-year">2026</span>
+                <div class="gallery-label">SARASWATI PUJA 2026</div>
+            </div>
 
-            <!-- -- Durga Puja -- -->
-            <a href="events/durga-puja.html" class="gallery-item">
-                <img src="../photos/Swarashoti Ma.jpg" alt="Durga Puja" loading="lazy">
+            <!-- -- Saraswati Puja 2025 -- -->
+            <div class="photo-item" data-lightbox="true" data-category="saraswati-puja" data-year="2025" data-title="Saraswati Puja 2025">
+                <img src="../photos/SaraswatiPuja2025.jpg" alt="Saraswati Puja 2025" loading="lazy">
+                <span class="photo-badge-year">2025</span>
+                <div class="gallery-label">SARASWATI PUJA 2025</div>
+            </div>
+
+            <!-- -- Durga Puja 2026 -- -->
+            <div class="photo-item" data-lightbox="true" data-category="durga-puja" data-year="2026" data-title="Durga Puja Celebration">
+                <img src="../photos/Swarashoti Ma.jpg" alt="Durga Puja Celebration" loading="lazy">
+                <span class="photo-badge-year">2026</span>
                 <div class="gallery-label">DURGA PUJA</div>
-            </a>
+            </div>
 
-            <!-- -- Holi -- -->
-            <a href="events/holi.html" class="gallery-item">
-                <img src="../photos/Holi2026.jpg" alt="Holi" loading="lazy">
-                <div class="gallery-label">HOLI</div>
-            </a>
+            <!-- -- Holi 2026 -- -->
+            <div class="photo-item" data-lightbox="true" data-category="holi" data-year="2026" data-title="Holi Festival 2026">
+                <img src="../photos/Holi2026.jpg" alt="Holi Festival 2026" loading="lazy">
+                <span class="photo-badge-year">2026</span>
+                <div class="gallery-label">HOLI FESTIVAL</div>
+            </div>
 
             <!-- -- Cultural Evening -- -->
-            <a href="events/cultural-evening.html" class="gallery-item">
-                <img src="../photos/GroupPhoto.jpg" alt="Cultural Evening" loading="lazy">
+            <div class="photo-item" data-lightbox="true" data-category="cultural-evening" data-year="2026" data-title="Cultural Evening Group Photo">
+                <img src="../photos/GroupPhoto.jpg" alt="Cultural Evening Group Photo" loading="lazy">
+                <span class="photo-badge-year">2026</span>
                 <div class="gallery-label">CULTURAL EVENING</div>
-            </a>
+            </div>
 
-            <!-- -- Orientation -- -->
-            <a href="events/orientation.html" class="gallery-item">
-                <img src="../photos/Spring2026Orientaion.jpg" alt="Orientation" loading="lazy">
-                <div class="gallery-label">ORIENTATION</div>
-            </a>
+            <!-- -- Spring Orientation -- -->
+            <div class="photo-item" data-lightbox="true" data-category="orientation" data-year="2026" data-title="Spring 2026 Orientation">
+                <img src="../photos/Spring2026Orientaion.jpg" alt="Spring 2026 Orientation" loading="lazy">
+                <span class="photo-badge-year">2026</span>
+                <div class="gallery-label">SPRING ORIENTATION</div>
+            </div>
 
-            <!-- -- AHS Photos -- -->
-            <a href="events/ahs-photos.html" class="gallery-item">
-                <img src="../photos/AHS Photo.jpg" alt="AHS Photos" loading="lazy">
-                <div class="gallery-label">AHS PHOTOS</div>
-            </a>
+            <!-- -- Summer Orientation Photo 1 -- -->
+            <div class="photo-item" data-lightbox="true" data-category="orientation" data-year="2026" data-title="Summer Orientation Ceremony">
+                <img src="../photos/SummerOrientaion2026/p1.jpg" alt="Summer Orientation Ceremony" loading="lazy">
+                <span class="photo-badge-year">2026</span>
+                <div class="gallery-label">SUMMER ORIENTATION</div>
+            </div>
+
+            <!-- -- Summer Orientation Photo 2 -- -->
+            <div class="photo-item" data-lightbox="true" data-category="orientation" data-year="2026" data-title="Orientation Student Gathering">
+                <img src="../photos/SummerOrientaion2026/p5.jpg" alt="Orientation Student Gathering" loading="lazy">
+                <span class="photo-badge-year">2026</span>
+                <div class="gallery-label">STUDENT GATHERING</div>
+            </div>
+
+            <!-- -- AHS Main Photo -- -->
+            <div class="photo-item" data-lightbox="true" data-category="ahs-photos" data-year="2026" data-title="AHS Campus & Building">
+                <img src="../photos/AHS Photo.jpg" alt="AHS Campus & Building" loading="lazy">
+                <span class="photo-badge-year">2026</span>
+                <div class="gallery-label">AHS CAMPUS</div>
+            </div>
+
+            <!-- -- Development Team -- -->
+            <div class="photo-item" data-lightbox="true" data-category="ahs-photos" data-year="2026" data-title="KSHS Development Team">
+                <img src="../photos/DevelopmentTeam.jpg" alt="KSHS Development Team" loading="lazy">
+                <span class="photo-badge-year">2026</span>
+                <div class="gallery-label">DEVELOPMENT TEAM</div>
+            </div>
+
+            <!-- -- Media Team -- -->
+            <div class="photo-item" data-lightbox="true" data-category="ahs-photos" data-year="2026" data-title="KSHS Media Team">
+                <img src="../photos/MediaTeam.jpg" alt="KSHS Media Team" loading="lazy">
+                <span class="photo-badge-year">2026</span>
+                <div class="gallery-label">MEDIA TEAM</div>
+            </div>
+
+            <!-- -- Event Organizer Team -- -->
+            <div class="photo-item" data-lightbox="true" data-category="ahs-photos" data-year="2026" data-title="Event Organizer Team">
+                <img src="../photos/EventOrganizerTeam.jpg" alt="Event Organizer Team" loading="lazy">
+                <span class="photo-badge-year">2026</span>
+                <div class="gallery-label">EVENT ORGANIZERS</div>
+            </div>
 
         </div>
     </section>
@@ -158,6 +218,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/lightbox.js"></script>
+    <script src="../js/search.js"></script>
     <script src="../js/main.js"></script>
 </body>
 </html>

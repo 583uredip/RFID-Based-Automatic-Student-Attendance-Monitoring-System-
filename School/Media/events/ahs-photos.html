@@ -52,10 +52,7 @@
                     </li>
                     <li class="nav-item"><a class="nav-link" href="../../index.html#contact">Contact</a></li>
                 </ul>
-                <form class="d-flex" role="search">
-                    <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-                    <button class="btn btn-search" type="submit">Search</button>
-                </form>
+                <button class="btn btn-search ms-lg-2" type="button" aria-label="Search">Search</button>
             </div>
         </div>
     </nav>
@@ -77,14 +74,34 @@
             <h2 class="year-heading">2026</h2>
             <div class="photo-grid" data-year="2026">
 
-                <div class="photo-item">
-                    <img src="../../photos/AHS Photo.jpg" alt="AHS Photo" loading="lazy">
-                    <div class="photo-item-label">AHS Photo</div>
+                <div class="photo-item" data-title="AHS Campus & Building" data-year="2026">
+                    <img src="../../photos/AHS Photo.jpg" alt="AHS Campus" loading="lazy">
+                    <div class="photo-item-label">AHS Campus</div>
                 </div>
 
-                <div class="photo-item">
+                <div class="photo-item" data-title="Group Photo" data-year="2026">
                     <img src="../../photos/GroupPhoto.jpg" alt="AHS Group Photo" loading="lazy">
                     <div class="photo-item-label">Group Photo</div>
+                </div>
+
+                <div class="photo-item" data-title="Development Team" data-year="2026">
+                    <img src="../../photos/DevelopmentTeam.jpg" alt="Development Team" loading="lazy">
+                    <div class="photo-item-label">Development Team</div>
+                </div>
+
+                <div class="photo-item" data-title="Media Team" data-year="2026">
+                    <img src="../../photos/MediaTeam.jpg" alt="Media Team" loading="lazy">
+                    <div class="photo-item-label">Media Team</div>
+                </div>
+
+                <div class="photo-item" data-title="Event Organizer Team" data-year="2026">
+                    <img src="../../photos/EventOrganizerTeam.jpg" alt="Event Organizer Team" loading="lazy">
+                    <div class="photo-item-label">Event Organizer Team</div>
+                </div>
+
+                <div class="photo-item" data-title="Public Relation Team" data-year="2026">
+                    <img src="../../photos/PublicRelationTeam.jpg" alt="Public Relation Team" loading="lazy">
+                    <div class="photo-item-label">Public Relation Team</div>
                 </div>
 
             </div>
@@ -92,15 +109,7 @@
 
     </div>
 
-    <!-- Lightbox -->
-    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
-        <button class="lightbox-close" id="lightbox-close" aria-label="Close">&times;</button>
-        <button class="lightbox-prev" id="lightbox-prev" aria-label="Previous">&#8592;</button>
-        <img src="" alt="" id="lightbox-img" class="lightbox-img">
-        <p id="lightbox-caption" class="lightbox-caption"></p>
-        <button class="lightbox-next" id="lightbox-next" aria-label="Next">&#8594;</button>
-    </div>
-
+    <!-- Back to Top -->
     <a href="#" class="back-to-top" aria-label="Back to top">&#8679;</a>
 
     <!-- Footer -->
@@ -115,18 +124,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        var items = Array.from(document.querySelectorAll('.photo-item'));
-        var box = document.getElementById('lightbox'), boxImg = document.getElementById('lightbox-img'), boxCap = document.getElementById('lightbox-caption'), current = 0;
-        function openLightbox(i) { current=i; boxImg.src=items[i].querySelector('img').src; boxImg.alt=items[i].querySelector('img').alt; boxCap.textContent=items[i].querySelector('.photo-item-label').textContent; box.classList.add('active'); document.body.style.overflow='hidden'; }
-        function closeLightbox() { box.classList.remove('active'); document.body.style.overflow=''; }
-        items.forEach(function(item,i){ item.addEventListener('click',function(){ openLightbox(i); }); });
-        document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
-        document.getElementById('lightbox-prev').addEventListener('click', function(){ current=(current-1+items.length)%items.length; openLightbox(current); });
-        document.getElementById('lightbox-next').addEventListener('click', function(){ current=(current+1)%items.length; openLightbox(current); });
-        box.addEventListener('click', function(e){ if(e.target===box) closeLightbox(); });
-        document.addEventListener('keydown', function(e){ if(!box.classList.contains('active')) return; if(e.key==='Escape') closeLightbox(); if(e.key==='ArrowLeft'){current=(current-1+items.length)%items.length;openLightbox(current);} if(e.key==='ArrowRight'){current=(current+1)%items.length;openLightbox(current);} });
-    </script>
+    <script src="../../js/lightbox.js"></script>
+    <script src="../../js/search.js"></script>
     <script src="../../js/main.js"></script>
 </body>
 </html>

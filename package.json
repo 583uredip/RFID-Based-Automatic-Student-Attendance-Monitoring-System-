@@ -1,0 +1,9 @@
+{
+  "name": "kapataksha-high-school-portal",
+  "version": "1.0.0",
+  "description": "Kapataksha High School Portal Launcher",
+  "main": "Portal/Admin/Server/server.js",
+  "scripts": {
+    "start": "node Portal/Admin/Server/server.js"
+  }
+}

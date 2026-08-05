@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Kapataksha High School Portal</title>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- External CSS -->
+    <link rel="stylesheet" href="AdminDashboard.css">
+</head>
+<body>
+
+    <!-- Mobile Drawer Overlay Backdrop -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
+    <div class="dashboard-container">
+
+        <!-- Unified Top Header Navigation Bar -->
+        <header class="header">
+            <div class="header-left">
+                <!-- Mobile Hamburger Toggle inside Header -->
+                <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" title="Toggle Navigation Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
+                <!-- Clickable logo linking to Admin Dashboard Homepage -->
+                <a href="AdminDashboard.html" class="header-brand-link" title="Admin Dashboard Home">
+                    <img src="../Photos/KSHS.png" alt="KSHS Emblem" class="logo-img">
+                    <div class="brand-divider"></div>
+                    <div class="brand-text">
+                        <span class="brand-title">KSHS</span>
+                        <span class="brand-subtitle">PORTAL</span>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="header-nav" id="header-nav-menu">
+                <a class="nav-item active" href="AdminDashboard.html" title="Portal Home">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Home</span>
+                </a>
+                <a class="nav-item" href="#courses">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Courses & Results</span>
+                </a>
+                <a class="nav-item" href="#registration">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Registration</span>
+                </a>
+                <a class="nav-item" href="#gradereport">
+                    <i class="fa-solid fa-certificate"></i>
+                    <span>Grade Report</span>
+                </a>
+            </nav>
+
+            <div class="header-right">
+                <!-- Only Logout Button -->
+                <a href="AdminDashboard.html" class="logout-btn" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Body Layout -->
+        <div class="main-layout">
+
+            <!-- Left Navigation Sidebar (Slide-Out Drawer on Mobile) -->
+            <aside class="sidebar" id="sidebar-menu">
+                <!-- Dashboard -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-dashboard')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-chart-pie sidebar-icon"></i>
+                            <span>Dashboard</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-dashboard" class="sidebar-menu-content active">
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-users subitem-icon"></i>
+                            <span>Total Students</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chalkboard-user subitem-icon"></i>
+                            <span>Total Teachers</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-calendar-check subitem-icon"></i>
+                            <span>Today's Attendance</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clock-rotate-left subitem-icon"></i>
+                            <span>Recent Activities</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Student Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-student')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-user-graduate sidebar-icon"></i>
+                            <span>Student Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-student" class="sidebar-menu-content">
+                        <a href="StudentManagement/EditStudent.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-pen subitem-icon"></i>
+                            <span>Edit Student</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-xmark subitem-icon"></i>
+                            <span>Delete Student</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-users-rectangle subitem-icon"></i>
+                            <span>View All Students</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-file-import subitem-icon"></i>
+                            <span>Import/Export Students</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Teacher Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-teacher')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-chalkboard-user sidebar-icon"></i>
+                            <span>Teacher Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-teacher" class="sidebar-menu-content">
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-plus subitem-icon"></i>
+                            <span>Add Teacher</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chalkboard subitem-icon"></i>
+                            <span>Assign Classes</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-book subitem-icon"></i>
+                            <span>Teacher List</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Attendance -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-attendance')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-calendar-days sidebar-icon"></i>
+                            <span>Attendance</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-attendance" class="sidebar-menu-content">
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-signal subitem-icon"></i>
+                            <span>Live Attendance</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clipboard-user subitem-icon"></i>
+                            <span>Attendance Records</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-pen-to-square subitem-icon"></i>
+                            <span>Manual Attendance</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chart-line subitem-icon"></i>
+                            <span>Attendance Reports</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- RFID Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-rfid')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-id-card sidebar-icon"></i>
+                            <span>RFID Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-rfid" class="sidebar-menu-content">
+                        <a href="RFID Management/RegisterCard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-id-badge subitem-icon"></i>
+                            <span>Register RFID Card</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-check subitem-icon"></i>
+                            <span>Assign Card to Student</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-arrows-rotate subitem-icon"></i>
+                            <span>Replace Lost Card</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-card subitem-icon"></i>
+                            <span>View Registered Cards</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Grade Reports -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-grade')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-graduation-cap sidebar-icon"></i>
+                            <span>Grade Reports</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-grade" class="sidebar-menu-content">
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-file-lines subitem-icon"></i>
+                            <span>Semester Grades</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-paper-plane subitem-icon"></i>
+                            <span>Transcript Request</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Library -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-library')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-book sidebar-icon"></i>
+                            <span>Library</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-library" class="sidebar-menu-content">
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-book-open subitem-icon"></i>
+                            <span>Book Catalog</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-bookmark subitem-icon"></i>
+                            <span>Issued Books</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Others -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-others')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-folder-open sidebar-icon"></i>
+                            <span>Others</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-others" class="sidebar-menu-content">
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-bullhorn subitem-icon"></i>
+                            <span>Notices & Events</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-download subitem-icon"></i>
+                            <span>Forms & Downloads</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-messages')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-envelope sidebar-icon"></i>
+                            <span>Messages</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-messages" class="sidebar-menu-content">
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-inbox subitem-icon"></i>
+                            <span>Inbox</span>
+                        </a>
+                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-paper-plane subitem-icon"></i>
+                            <span>Send Announcement</span>
+                        </a>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Right Content Area -->
+            <main class="content-area">
+
+                <!-- RFID Card Registration Section -->
+                <div class="rfid-card-section" id="rfid-section">
+                    <div class="rfid-card-header">
+                        <div class="rfid-title">
+                            <i class="fa-solid fa-id-card"></i>
+                            <span>Register RFID Card</span>
+                        </div>
+                        <div class="live-status-badge" id="live-scan-status">
+                            <span class="status-dot pulsing"></span>
+                            <span id="status-text">Tap physical RFID card on scanner...</span>
+                        </div>
+                    </div>
+
+                    <form id="rfid-register-form" onsubmit="handleRfidRegister(event)" class="rfid-form">
+                        <div class="form-grid">
+                            <!-- Card UID (Non-editable) -->
+                            <div class="form-group">
+                                <label for="rfid-uid-input">
+                                    <i class="fa-solid fa-microchip"></i> Card UID (Read-Only)
+                                </label>
+                                <input type="text" id="rfid-uid-input" placeholder="Tap card on ESP32..." readonly class="input-readonly" required>
+                                <small class="input-hint">Captured from physical ESP32 scanner</small>
+                            </div>
+
+                            <!-- Student ID (Non-editable: 26-XXXXX) -->
+                            <div class="form-group">
+                                <label for="rfid-student-id-input">
+                                    <i class="fa-solid fa-hashtag"></i> Generated Student ID (Read-Only)
+                                </label>
+                                <input type="text" id="rfid-student-id-input" placeholder="26-XXXXX" readonly class="input-readonly" required>
+                                <small class="input-hint">Auto-generated format: 26-XXXXX</small>
+                            </div>
+
+                            <!-- Student Name (Editable) -->
+                            <div class="form-group full-width">
+                                <label for="rfid-student-name-input">
+                                    <i class="fa-solid fa-user"></i> Student Name
+                                </label>
+                                <input type="text" id="rfid-student-name-input" placeholder="Enter Full Student Name..." required class="input-editable">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="simulateCardTap()">
+                                <i class="fa-solid fa-bolt"></i> Simulate Card Tap (Test)
+                            </button>
+                            <button type="submit" class="btn-primary-blue" id="btn-save-rfid">
+                                <i class="fa-solid fa-floppy-disk"></i> Register & Save Card
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Registered Cards Table -->
+                    <div class="table-container">
+                        <div class="table-header">
+                            <h3><i class="fa-solid fa-address-card"></i> Registered Student Cards (`Cards` Table - PostgreSQL)</h3>
+                            <button class="btn-sm-refresh" onclick="loadRegisteredCards()"><i class="fa-solid fa-rotate"></i> Refresh List</button>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Card UID</th>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Date Registered</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cards-table-body">
+                                <tr>
+                                    <td colspan="6" class="text-center">Loading registered card data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Quick Action Buttons -->
+                <div class="action-buttons-box">
+                    <button class="btn-cyan">Submit Identity Information</button>
+                    <button class="btn-cyan">Covid-19 Vaccine Information</button>
+                </div>
+
+            </main>
+
+        </div>
+
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="AdminDashboard.js"></script>
+
+</body>
+</html>

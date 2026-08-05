@@ -1,0 +1,251 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   Site-Wide Minimalist Live Search Overlay Stylesheet
+   Kapotaksha Secondary High School
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Live Search Overlay Modal ── */
+.site-search-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 100000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 70px;
+    padding-left: 16px;
+    padding-right: 16px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.site-search-modal.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* ── Search Dialog Box ── */
+.search-dialog-box {
+    width: 100%;
+    max-width: 640px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    transform: translateY(-12px);
+    transition: transform 0.2s ease;
+    color: #f8fafc;
+}
+
+.site-search-modal.active .search-dialog-box {
+    transform: translateY(0);
+}
+
+/* ── Search Input Header ── */
+.search-input-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid #1e293b;
+    gap: 12px;
+    background: #0f172a;
+}
+
+.search-icon-svg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #38bdf8;
+    flex-shrink: 0;
+}
+
+.search-live-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    color: #f8fafc;
+    font-family: inherit;
+}
+
+.search-live-input::placeholder {
+    color: #64748b;
+}
+
+.search-shortcut-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #94a3b8;
+    background: #1e293b;
+    border: 1px solid #334155;
+    padding: 2px 7px;
+    border-radius: 4px;
+}
+
+.search-close-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 1.3rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+    transition: color 0.15s;
+}
+
+.search-close-btn:hover {
+    color: #f43f5e;
+}
+
+/* ── Search Results List ── */
+.search-results-wrapper {
+    max-height: 55vh;
+    overflow-y: auto;
+    padding: 8px 12px 14px;
+    scrollbar-width: thin;
+    scrollbar-color: #334155 transparent;
+}
+
+.search-results-wrapper::-webkit-scrollbar {
+    width: 5px;
+}
+.search-results-wrapper::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 3px;
+}
+
+/* ── Category Header ── */
+.search-group-title {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #64748b;
+    padding: 12px 10px 6px;
+    margin: 0;
+}
+
+/* ── Result Item Card ── */
+.search-result-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #cbd5e1;
+    transition: background 0.15s ease, color 0.15s ease;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+}
+
+.search-result-item:hover,
+.search-result-item.selected {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f8fafc;
+}
+
+.search-item-content {
+    flex: 1;
+    overflow: hidden;
+}
+
+.search-item-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    margin: 0 0 2px 0;
+    color: #f1f5f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-item-snippet {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Minimal subtle text highlight instead of heavy block */
+.search-highlight {
+    background: transparent;
+    color: #38bdf8;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.search-item-category {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #64748b;
+    border: 1px solid #334155;
+    padding: 2px 7px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+/* ── Empty State ── */
+.search-empty-state {
+    text-align: center;
+    padding: 35px 20px;
+    color: #64748b;
+}
+
+.search-empty-text {
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* ── Footer Bar ── */
+.search-footer-info {
+    padding: 10px 18px;
+    background: #090d16;
+    border-top: 1px solid #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.search-footer-info span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.search-footer-key {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #cbd5e1;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+@media (max-width: 600px) {
+    .site-search-modal {
+        padding-top: 15px;
+    }
+    .search-footer-info {
+        display: none;
+    }
+}

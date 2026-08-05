@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Student & Personal Data - Kapataksha High School Portal</title>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- External CSS -->
+    <link rel="stylesheet" href="../AdminDashboard.css">
+</head>
+<body>
+
+    <!-- Mobile Drawer Overlay Backdrop -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
+    <div class="dashboard-container">
+
+        <!-- Unified Top Header Navigation Bar -->
+        <header class="header">
+            <div class="header-left">
+                <!-- Mobile Hamburger Toggle inside Header -->
+                <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" title="Toggle Navigation Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
+                <!-- Clickable logo linking to Admin Dashboard Homepage -->
+                <a href="../AdminDashboard.html" class="header-brand-link" title="Admin Dashboard Home">
+                    <img src="../../Photos/KSHS.png" alt="KSHS Emblem" class="logo-img">
+                    <div class="brand-divider"></div>
+                    <div class="brand-text">
+                        <span class="brand-title">KSHS</span>
+                        <span class="brand-subtitle">PORTAL</span>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="header-nav" id="header-nav-menu">
+                <a class="nav-item" href="../AdminDashboard.html" title="Portal Home">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Home</span>
+                </a>
+                <a class="nav-item active" href="EditStudent.html">
+                    <i class="fa-solid fa-user-pen"></i>
+                    <span>Edit Student</span>
+                </a>
+            </nav>
+
+            <div class="header-right">
+                <!-- Only Logout Button -->
+                <a href="../AdminDashboard.html" class="logout-btn" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Body Layout -->
+        <div class="main-layout">
+
+            <!-- Left Navigation Sidebar -->
+            <aside class="sidebar" id="sidebar-menu">
+                <!-- Dashboard -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-dashboard')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-chart-pie sidebar-icon"></i>
+                            <span>Dashboard</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-dashboard" class="sidebar-menu-content">
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-users subitem-icon"></i>
+                            <span>Total Students</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chalkboard-user subitem-icon"></i>
+                            <span>Total Teachers</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-calendar-check subitem-icon"></i>
+                            <span>Today's Attendance</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clock-rotate-left subitem-icon"></i>
+                            <span>Recent Activities</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Student Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-student')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-user-graduate sidebar-icon"></i>
+                            <span>Student Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-student" class="sidebar-menu-content active">
+                        <a href="EditStudent.html" class="sidebar-subitem active">
+                            <i class="fa-solid fa-user-pen subitem-icon"></i>
+                            <span>Edit Student</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-xmark subitem-icon"></i>
+                            <span>Delete Student</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-users-rectangle subitem-icon"></i>
+                            <span>View All Students</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-file-import subitem-icon"></i>
+                            <span>Import/Export Students</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Teacher Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-teacher')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-chalkboard-user sidebar-icon"></i>
+                            <span>Teacher Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-teacher" class="sidebar-menu-content">
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-plus subitem-icon"></i>
+                            <span>Add Teacher</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chalkboard subitem-icon"></i>
+                            <span>Assign Classes</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-book subitem-icon"></i>
+                            <span>Teacher List</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Attendance -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-attendance')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-calendar-days sidebar-icon"></i>
+                            <span>Attendance</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-attendance" class="sidebar-menu-content">
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-signal subitem-icon"></i>
+                            <span>Live Attendance</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clipboard-user subitem-icon"></i>
+                            <span>Attendance Records</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-pen-to-square subitem-icon"></i>
+                            <span>Manual Attendance</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chart-line subitem-icon"></i>
+                            <span>Attendance Reports</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- RFID Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-rfid')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-id-card sidebar-icon"></i>
+                            <span>RFID Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-rfid" class="sidebar-menu-content">
+                        <a href="../RFID Management/RegisterCard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-id-badge subitem-icon"></i>
+                            <span>Register RFID Card</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-check subitem-icon"></i>
+                            <span>Assign Card to Student</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-arrows-rotate subitem-icon"></i>
+                            <span>Replace Lost Card</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-card subitem-icon"></i>
+                            <span>View Registered Cards</span>
+                        </a>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Right Content Area -->
+            <main class="content-area">
+
+                <!-- 1. Search Student Section -->
+                <div class="rfid-card-section">
+                    <div class="rfid-card-header">
+                        <div class="rfid-title">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <span>Search Student Profile</span>
+                        </div>
+                        <div class="live-status-badge" id="live-edit-scan-status">
+                            <span class="status-dot pulsing"></span>
+                            <span id="edit-status-text">Tap card on ESP32 or enter Student ID...</span>
+                        </div>
+                    </div>
+
+                    <form onsubmit="handleSearchStudentSubmit(event)" class="search-form-flex">
+                        <div class="search-input-wrap">
+                            <i class="fa-solid fa-address-card search-icon"></i>
+                            <input type="text" id="search-query-input" placeholder="Enter Student ID (e.g. 26-00001) or Card UID..." required class="input-search">
+                        </div>
+                        <button type="submit" class="btn-primary-blue">
+                            <i class="fa-solid fa-magnifying-glass"></i> Search
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 2. Loaded Student Banner & Personal Info Form -->
+                <div class="rfid-card-section" id="personal-data-section" style="display: none;">
+                    
+                    <!-- Loaded Card Summary Header -->
+                    <div class="student-summary-banner">
+                        <div class="summary-item">
+                            <span class="summary-label">Student ID:</span>
+                            <strong class="summary-value highlight-blue" id="summary-student-id">26-00001</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Card UID:</span>
+                            <code class="uid-tag" id="summary-card-uid">A3:B4:C5:D6</code>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Card Name:</span>
+                            <span class="summary-value" id="summary-card-name">Student Name</span>
+                        </div>
+                    </div>
+
+                    <form id="personal-data-form" onsubmit="handleSavePersonalData(event)" class="rfid-form">
+                        <input type="hidden" id="student-id-hidden">
+
+                        <h3 class="form-section-title"><i class="fa-solid fa-user-gear"></i> Personal Information</h3>
+
+                        <!-- Profile Photo Upload Row -->
+                        <div class="photo-upload-container">
+                            <div class="photo-preview-box">
+                                <img id="photo-preview-img" src="../Photos/avatar-placeholder.png" alt="Student Photo Preview" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+                            </div>
+                            <div class="photo-upload-controls">
+                                <label for="photo-file-input" class="btn-secondary">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Student Photo
+                                </label>
+                                <input type="file" id="photo-file-input" accept="image/*" onchange="previewPhoto(event)" style="display: none;">
+                                <small class="input-hint">Allowed formats: JPG, PNG, WEBP (Max 2MB)</small>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <!-- 1. First Name -->
+                            <div class="form-group">
+                                <label for="first-name-input">
+                                    <i class="fa-solid fa-signature"></i> First Name <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="first-name-input" placeholder="Enter First Name..." required class="input-editable">
+                            </div>
+
+                            <!-- 2. Last Name -->
+                            <div class="form-group">
+                                <label for="last-name-input">
+                                    <i class="fa-solid fa-signature"></i> Last Name <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="last-name-input" placeholder="Enter Last Name..." required class="input-editable">
+                            </div>
+
+                            <!-- 3. Gender -->
+                            <div class="form-group">
+                                <label for="gender-select">
+                                    <i class="fa-solid fa-venus-mars"></i> Gender <span class="required-star">*</span>
+                                </label>
+                                <select id="gender-select" required class="input-editable">
+                                    <option value="">-- Select Gender --</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <!-- 4. Date of Birth -->
+                            <div class="form-group">
+                                <label for="dob-input">
+                                    <i class="fa-solid fa-cake-candles"></i> Date of Birth <span class="required-star">*</span>
+                                </label>
+                                <input type="date" id="dob-input" required class="input-editable">
+                            </div>
+
+                            <!-- 5. Blood Group -->
+                            <div class="form-group">
+                                <label for="blood-group-select">
+                                    <i class="fa-solid fa-droplet"></i> Blood Group <span class="required-star">*</span>
+                                </label>
+                                <select id="blood-group-select" required class="input-editable">
+                                    <option value="">-- Select Blood Group --</option>
+                                    <option value="A+">A+</option>
+                                    <option value="A-">A-</option>
+                                    <option value="B+">B+</option>
+                                    <option value="B-">B-</option>
+                                    <option value="O+">O+</option>
+                                    <option value="O-">O-</option>
+                                    <option value="AB+">AB+</option>
+                                    <option value="AB-">AB-</option>
+                                </select>
+                            </div>
+
+                            <!-- 6. Religion -->
+                            <div class="form-group">
+                                <label for="religion-input">
+                                    <i class="fa-solid fa-hands-praying"></i> Religion <span class="required-star">*</span>
+                                </label>
+                                <select id="religion-input" required class="input-editable">
+                                    <option value="Islam">Islam</option>
+                                    <option value="Hinduism">Hinduism</option>
+                                    <option value="Buddhism">Buddhism</option>
+                                    <option value="Christianity">Christianity</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <!-- 7. Nationality -->
+                            <div class="form-group">
+                                <label for="nationality-input">
+                                    <i class="fa-solid fa-flag"></i> Nationality <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="nationality-input" value="Bangladeshi" required class="input-editable">
+                            </div>
+
+                            <!-- 8. National ID / Birth Certificate Number (Optional) -->
+                            <div class="form-group">
+                                <label for="nid-cert-input">
+                                    <i class="fa-solid fa-id-card-clip"></i> National ID / Birth Certificate No <small style="color: #888;">(Optional)</small>
+                                </label>
+                                <input type="text" id="nid-cert-input" placeholder="Enter NID or Birth Reg No..." class="input-editable">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary-blue" id="btn-save-personal">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Personal Data (PostgreSQL)
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+
+            </main>
+
+        </div>
+
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="../AdminDashboard.js"></script>
+
+</body>
+</html>

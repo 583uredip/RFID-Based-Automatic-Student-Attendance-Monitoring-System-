@@ -1,6 +1,8 @@
-/* ══════════════════════════════════════════════════════
-   Shared styles for all event-specific gallery pages
-   ══════════════════════════════════════════════════════ */
+@import "../../css/lightbox.css";
+
+/* ── Lightbox Legacy Fallback Cleanup ── */
+.lightbox { display: none !important; }
+
 
 /* ── Cover Banner ── */
 .cover-wrapper {
