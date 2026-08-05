@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register RFID Card - Kapataksha High School Portal</title>
+    <title>Import/Export Students - Kapataksha High School Portal</title>
     <!-- Google Fonts & Font Awesome Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- External CSS -->
+    <!-- PapaParse for CSV processing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Common Admin Dashboard CSS -->
     <link rel="stylesheet" href="../AdminDashboard.css">
 </head>
 <body>
@@ -41,9 +43,9 @@
                     <i class="fa-solid fa-house"></i>
                     <span>Home</span>
                 </a>
-                <a class="nav-item active" href="RegisterCard.html">
-                    <i class="fa-solid fa-id-card"></i>
-                    <span>Register RFID Card</span>
+                <a class="nav-item" href="EditStudent.html">
+                    <i class="fa-solid fa-user-pen"></i>
+                    <span>Edit Student</span>
                 </a>
             </nav>
 
@@ -98,28 +100,24 @@
                         </div>
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
-                    <div id="menu-student" class="sidebar-menu-content">
-                        <a href="../StudentManagement/EditStudent.html" class="sidebar-subitem">
+                    <div id="menu-student" class="sidebar-menu-content active">
+                        <a href="EditStudent.html" class="sidebar-subitem">
                             <i class="fa-solid fa-user-pen subitem-icon"></i>
                             <span>Edit Student</span>
                         </a>
-                        <a href="../StudentManagement/AcademicInformation.html" class="sidebar-subitem">
+                        <a href="AcademicInformation.html" class="sidebar-subitem">
                             <i class="fa-solid fa-graduation-cap subitem-icon"></i>
                             <span>Academic Information</span>
                         </a>
-                        <a href="../StudentManagement/ContactInformation.html" class="sidebar-subitem">
+                        <a href="ContactInformation.html" class="sidebar-subitem">
                             <i class="fa-solid fa-address-book subitem-icon"></i>
                             <span>Contact Information</span>
                         </a>
-                        <a href="../StudentManagement/DeleteStudent.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-user-xmark subitem-icon"></i>
-                            <span>Delete Student</span>
-                        </a>
-                        <a href="../StudentManagement/ViewAllStudents.html" class="sidebar-subitem">
+                        <a href="ViewAllStudents.html" class="sidebar-subitem">
                             <i class="fa-solid fa-users-rectangle subitem-icon"></i>
                             <span>View All Students</span>
                         </a>
-                        <a href="../StudentManagement/ImportExportStudents.html" class="sidebar-subitem">
+                        <a href="ImportExportStudents.html" class="sidebar-subitem active">
                             <i class="fa-solid fa-file-csv subitem-icon"></i>
                             <span>Import/Export Students</span>
                         </a>
@@ -189,8 +187,8 @@
                         </div>
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
-                    <div id="menu-rfid" class="sidebar-menu-content active">
-                        <a href="RegisterCard.html" class="sidebar-subitem active">
+                    <div id="menu-rfid" class="sidebar-menu-content">
+                        <a href="../RFID Management/RegisterCard.html" class="sidebar-subitem">
                             <i class="fa-solid fa-id-badge subitem-icon"></i>
                             <span>Register RFID Card</span>
                         </a>
@@ -208,87 +206,63 @@
                         </a>
                     </div>
                 </div>
-
-</aside>
+            </aside>
 
             <!-- Right Content Area -->
             <main class="content-area">
 
-                <!-- RFID Card Registration Section -->
-                <div class="rfid-card-section" id="rfid-section">
+                <!-- Import / Export Section -->
+                <div class="rfid-card-section">
                     <div class="rfid-card-header">
                         <div class="rfid-title">
-                            <i class="fa-solid fa-id-card"></i>
-                            <span>Register New RFID Card</span>
-                        </div>
-                        <div class="live-status-badge" id="live-scan-status">
-                            <span class="status-dot pulsing"></span>
-                            <span id="status-text">Tap physical RFID card on scanner...</span>
+                            <i class="fa-solid fa-file-export"></i>
+                            <span>Export Students to CSV</span>
                         </div>
                     </div>
+                    <div style="margin-top: 15px; color: #475569; line-height: 1.6;">
+                        <p>Export all registered students and their details (Personal, Academic, and Contact Info) to a standard CSV file.</p>
+                        <button onclick="handleExportStudents()" class="btn-primary-blue" style="margin-top: 15px;" id="btn-export">
+                            <i class="fa-solid fa-download"></i> Download All Students (CSV)
+                        </button>
+                    </div>
+                </div>
 
-                    <form id="rfid-register-form" onsubmit="handleRfidRegister(event)" class="rfid-form">
-                        <div class="form-grid">
-                            <!-- Card UID (Non-editable) -->
-                            <div class="form-group">
-                                <label for="rfid-uid-input">
-                                    <i class="fa-solid fa-microchip"></i> Card UID (Read-Only)
-                                </label>
-                                <input type="text" id="rfid-uid-input" placeholder="Tap card on ESP32..." readonly class="input-readonly" required>
-                                <small class="input-hint">Captured from physical ESP32 scanner</small>
-                            </div>
+                <div class="rfid-card-section">
+                    <div class="rfid-card-header">
+                        <div class="rfid-title">
+                            <i class="fa-solid fa-file-import"></i>
+                            <span>Bulk Import Students from CSV</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; color: #475569; line-height: 1.6;">
+                        <p>Upload a CSV file to bulk add or update student records. <strong>Important:</strong> Ensure the CSV has <code>uid</code>, <code>student_id</code>, and <code>card_name</code> columns at minimum.</p>
+                        
+                        <div class="form-group" style="margin-top: 20px;">
+                            <label for="csv-file-input">Select CSV File</label>
+                            <input type="file" id="csv-file-input" accept=".csv" class="input-field">
+                        </div>
 
-                            <!-- Student ID (Non-editable: 26-XXXXX) -->
-                            <div class="form-group">
-                                <label for="rfid-student-id-input">
-                                    <i class="fa-solid fa-hashtag"></i> Generated Student ID (Read-Only)
-                                </label>
-                                <input type="text" id="rfid-student-id-input" placeholder="26-XXXXX" readonly class="input-readonly" required>
-                                <small class="input-hint">Auto-generated format: 26-XXXXX</small>
-                            </div>
-
-                            <!-- Student Name (Editable) -->
-                            <div class="form-group full-width">
-                                <label for="rfid-student-name-input">
-                                    <i class="fa-solid fa-user"></i> Student Name
-                                </label>
-                                <input type="text" id="rfid-student-name-input" placeholder="Enter Full Student Name..." required class="input-editable">
+                        <div id="import-preview-section" style="display: none; margin-top: 20px;">
+                            <h4 style="color: #334155; margin-bottom: 10px;">Preview (<span id="preview-count">0</span> rows)</h4>
+                            <div style="overflow-x: auto; max-height: 300px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                                    <thead style="background-color: #f1f5f9; position: sticky; top: 0;">
+                                        <tr id="preview-table-head"></tr>
+                                    </thead>
+                                    <tbody id="preview-table-body"></tbody>
+                                </table>
                             </div>
                         </div>
 
-                        <div class="form-actions">
-                            <button type="button" class="btn-secondary" onclick="simulateCardTap()">
-                                <i class="fa-solid fa-bolt"></i> Simulate Card Tap (Test)
+                        <div class="form-actions" style="margin-top: 20px; justify-content: flex-start;">
+                            <button type="button" onclick="previewCSV()" class="btn-secondary" id="btn-preview">
+                                <i class="fa-solid fa-eye"></i> Preview CSV
                             </button>
-                            <button type="submit" class="btn-primary-blue" id="btn-save-rfid">
-                                <i class="fa-solid fa-floppy-disk"></i> Register & Save Card
+                            <button type="button" onclick="handleImportStudents()" class="btn-primary-blue" id="btn-import" style="display: none; margin-left: 10px;">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Upload & Sync Data
                             </button>
                         </div>
-                    </form>
-
-                    <!-- Registered Cards Table -->
-                    <div class="table-container">
-                        <div class="table-header">
-                            <h3><i class="fa-solid fa-address-card"></i> Registered Student Cards (`Cards` Table - PostgreSQL)</h3>
-                            <button class="btn-sm-refresh" onclick="loadRegisteredCards()"><i class="fa-solid fa-rotate"></i> Refresh List</button>
-                        </div>
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Card UID</th>
-                                    <th>Student ID</th>
-                                    <th>Student Name</th>
-                                    <th>Date Registered</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="cards-table-body">
-                                <tr>
-                                    <td colspan="6" class="text-center">Loading registered card data...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div id="import-status" style="margin-top: 15px; font-weight: 500;"></div>
                     </div>
                 </div>
 

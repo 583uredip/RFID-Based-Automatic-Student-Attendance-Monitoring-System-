@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Student & Personal Data - Kapataksha High School Portal</title>
-    <!-- Google Fonts & Font Awesome Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Contact Information | Student Management</title>
+    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- External CSS -->
+    <!-- Main Stylesheet -->
     <link rel="stylesheet" href="../AdminDashboard.css">
 </head>
 <body>
@@ -41,9 +40,10 @@
                     <i class="fa-solid fa-house"></i>
                     <span>Home</span>
                 </a>
-                <a class="nav-item active" href="EditStudent.html">
-                    <i class="fa-solid fa-user-pen"></i>
-                    <span>Edit Student</span>
+                <h2 class="header-title">Student Management / Contact Information</h2>
+                <a class="nav-item" href="AcademicInformation.html">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>Academic Info</span>
                 </a>
             </nav>
 
@@ -99,7 +99,7 @@
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
                     <div id="menu-student" class="sidebar-menu-content active">
-                        <a href="EditStudent.html" class="sidebar-subitem active">
+                        <a href="EditStudent.html" class="sidebar-subitem">
                             <i class="fa-solid fa-user-pen subitem-icon"></i>
                             <span>Edit Student</span>
                         </a>
@@ -107,7 +107,7 @@
                             <i class="fa-solid fa-graduation-cap subitem-icon"></i>
                             <span>Academic Information</span>
                         </a>
-                        <a href="ContactInformation.html" class="sidebar-subitem">
+                        <a href="ContactInformation.html" class="sidebar-subitem active">
                             <i class="fa-solid fa-address-book subitem-icon"></i>
                             <span>Contact Information</span>
                         </a>
@@ -237,8 +237,8 @@
                     </form>
                 </div>
 
-                <!-- 2. Loaded Student Banner & Personal Info Form -->
-                <div class="rfid-card-section" id="personal-data-section" style="display: none;">
+                <!-- 2. Loaded Student Banner & Academic Info Form -->
+                <div class="rfid-card-section" id="contact-data-section" style="display: none;">
                     
                     <!-- Loaded Card Summary Header -->
                     <div class="student-summary-banner">
@@ -256,115 +256,137 @@
                         </div>
                     </div>
 
-                    <form id="personal-data-form" onsubmit="handleSavePersonalData(event)" class="rfid-form">
+                    <form id="contact-data-form" onsubmit="handleSaveContactData(event)" class="rfid-form">
                         <input type="hidden" id="student-id-hidden">
 
-                        <h3 class="form-section-title"><i class="fa-solid fa-user-gear"></i> Personal Information</h3>
-
-                        <!-- Profile Photo Upload Row -->
-                        <div class="photo-upload-container">
-                            <div class="photo-preview-box">
-                                <img id="photo-preview-img" src="../Photos/avatar-placeholder.png" alt="Student Photo Preview" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
-                            </div>
-                            <div class="photo-upload-controls">
-                                <label for="photo-file-input" class="btn-secondary">
-                                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Student Photo
-                                </label>
-                                <input type="file" id="photo-file-input" accept="image/*" onchange="previewPhoto(event)" style="display: none;">
-                                <small class="input-hint">Allowed formats: JPG, PNG, WEBP (Max 2MB)</small>
-                            </div>
-                        </div>
+                        <h3 class="form-section-title"><i class="fa-solid fa-address-book"></i> Contact Information</h3>
 
                         <div class="form-grid">
-                            <!-- 1. First Name -->
+                            <!-- Mobile Number -->
                             <div class="form-group">
-                                <label for="first-name-input">
-                                    <i class="fa-solid fa-signature"></i> First Name <span class="required-star">*</span>
+                                <label for="mobile-number-input">
+                                    <i class="fa-solid fa-mobile-screen-button"></i> Mobile Number <span class="required-star">*</span>
                                 </label>
-                                <input type="text" id="first-name-input" placeholder="Enter First Name..." required class="input-editable">
+                                <input type="text" id="mobile-number-input" placeholder="e.g. 01712345678" required class="input-editable">
                             </div>
 
-                            <!-- 2. Last Name -->
+                            <!-- Email Address -->
                             <div class="form-group">
-                                <label for="last-name-input">
-                                    <i class="fa-solid fa-signature"></i> Last Name <span class="required-star">*</span>
+                                <label for="email-address-input">
+                                    <i class="fa-solid fa-envelope"></i> Email Address
                                 </label>
-                                <input type="text" id="last-name-input" placeholder="Enter Last Name..." required class="input-editable">
+                                <input type="email" id="email-address-input" placeholder="student@example.com" class="input-editable">
                             </div>
 
-                            <!-- 3. Gender -->
+                            <!-- Current Address -->
                             <div class="form-group">
-                                <label for="gender-select">
-                                    <i class="fa-solid fa-venus-mars"></i> Gender <span class="required-star">*</span>
+                                <label for="current-address-input">
+                                    <i class="fa-solid fa-location-dot"></i> Current Address <span class="required-star">*</span>
                                 </label>
-                                <select id="gender-select" required class="input-editable">
-                                    <option value="">-- Select Gender --</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
-                                </select>
+                                <textarea id="current-address-input" placeholder="Enter current address..." required class="input-editable" rows="3"></textarea>
                             </div>
 
-                            <!-- 4. Date of Birth -->
+                            <!-- Permanent Address -->
                             <div class="form-group">
-                                <label for="dob-input">
-                                    <i class="fa-solid fa-cake-candles"></i> Date of Birth <span class="required-star">*</span>
+                                <label for="permanent-address-input">
+                                    <i class="fa-solid fa-house"></i> Permanent Address
                                 </label>
-                                <input type="date" id="dob-input" required class="input-editable">
+                                <textarea id="permanent-address-input" placeholder="Enter permanent address..." class="input-editable" rows="3"></textarea>
                             </div>
 
-                            <!-- 5. Blood Group -->
+                            <!-- Father's Name -->
                             <div class="form-group">
-                                <label for="blood-group-select">
-                                    <i class="fa-solid fa-droplet"></i> Blood Group <span class="required-star">*</span>
+                                <label for="fathers-name-input">
+                                    <i class="fa-solid fa-user-tie"></i> Father's Name <span class="required-star">*</span>
                                 </label>
-                                <select id="blood-group-select" required class="input-editable">
-                                    <option value="">-- Select Blood Group --</option>
-                                    <option value="A+">A+</option>
-                                    <option value="A-">A-</option>
-                                    <option value="B+">B+</option>
-                                    <option value="B-">B-</option>
-                                    <option value="O+">O+</option>
-                                    <option value="O-">O-</option>
-                                    <option value="AB+">AB+</option>
-                                    <option value="AB-">AB-</option>
-                                </select>
+                                <input type="text" id="fathers-name-input" placeholder="Enter father's name..." required class="input-editable">
                             </div>
 
-                            <!-- 6. Religion -->
+                            <!-- Father's Phone -->
                             <div class="form-group">
-                                <label for="religion-input">
-                                    <i class="fa-solid fa-hands-praying"></i> Religion <span class="required-star">*</span>
+                                <label for="fathers-phone-input">
+                                    <i class="fa-solid fa-phone"></i> Father's Phone <span class="required-star">*</span>
                                 </label>
-                                <select id="religion-input" required class="input-editable">
-                                    <option value="Islam">Islam</option>
-                                    <option value="Hinduism">Hinduism</option>
-                                    <option value="Buddhism">Buddhism</option>
-                                    <option value="Christianity">Christianity</option>
-                                    <option value="Other">Other</option>
-                                </select>
+                                <input type="text" id="fathers-phone-input" placeholder="e.g. 01712345678" required class="input-editable">
                             </div>
 
-                            <!-- 7. Nationality -->
+                            <!-- Father's Occupation -->
                             <div class="form-group">
-                                <label for="nationality-input">
-                                    <i class="fa-solid fa-flag"></i> Nationality <span class="required-star">*</span>
+                                <label for="fathers-occupation-input">
+                                    <i class="fa-solid fa-briefcase"></i> Father's Occupation
                                 </label>
-                                <input type="text" id="nationality-input" value="Bangladeshi" required class="input-editable">
+                                <input type="text" id="fathers-occupation-input" placeholder="Enter father's occupation..." class="input-editable">
                             </div>
 
-                            <!-- 8. National ID / Birth Certificate Number (Optional) -->
+                            <!-- Father's Email -->
                             <div class="form-group">
-                                <label for="nid-cert-input">
-                                    <i class="fa-solid fa-id-card-clip"></i> National ID / Birth Certificate No <small style="color: #888;">(Optional)</small>
+                                <label for="fathers-email-input">
+                                    <i class="fa-solid fa-envelope"></i> Father's Email
                                 </label>
-                                <input type="text" id="nid-cert-input" placeholder="Enter NID or Birth Reg No..." class="input-editable">
+                                <input type="email" id="fathers-email-input" placeholder="father@example.com" class="input-editable">
                             </div>
+
+                            <!-- Mother's Name -->
+                            <div class="form-group">
+                                <label for="mothers-name-input">
+                                    <i class="fa-solid fa-user"></i> Mother's Name <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="mothers-name-input" placeholder="Enter mother's name..." required class="input-editable">
+                            </div>
+
+                            <!-- Mother's Phone -->
+                            <div class="form-group">
+                                <label for="mothers-phone-input">
+                                    <i class="fa-solid fa-phone"></i> Mother's Phone
+                                </label>
+                                <input type="text" id="mothers-phone-input" placeholder="e.g. 01712345678" class="input-editable">
+                            </div>
+
+                            <!-- Mother's Occupation -->
+                            <div class="form-group">
+                                <label for="mothers-occupation-input">
+                                    <i class="fa-solid fa-briefcase"></i> Mother's Occupation
+                                </label>
+                                <input type="text" id="mothers-occupation-input" placeholder="Enter mother's occupation..." class="input-editable">
+                            </div>
+
+                            <!-- Mother's Email -->
+                            <div class="form-group">
+                                <label for="mothers-email-input">
+                                    <i class="fa-solid fa-envelope"></i> Mother's Email
+                                </label>
+                                <input type="email" id="mothers-email-input" placeholder="mother@example.com" class="input-editable">
+                            </div>
+
+                            <!-- Guardian Name -->
+                            <div class="form-group">
+                                <label for="guardian-name-input">
+                                    <i class="fa-solid fa-user-shield"></i> Guardian Name <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="guardian-name-input" placeholder="Enter guardian name..." required class="input-editable">
+                            </div>
+
+                            <!-- Guardian Relationship -->
+                            <div class="form-group">
+                                <label for="guardian-relationship-input">
+                                    <i class="fa-solid fa-people-arrows"></i> Guardian Relationship <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="guardian-relationship-input" placeholder="e.g. Uncle, Aunt, Grandparent" required class="input-editable">
+                            </div>
+
+                            <!-- Guardian Phone -->
+                            <div class="form-group">
+                                <label for="guardian-phone-input">
+                                    <i class="fa-solid fa-phone"></i> Guardian Phone <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="guardian-phone-input" placeholder="e.g. 01712345678" required class="input-editable">
+                            </div>
+
                         </div>
 
                         <div class="form-actions">
-                            <button type="submit" class="btn-primary-blue" id="btn-save-personal">
-                                <i class="fa-solid fa-floppy-disk"></i> Save Personal Data (PostgreSQL)
+                            <button type="submit" class="btn-primary-blue" id="btn-save-contact">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Contact Data
                             </button>
                         </div>
                     </form>

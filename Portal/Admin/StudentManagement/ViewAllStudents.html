@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register RFID Card - Kapataksha High School Portal</title>
+    <title>View All Students - Kapataksha High School Portal</title>
     <!-- Google Fonts & Font Awesome Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -41,9 +41,9 @@
                     <i class="fa-solid fa-house"></i>
                     <span>Home</span>
                 </a>
-                <a class="nav-item active" href="RegisterCard.html">
-                    <i class="fa-solid fa-id-card"></i>
-                    <span>Register RFID Card</span>
+                <a class="nav-item" href="EditStudent.html">
+                    <i class="fa-solid fa-user-pen"></i>
+                    <span>Edit Student</span>
                 </a>
             </nav>
 
@@ -98,28 +98,28 @@
                         </div>
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
-                    <div id="menu-student" class="sidebar-menu-content">
-                        <a href="../StudentManagement/EditStudent.html" class="sidebar-subitem">
+                    <div id="menu-student" class="sidebar-menu-content active">
+                        <a href="EditStudent.html" class="sidebar-subitem">
                             <i class="fa-solid fa-user-pen subitem-icon"></i>
                             <span>Edit Student</span>
                         </a>
-                        <a href="../StudentManagement/AcademicInformation.html" class="sidebar-subitem">
+                        <a href="AcademicInformation.html" class="sidebar-subitem">
                             <i class="fa-solid fa-graduation-cap subitem-icon"></i>
                             <span>Academic Information</span>
                         </a>
-                        <a href="../StudentManagement/ContactInformation.html" class="sidebar-subitem">
+                        <a href="ContactInformation.html" class="sidebar-subitem">
                             <i class="fa-solid fa-address-book subitem-icon"></i>
                             <span>Contact Information</span>
                         </a>
-                        <a href="../StudentManagement/DeleteStudent.html" class="sidebar-subitem">
+                        <a href="DeleteStudent.html" class="sidebar-subitem">
                             <i class="fa-solid fa-user-xmark subitem-icon"></i>
                             <span>Delete Student</span>
                         </a>
-                        <a href="../StudentManagement/ViewAllStudents.html" class="sidebar-subitem">
+                        <a href="ViewAllStudents.html" class="sidebar-subitem active">
                             <i class="fa-solid fa-users-rectangle subitem-icon"></i>
                             <span>View All Students</span>
                         </a>
-                        <a href="../StudentManagement/ImportExportStudents.html" class="sidebar-subitem">
+                        <a href="ImportExportStudents.html" class="sidebar-subitem">
                             <i class="fa-solid fa-file-csv subitem-icon"></i>
                             <span>Import/Export Students</span>
                         </a>
@@ -189,8 +189,8 @@
                         </div>
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
-                    <div id="menu-rfid" class="sidebar-menu-content active">
-                        <a href="RegisterCard.html" class="sidebar-subitem active">
+                    <div id="menu-rfid" class="sidebar-menu-content">
+                        <a href="../RFID Management/RegisterCard.html" class="sidebar-subitem">
                             <i class="fa-solid fa-id-badge subitem-icon"></i>
                             <span>Register RFID Card</span>
                         </a>
@@ -208,84 +208,40 @@
                         </a>
                     </div>
                 </div>
-
-</aside>
+            </aside>
 
             <!-- Right Content Area -->
             <main class="content-area">
 
-                <!-- RFID Card Registration Section -->
-                <div class="rfid-card-section" id="rfid-section">
+                <!-- View All Students Section -->
+                <div class="rfid-card-section">
                     <div class="rfid-card-header">
                         <div class="rfid-title">
-                            <i class="fa-solid fa-id-card"></i>
-                            <span>Register New RFID Card</span>
+                            <i class="fa-solid fa-users-rectangle"></i>
+                            <span>All Registered Students</span>
                         </div>
-                        <div class="live-status-badge" id="live-scan-status">
-                            <span class="status-dot pulsing"></span>
-                            <span id="status-text">Tap physical RFID card on scanner...</span>
+                        <div class="live-status-badge success" id="students-count-badge">
+                            <span>Loading...</span>
                         </div>
                     </div>
 
-                    <form id="rfid-register-form" onsubmit="handleRfidRegister(event)" class="rfid-form">
-                        <div class="form-grid">
-                            <!-- Card UID (Non-editable) -->
-                            <div class="form-group">
-                                <label for="rfid-uid-input">
-                                    <i class="fa-solid fa-microchip"></i> Card UID (Read-Only)
-                                </label>
-                                <input type="text" id="rfid-uid-input" placeholder="Tap card on ESP32..." readonly class="input-readonly" required>
-                                <small class="input-hint">Captured from physical ESP32 scanner</small>
-                            </div>
-
-                            <!-- Student ID (Non-editable: 26-XXXXX) -->
-                            <div class="form-group">
-                                <label for="rfid-student-id-input">
-                                    <i class="fa-solid fa-hashtag"></i> Generated Student ID (Read-Only)
-                                </label>
-                                <input type="text" id="rfid-student-id-input" placeholder="26-XXXXX" readonly class="input-readonly" required>
-                                <small class="input-hint">Auto-generated format: 26-XXXXX</small>
-                            </div>
-
-                            <!-- Student Name (Editable) -->
-                            <div class="form-group full-width">
-                                <label for="rfid-student-name-input">
-                                    <i class="fa-solid fa-user"></i> Student Name
-                                </label>
-                                <input type="text" id="rfid-student-name-input" placeholder="Enter Full Student Name..." required class="input-editable">
-                            </div>
-                        </div>
-
-                        <div class="form-actions">
-                            <button type="button" class="btn-secondary" onclick="simulateCardTap()">
-                                <i class="fa-solid fa-bolt"></i> Simulate Card Tap (Test)
-                            </button>
-                            <button type="submit" class="btn-primary-blue" id="btn-save-rfid">
-                                <i class="fa-solid fa-floppy-disk"></i> Register & Save Card
-                            </button>
-                        </div>
-                    </form>
-
-                    <!-- Registered Cards Table -->
-                    <div class="table-container">
-                        <div class="table-header">
-                            <h3><i class="fa-solid fa-address-card"></i> Registered Student Cards (`Cards` Table - PostgreSQL)</h3>
-                            <button class="btn-sm-refresh" onclick="loadRegisteredCards()"><i class="fa-solid fa-rotate"></i> Refresh List</button>
-                        </div>
-                        <table class="data-table">
+                    <div style="overflow-x: auto; margin-top: 20px;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left;">
                             <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Card UID</th>
-                                    <th>Student ID</th>
-                                    <th>Student Name</th>
-                                    <th>Date Registered</th>
-                                    <th>Action</th>
+                                <tr style="background-color: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
+                                    <th style="padding: 12px 15px; font-weight: 600; color: #475569;">Student ID</th>
+                                    <th style="padding: 12px 15px; font-weight: 600; color: #475569;">Name</th>
+                                    <th style="padding: 12px 15px; font-weight: 600; color: #475569;">Card UID</th>
+                                    <th style="padding: 12px 15px; font-weight: 600; color: #475569;">Class & Roll</th>
+                                    <th style="padding: 12px 15px; font-weight: 600; color: #475569;">Mobile</th>
+                                    <th style="padding: 12px 15px; font-weight: 600; color: #475569;">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="cards-table-body">
+                            <tbody id="students-table-body">
                                 <tr>
-                                    <td colspan="6" class="text-center">Loading registered card data...</td>
+                                    <td colspan="6" style="padding: 20px; text-align: center; color: #64748b;">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Loading students...
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>

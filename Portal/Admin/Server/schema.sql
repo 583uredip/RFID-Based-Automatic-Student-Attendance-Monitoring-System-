@@ -47,3 +47,52 @@ CREATE TABLE IF NOT EXISTS PersonalData (
 CREATE INDEX IF NOT EXISTS idx_cards_uid ON cards(uid);
 CREATE INDEX IF NOT EXISTS idx_cards_student_id ON cards(student_id);
 CREATE INDEX IF NOT EXISTS idx_personaldata_student_id ON PersonalData(student_id);
+
+-- -------------------------------------------------------------------------
+-- Step 5: Create "StudentAcademicInformation" Table
+-- Stores Student Academic Information linked to cards table
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS StudentAcademicInformation (
+    id SERIAL PRIMARY KEY,
+    student_id VARCHAR(20) UNIQUE NOT NULL REFERENCES cards(student_id) ON DELETE CASCADE,
+    admission_number VARCHAR(50),
+    admission_date DATE,
+    class_name VARCHAR(20),
+    roll_number VARCHAR(20),
+    registration_number VARCHAR(50),
+    section VARCHAR(20),
+    student_group VARCHAR(20),
+    shift VARCHAR(20),
+    session VARCHAR(20),
+    academic_year VARCHAR(10),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_academic_student_id ON StudentAcademicInformation(student_id);
+
+-- -------------------------------------------------------------------------
+-- Step 6: Create "StudentContactInformation" Table
+-- Stores Student Contact Information linked to cards table
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS StudentContactInformation (
+    id SERIAL PRIMARY KEY,
+    student_id VARCHAR(20) UNIQUE NOT NULL REFERENCES cards(student_id) ON DELETE CASCADE,
+    mobile_number VARCHAR(20),
+    email_address VARCHAR(100),
+    current_address TEXT,
+    permanent_address TEXT,
+    fathers_name VARCHAR(100),
+    fathers_phone VARCHAR(20),
+    fathers_occupation VARCHAR(100),
+    fathers_email VARCHAR(100),
+    mothers_name VARCHAR(100),
+    mothers_phone VARCHAR(20),
+    mothers_occupation VARCHAR(100),
+    mothers_email VARCHAR(100),
+    guardian_name VARCHAR(100),
+    guardian_relationship VARCHAR(50),
+    guardian_phone VARCHAR(20),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_student_id ON StudentContactInformation(student_id);

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register RFID Card - Kapataksha High School Portal</title>
+    <title>Academic Information - Kapataksha High School Portal</title>
     <!-- Google Fonts & Font Awesome Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -41,9 +41,9 @@
                     <i class="fa-solid fa-house"></i>
                     <span>Home</span>
                 </a>
-                <a class="nav-item active" href="RegisterCard.html">
-                    <i class="fa-solid fa-id-card"></i>
-                    <span>Register RFID Card</span>
+                <a class="nav-item active" href="AcademicInformation.html">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>Academic Info</span>
                 </a>
             </nav>
 
@@ -98,28 +98,24 @@
                         </div>
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
-                    <div id="menu-student" class="sidebar-menu-content">
-                        <a href="../StudentManagement/EditStudent.html" class="sidebar-subitem">
+                    <div id="menu-student" class="sidebar-menu-content active">
+                        <a href="EditStudent.html" class="sidebar-subitem">
                             <i class="fa-solid fa-user-pen subitem-icon"></i>
                             <span>Edit Student</span>
                         </a>
-                        <a href="../StudentManagement/AcademicInformation.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-graduation-cap subitem-icon"></i>
+                        <a href="AcademicInformation.html" class="sidebar-subitem active">
+                            <i class="fa-solid fa-book-open subitem-icon"></i>
                             <span>Academic Information</span>
                         </a>
-                        <a href="../StudentManagement/ContactInformation.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-address-book subitem-icon"></i>
-                            <span>Contact Information</span>
-                        </a>
-                        <a href="../StudentManagement/DeleteStudent.html" class="sidebar-subitem">
+                        <a href="DeleteStudent.html" class="sidebar-subitem">
                             <i class="fa-solid fa-user-xmark subitem-icon"></i>
                             <span>Delete Student</span>
                         </a>
-                        <a href="../StudentManagement/ViewAllStudents.html" class="sidebar-subitem">
+                        <a href="ViewAllStudents.html" class="sidebar-subitem">
                             <i class="fa-solid fa-users-rectangle subitem-icon"></i>
                             <span>View All Students</span>
                         </a>
-                        <a href="../StudentManagement/ImportExportStudents.html" class="sidebar-subitem">
+                        <a href="ImportExportStudents.html" class="sidebar-subitem">
                             <i class="fa-solid fa-file-csv subitem-icon"></i>
                             <span>Import/Export Students</span>
                         </a>
@@ -189,8 +185,8 @@
                         </div>
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
-                    <div id="menu-rfid" class="sidebar-menu-content active">
-                        <a href="RegisterCard.html" class="sidebar-subitem active">
+                    <div id="menu-rfid" class="sidebar-menu-content">
+                        <a href="../RFID Management/RegisterCard.html" class="sidebar-subitem">
                             <i class="fa-solid fa-id-badge subitem-icon"></i>
                             <span>Register RFID Card</span>
                         </a>
@@ -208,88 +204,157 @@
                         </a>
                     </div>
                 </div>
-
-</aside>
+            </aside>
 
             <!-- Right Content Area -->
             <main class="content-area">
 
-                <!-- RFID Card Registration Section -->
-                <div class="rfid-card-section" id="rfid-section">
+                <!-- 1. Search Student Section -->
+                <div class="rfid-card-section">
                     <div class="rfid-card-header">
                         <div class="rfid-title">
-                            <i class="fa-solid fa-id-card"></i>
-                            <span>Register New RFID Card</span>
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <span>Search Student Profile</span>
                         </div>
-                        <div class="live-status-badge" id="live-scan-status">
+                        <div class="live-status-badge" id="live-edit-scan-status">
                             <span class="status-dot pulsing"></span>
-                            <span id="status-text">Tap physical RFID card on scanner...</span>
+                            <span id="edit-status-text">Tap card on ESP32 or enter Student ID...</span>
                         </div>
                     </div>
 
-                    <form id="rfid-register-form" onsubmit="handleRfidRegister(event)" class="rfid-form">
+                    <form onsubmit="handleSearchStudentSubmit(event)" class="search-form-flex">
+                        <div class="search-input-wrap">
+                            <i class="fa-solid fa-address-card search-icon"></i>
+                            <input type="text" id="search-query-input" placeholder="Enter Student ID (e.g. 26-00001) or Card UID..." required class="input-search">
+                        </div>
+                        <button type="submit" class="btn-primary-blue">
+                            <i class="fa-solid fa-magnifying-glass"></i> Search
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 2. Loaded Student Banner & Academic Info Form -->
+                <div class="rfid-card-section" id="academic-data-section" style="display: none;">
+                    
+                    <!-- Loaded Card Summary Header -->
+                    <div class="student-summary-banner">
+                        <div class="summary-item">
+                            <span class="summary-label">Student ID:</span>
+                            <strong class="summary-value highlight-blue" id="summary-student-id">26-00001</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Card UID:</span>
+                            <code class="uid-tag" id="summary-card-uid">A3:B4:C5:D6</code>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Card Name:</span>
+                            <span class="summary-value" id="summary-card-name">Student Name</span>
+                        </div>
+                    </div>
+
+                    <form id="academic-data-form" onsubmit="handleSaveAcademicData(event)" class="rfid-form">
+                        <input type="hidden" id="student-id-hidden">
+
+                        <h3 class="form-section-title"><i class="fa-solid fa-book-open"></i> Academic Information</h3>
+
                         <div class="form-grid">
-                            <!-- Card UID (Non-editable) -->
+                            <!-- 1. Admission Number -->
                             <div class="form-group">
-                                <label for="rfid-uid-input">
-                                    <i class="fa-solid fa-microchip"></i> Card UID (Read-Only)
+                                <label for="admission-number-input">
+                                    <i class="fa-solid fa-hashtag"></i> Admission Number <span class="required-star">*</span>
                                 </label>
-                                <input type="text" id="rfid-uid-input" placeholder="Tap card on ESP32..." readonly class="input-readonly" required>
-                                <small class="input-hint">Captured from physical ESP32 scanner</small>
+                                <input type="text" id="admission-number-input" placeholder="Enter Admission Number..." required class="input-editable">
                             </div>
 
-                            <!-- Student ID (Non-editable: 26-XXXXX) -->
+                            <!-- 2. Admission Date -->
                             <div class="form-group">
-                                <label for="rfid-student-id-input">
-                                    <i class="fa-solid fa-hashtag"></i> Generated Student ID (Read-Only)
+                                <label for="admission-date-input">
+                                    <i class="fa-solid fa-calendar-days"></i> Admission Date <span class="required-star">*</span>
                                 </label>
-                                <input type="text" id="rfid-student-id-input" placeholder="26-XXXXX" readonly class="input-readonly" required>
-                                <small class="input-hint">Auto-generated format: 26-XXXXX</small>
+                                <input type="date" id="admission-date-input" required class="input-editable">
                             </div>
 
-                            <!-- Student Name (Editable) -->
-                            <div class="form-group full-width">
-                                <label for="rfid-student-name-input">
-                                    <i class="fa-solid fa-user"></i> Student Name
+                            <!-- 3. Class -->
+                            <div class="form-group">
+                                <label for="class-input">
+                                    <i class="fa-solid fa-chalkboard"></i> Class <span class="required-star">*</span>
                                 </label>
-                                <input type="text" id="rfid-student-name-input" placeholder="Enter Full Student Name..." required class="input-editable">
+                                <input type="text" id="class-input" placeholder="Enter Class..." required class="input-editable">
                             </div>
+
+                            <!-- 4. Roll Number -->
+                            <div class="form-group">
+                                <label for="roll-number-input">
+                                    <i class="fa-solid fa-list-ol"></i> Roll Number <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="roll-number-input" placeholder="Enter Roll Number..." required class="input-editable">
+                            </div>
+
+                            <!-- 5. Registration Number -->
+                            <div class="form-group">
+                                <label for="registration-number-input">
+                                    <i class="fa-solid fa-id-card"></i> Registration Number <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="registration-number-input" placeholder="Enter Registration Number..." required class="input-editable">
+                            </div>
+
+                            <!-- 6. Section -->
+                            <div class="form-group">
+                                <label for="section-input">
+                                    <i class="fa-solid fa-users"></i> Section <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="section-input" placeholder="Enter Section..." required class="input-editable">
+                            </div>
+
+                            <!-- 7. Group -->
+                            <div class="form-group">
+                                <label for="group-select">
+                                    <i class="fa-solid fa-layer-group"></i> Group <small style="color: #888;">(Optional)</small>
+                                </label>
+                                <select id="group-select" class="input-editable">
+                                    <option value="">-- Select Group --</option>
+                                    <option value="Science">Science</option>
+                                    <option value="Commerce">Commerce</option>
+                                    <option value="Arts">Arts</option>
+                                </select>
+                            </div>
+
+                            <!-- 8. Shift -->
+                            <div class="form-group">
+                                <label for="shift-select">
+                                    <i class="fa-solid fa-sun"></i> Shift <span class="required-star">*</span>
+                                </label>
+                                <select id="shift-select" required class="input-editable">
+                                    <option value="Morning">Morning</option>
+                                    <option value="Day">Day</option>
+                                </select>
+                            </div>
+
+                            <!-- 9. Session -->
+                            <div class="form-group">
+                                <label for="session-input">
+                                    <i class="fa-solid fa-calendar"></i> Session <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="session-input" value="2026-2027" required class="input-editable">
+                            </div>
+
+                            <!-- 10. Academic Year -->
+                            <div class="form-group">
+                                <label for="academic-year-input">
+                                    <i class="fa-solid fa-calendar-check"></i> Academic Year <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="academic-year-input" placeholder="e.g. 2026" required class="input-editable">
+                            </div>
+
                         </div>
 
                         <div class="form-actions">
-                            <button type="button" class="btn-secondary" onclick="simulateCardTap()">
-                                <i class="fa-solid fa-bolt"></i> Simulate Card Tap (Test)
-                            </button>
-                            <button type="submit" class="btn-primary-blue" id="btn-save-rfid">
-                                <i class="fa-solid fa-floppy-disk"></i> Register & Save Card
+                            <button type="submit" class="btn-primary-blue" id="btn-save-academic">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Academic Data
                             </button>
                         </div>
                     </form>
 
-                    <!-- Registered Cards Table -->
-                    <div class="table-container">
-                        <div class="table-header">
-                            <h3><i class="fa-solid fa-address-card"></i> Registered Student Cards (`Cards` Table - PostgreSQL)</h3>
-                            <button class="btn-sm-refresh" onclick="loadRegisteredCards()"><i class="fa-solid fa-rotate"></i> Refresh List</button>
-                        </div>
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Card UID</th>
-                                    <th>Student ID</th>
-                                    <th>Student Name</th>
-                                    <th>Date Registered</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="cards-table-body">
-                                <tr>
-                                    <td colspan="6" class="text-center">Loading registered card data...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
 
             </main>

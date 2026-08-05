@@ -293,37 +293,106 @@ async function fetchStudentData(searchTerm) {
             if (editStatusBadge) editStatusBadge.className = 'live-status-badge success';
 
             // Populate Banner Summary
-            document.getElementById('summary-student-id').innerText = data.student_id;
-            document.getElementById('summary-card-uid').innerText = data.uid;
-            document.getElementById('summary-card-name').innerText = data.card_name;
-            document.getElementById('student-id-hidden').value = data.student_id;
+            if(document.getElementById('summary-student-id')) document.getElementById('summary-student-id').innerText = data.student_id;
+            if(document.getElementById('summary-card-uid')) document.getElementById('summary-card-uid').innerText = data.uid;
+            if(document.getElementById('summary-card-name')) document.getElementById('summary-card-name').innerText = data.card_name;
+            if(document.getElementById('student-id-hidden')) document.getElementById('student-id-hidden').value = data.student_id;
 
-            // Populate Personal Data Form
-            document.getElementById('first-name-input').value = data.first_name || '';
-            document.getElementById('last-name-input').value = data.last_name || '';
-            document.getElementById('gender-select').value = data.gender || '';
-            document.getElementById('dob-input').value = data.date_of_birth || '';
-            document.getElementById('blood-group-select').value = data.blood_group || '';
-            document.getElementById('religion-input').value = data.religion || 'Islam';
-            document.getElementById('nationality-input').value = data.nationality || 'Bangladeshi';
-            document.getElementById('nid-cert-input').value = data.nid_birth_cert || '';
+            // Populate Personal Data Form if it exists
+            const firstNameInput = document.getElementById('first-name-input');
+            if (firstNameInput) {
+                firstNameInput.value = data.first_name || '';
+                document.getElementById('last-name-input').value = data.last_name || '';
+                document.getElementById('gender-select').value = data.gender || '';
+                document.getElementById('dob-input').value = data.date_of_birth || '';
+                document.getElementById('blood-group-select').value = data.blood_group || '';
+                document.getElementById('religion-input').value = data.religion || 'Islam';
+                document.getElementById('nationality-input').value = data.nationality || 'Bangladeshi';
+                document.getElementById('nid-cert-input').value = data.nid_birth_cert || '';
 
-            // Photo Preview
-            const photoImg = document.getElementById('photo-preview-img');
-            if (data.photo_url) {
-                photoImg.src = data.photo_url;
-                currentPhotoBase64 = data.photo_url;
-            } else {
-                photoImg.src = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-                currentPhotoBase64 = null;
+                // Photo Preview
+                const photoImg = document.getElementById('photo-preview-img');
+                if (data.photo_url) {
+                    photoImg.src = data.photo_url;
+                    currentPhotoBase64 = data.photo_url;
+                } else {
+                    photoImg.src = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+                    currentPhotoBase64 = null;
+                }
             }
 
             if (personalSection) personalSection.style.display = 'block';
+
+            // Also try to fetch and populate Academic Data (if the section exists)
+            const academicSection = document.getElementById('academic-data-section');
+            if (academicSection) {
+                academicSection.style.display = 'block';
+                try {
+                    const academicResponse = await fetch(`${STUDENT_API_BASE_URL}/academic-data/${data.student_id}`);
+                    if (academicResponse.ok) {
+                        const academicData = await academicResponse.json();
+                        document.getElementById('admission-number-input').value = academicData.admission_number || '';
+                        document.getElementById('admission-date-input').value = academicData.admission_date || '';
+                        document.getElementById('class-input').value = academicData.class_name || '';
+                        document.getElementById('roll-number-input').value = academicData.roll_number || '';
+                        document.getElementById('registration-number-input').value = academicData.registration_number || '';
+                        document.getElementById('section-input').value = academicData.section || '';
+                        document.getElementById('group-select').value = academicData.student_group || '';
+                        document.getElementById('shift-select').value = academicData.shift || '';
+                        document.getElementById('session-input').value = academicData.session || '2026-2027';
+                        document.getElementById('academic-year-input').value = academicData.academic_year || '';
+                    } else {
+                        // Clear fields if no data
+                        document.getElementById('academic-data-form').reset();
+                        // Reset defaults
+                        document.getElementById('session-input').value = '2026-2027';
+                    }
+                } catch (e) {
+                    console.error('Error fetching academic data:', e);
+                }
+            }
+
+            // Also try to fetch and populate Contact Data (if the section exists)
+            const contactSection = document.getElementById('contact-data-section');
+            if (contactSection) {
+                contactSection.style.display = 'block';
+                try {
+                    const contactResponse = await fetch(`${STUDENT_API_BASE_URL}/contact-data/${data.student_id}`);
+                    if (contactResponse.ok) {
+                        const contactData = await contactResponse.json();
+                        document.getElementById('mobile-number-input').value = contactData.mobile_number || '';
+                        document.getElementById('email-address-input').value = contactData.email_address || '';
+                        document.getElementById('current-address-input').value = contactData.current_address || '';
+                        document.getElementById('permanent-address-input').value = contactData.permanent_address || '';
+                        document.getElementById('fathers-name-input').value = contactData.fathers_name || '';
+                        document.getElementById('fathers-phone-input').value = contactData.fathers_phone || '';
+                        document.getElementById('fathers-occupation-input').value = contactData.fathers_occupation || '';
+                        document.getElementById('fathers-email-input').value = contactData.fathers_email || '';
+                        document.getElementById('mothers-name-input').value = contactData.mothers_name || '';
+                        document.getElementById('mothers-phone-input').value = contactData.mothers_phone || '';
+                        document.getElementById('mothers-occupation-input').value = contactData.mothers_occupation || '';
+                        document.getElementById('mothers-email-input').value = contactData.mothers_email || '';
+                        document.getElementById('guardian-name-input').value = contactData.guardian_name || '';
+                        document.getElementById('guardian-relationship-input').value = contactData.guardian_relationship || '';
+                        document.getElementById('guardian-phone-input').value = contactData.guardian_phone || '';
+                    } else {
+                        // Clear fields if no data
+                        document.getElementById('contact-data-form').reset();
+                    }
+                } catch (e) {
+                    console.error('Error fetching contact data:', e);
+                }
+            }
+
         } else {
             if (editStatusText) editStatusText.innerText = `Not Found: "${searchTerm}"`;
             if (editStatusBadge) editStatusBadge.className = 'live-status-badge warning';
             alert(`Not Found: ${data.error}`);
             if (personalSection) personalSection.style.display = 'none';
+            const academicSection = document.getElementById('academic-data-section');
+            if (academicSection) academicSection.style.display = 'none';
+            const contactSection = document.getElementById('contact-data-section');
+            if (contactSection) contactSection.style.display = 'none';
         }
     } catch (err) {
         alert('Server Offline or Database connection error.');
@@ -405,3 +474,378 @@ async function handleSavePersonalData(event) {
         saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Personal Data (PostgreSQL)';
     }
 }
+
+// 10. Save Academic Data to PostgreSQL StudentAcademicInformation Table
+async function handleSaveAcademicData(event) {
+    event.preventDefault();
+
+    const studentId = document.getElementById('student-id-hidden').value;
+    if (!studentId) {
+        alert('No student selected. Please search a student first!');
+        return;
+    }
+
+    const saveBtn = document.getElementById('btn-save-academic');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+    const payload = {
+        student_id: studentId,
+        admission_number: document.getElementById('admission-number-input').value,
+        admission_date: document.getElementById('admission-date-input').value,
+        class: document.getElementById('class-input').value,
+        roll_number: document.getElementById('roll-number-input').value,
+        registration_number: document.getElementById('registration-number-input').value,
+        section: document.getElementById('section-input').value,
+        group_name: document.getElementById('group-select').value,
+        shift: document.getElementById('shift-select').value,
+        session: document.getElementById('session-input').value,
+        academic_year: document.getElementById('academic-year-input').value
+    };
+
+    try {
+        const response = await fetch(`${STUDENT_API_BASE_URL}/academic-data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(`Success: Academic Information saved for Student ID: ${studentId}!`);
+        } else {
+            alert(`Error: ${data.error || 'Failed to save academic data'}`);
+        }
+    } catch (err) {
+        alert('Server connection error. Make sure node server.js is running!');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Academic Data';
+    }
+}
+
+// 11. Save Contact Data to PostgreSQL StudentContactInformation Table
+async function handleSaveContactData(event) {
+    event.preventDefault();
+
+    const studentId = document.getElementById('student-id-hidden').value;
+    if (!studentId) {
+        alert('No student selected. Please search a student first!');
+        return;
+    }
+
+    const saveBtn = document.getElementById('btn-save-contact');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+    const payload = {
+        student_id: studentId,
+        mobile_number: document.getElementById('mobile-number-input').value,
+        email_address: document.getElementById('email-address-input').value,
+        current_address: document.getElementById('current-address-input').value,
+        permanent_address: document.getElementById('permanent-address-input').value,
+        fathers_name: document.getElementById('fathers-name-input').value,
+        fathers_phone: document.getElementById('fathers-phone-input').value,
+        fathers_occupation: document.getElementById('fathers-occupation-input').value,
+        fathers_email: document.getElementById('fathers-email-input').value,
+        mothers_name: document.getElementById('mothers-name-input').value,
+        mothers_phone: document.getElementById('mothers-phone-input').value,
+        mothers_occupation: document.getElementById('mothers-occupation-input').value,
+        mothers_email: document.getElementById('mothers-email-input').value,
+        guardian_name: document.getElementById('guardian-name-input').value,
+        guardian_relationship: document.getElementById('guardian-relationship-input').value,
+        guardian_phone: document.getElementById('guardian-phone-input').value
+    };
+
+    try {
+        const response = await fetch(`${STUDENT_API_BASE_URL}/contact-data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(`Success: Contact Information saved for Student ID: ${studentId}!`);
+        } else {
+            alert(`Error: ${data.error || 'Failed to save contact data'}`);
+        }
+    } catch (err) {
+        alert('Server connection error. Make sure node server.js is running!');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Contact Data';
+    }
+}
+
+// 12. Delete Student by Identifier
+async function handleDeleteStudent() {
+    const studentId = document.getElementById('student-id-hidden').value;
+    if (!studentId) {
+        alert('No student selected. Please search a student first!');
+        return;
+    }
+
+    const confirmDelete = confirm(`WARNING: This will permanently delete Student ID ${studentId} and all their personal, academic, and contact data. Are you absolutely sure?`);
+    if (!confirmDelete) return;
+
+    const deleteBtn = document.getElementById('btn-delete-student');
+    if(deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
+    }
+
+    try {
+        const response = await fetch(`${STUDENT_API_BASE_URL}/${studentId}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(`Success: Student ID ${studentId} deleted permanently.`);
+            // Hide the data section after deletion
+            const personalSection = document.getElementById('personal-data-section');
+            if (personalSection) personalSection.style.display = 'none';
+            // Clear search input
+            document.getElementById('search-query-input').value = '';
+            // Update status text
+            const editStatusText = document.getElementById('edit-status-text');
+            const editStatusBadge = document.getElementById('live-edit-scan-status');
+            if (editStatusText) editStatusText.innerText = `Deleted Student ID: ${studentId}`;
+            if (editStatusBadge) editStatusBadge.className = 'live-status-badge success';
+        } else {
+            alert(`Error: ${data.error || 'Failed to delete student'}`);
+            if(deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Delete Student Permanently';
+            }
+        }
+    } catch (err) {
+        alert('Server connection error. Make sure node server.js is running!');
+        if(deleteBtn) {
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Delete Student Permanently';
+        }
+    }
+}
+
+// 13. Fetch All Students (For View All Students Page)
+async function fetchAllStudents() {
+    const tableBody = document.getElementById('students-table-body');
+    const countBadge = document.getElementById('students-count-badge');
+    if (!tableBody) return; // Only run on ViewAllStudents.html
+
+    try {
+        const response = await fetch(`${STUDENT_API_BASE_URL}/all`);
+        const data = await response.json();
+
+        if (response.ok) {
+            tableBody.innerHTML = ''; // Clear loading spinner
+            
+            if (data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #64748b;">No students found in the database.</td></tr>`;
+                if(countBadge) countBadge.innerHTML = '<span>0 Students</span>';
+                return;
+            }
+
+            if(countBadge) countBadge.innerHTML = `<span>${data.length} Student(s)</span>`;
+
+            data.forEach(student => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #e2e8f0';
+                
+                // Construct full name
+                const fullName = (student.first_name || student.last_name) ? `${student.first_name || ''} ${student.last_name || ''}`.trim() : student.card_name;
+                const classRoll = student.class_name ? `${student.class_name} (Roll: ${student.roll_number || 'N/A'})` : '<span style="color: #94a3b8; font-style: italic;">Not Assigned</span>';
+                const mobile = student.mobile_number || '<span style="color: #94a3b8; font-style: italic;">No Mobile</span>';
+
+                tr.innerHTML = `
+                    <td style="padding: 12px 15px; color: #334155; font-weight: 500;">${student.student_id}</td>
+                    <td style="padding: 12px 15px; color: #334155;">${fullName}</td>
+                    <td style="padding: 12px 15px; color: #64748b; font-family: monospace;">${student.uid}</td>
+                    <td style="padding: 12px 15px; color: #334155;">${classRoll}</td>
+                    <td style="padding: 12px 15px; color: #334155;">${mobile}</td>
+                    <td style="padding: 12px 15px;">
+                        <button onclick="window.location.href='EditStudent.html?id=${student.student_id}'" class="btn-primary-blue" style="padding: 6px 12px; font-size: 12px;">
+                            <i class="fa-solid fa-pen"></i> Edit
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        } else {
+            tableBody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #ef4444;">Error loading students: ${data.error}</td></tr>`;
+            if(countBadge) countBadge.innerHTML = '<span style="color: red;">Error</span>';
+        }
+    } catch (err) {
+        console.error('Error:', err);
+        tableBody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #ef4444;">Server connection error. Make sure node server.js is running!</td></tr>`;
+        if(countBadge) countBadge.innerHTML = '<span style="color: red;">Offline</span>';
+    }
+}
+
+// Auto-initialize depending on page elements
+document.addEventListener('DOMContentLoaded', () => {
+    // If we're on the View All Students page, fetch the list
+    if (document.getElementById('students-table-body')) {
+        fetchAllStudents();
+    }
+
+    // Auto-search if ?id= query param is present
+    const urlParams = new URLSearchParams(window.location.search);
+    const studentIdParam = urlParams.get('id');
+    const searchInput = document.getElementById('search-query-input');
+    
+    if (studentIdParam && searchInput) {
+        searchInput.value = studentIdParam;
+        fetchStudentData(studentIdParam);
+    }
+});
+
+// 14. Export Students as CSV
+async function handleExportStudents() {
+    const btn = document.getElementById('btn-export');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating CSV...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(`${STUDENT_API_BASE_URL}/export/all`);
+        const data = await response.json();
+
+        if (response.ok) {
+            if (data.length === 0) {
+                alert('No students found to export.');
+            } else {
+                // Convert JSON to CSV using PapaParse
+                const csv = Papa.unparse(data);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `Students_Export_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        } else {
+            alert(`Error: ${data.error || 'Failed to export students'}`);
+        }
+    } catch (err) {
+        alert('Server connection error. Make sure node server.js is running!');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+// 15. Preview Uploaded CSV
+let parsedCSVData = [];
+
+function previewCSV() {
+    const fileInput = document.getElementById('csv-file-input');
+    const file = fileInput.files[0];
+    if (!file) {
+        alert('Please select a CSV file first.');
+        return;
+    }
+
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+            parsedCSVData = results.data;
+            const previewSection = document.getElementById('import-preview-section');
+            const previewHead = document.getElementById('preview-table-head');
+            const previewBody = document.getElementById('preview-table-body');
+            const btnImport = document.getElementById('btn-import');
+
+            document.getElementById('preview-count').innerText = parsedCSVData.length;
+            
+            // Generate Header
+            previewHead.innerHTML = '';
+            if (results.meta.fields && results.meta.fields.length > 0) {
+                results.meta.fields.forEach(field => {
+                    const th = document.createElement('th');
+                    th.style.padding = '8px 10px';
+                    th.innerText = field;
+                    previewHead.appendChild(th);
+                });
+            }
+
+            // Generate Body (Preview first 100 rows max)
+            previewBody.innerHTML = '';
+            const previewRows = parsedCSVData.slice(0, 100);
+            previewRows.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #e2e8f0';
+                results.meta.fields.forEach(field => {
+                    const td = document.createElement('td');
+                    td.style.padding = '8px 10px';
+                    td.innerText = row[field] || '';
+                    tr.appendChild(td);
+                });
+                previewBody.appendChild(tr);
+            });
+
+            previewSection.style.display = 'block';
+            btnImport.style.display = 'inline-block';
+        },
+        error: function(error) {
+            alert('Error parsing CSV: ' + error.message);
+        }
+    });
+}
+
+// 16. Upload and Sync CSV Data
+async function handleImportStudents() {
+    if (parsedCSVData.length === 0) {
+        alert('No valid data to import. Please preview the CSV first.');
+        return;
+    }
+
+    const btn = document.getElementById('btn-import');
+    const statusDiv = document.getElementById('import-status');
+    const originalText = btn.innerHTML;
+    
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
+    btn.disabled = true;
+    statusDiv.style.color = '#3b82f6';
+    statusDiv.innerText = `Sending ${parsedCSVData.length} records to server...`;
+
+    try {
+        const response = await fetch(`${STUDENT_API_BASE_URL}/import/bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(parsedCSVData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            statusDiv.style.color = '#10b981';
+            statusDiv.innerHTML = `<i class="fa-solid fa-circle-check"></i> Success: Imported/Updated ${result.importedCount} records.`;
+            if (result.errors && result.errors.length > 0) {
+                statusDiv.innerHTML += `<br><span style="color: #ef4444;">But encountered ${result.errors.length} errors (check console).</span>`;
+                console.warn('Import Errors:', result.errors);
+            }
+        } else {
+            statusDiv.style.color = '#ef4444';
+            statusDiv.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Import Failed: ${result.error}`;
+            if (result.details) {
+                console.error('Import Details:', result.details);
+            }
+        }
+    } catch (err) {
+        statusDiv.style.color = '#ef4444';
+        statusDiv.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Server connection error.`;
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+
