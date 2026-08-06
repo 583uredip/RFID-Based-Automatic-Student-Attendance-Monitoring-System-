@@ -5,6 +5,7 @@ const STUDENT_API_BASE_URL = 'http://localhost:3000/api/student';
 function toggleMenu(menuId) {
     const menu = document.getElementById(menuId);
     const allMenus = document.querySelectorAll('.sidebar-menu-content');
+    const allBtns = document.querySelectorAll('.sidebar-btn');
     
     allMenus.forEach(m => {
         if (m.id !== menuId) {
@@ -12,8 +13,18 @@ function toggleMenu(menuId) {
         }
     });
 
+    allBtns.forEach(btn => {
+        if (!btn.getAttribute('onclick').includes(menuId)) {
+            btn.classList.remove('active');
+        }
+    });
+
     if (menu) {
         menu.classList.toggle('active');
+        const btn = document.querySelector(`button[onclick*="${menuId}"]`);
+        if (btn) {
+            btn.classList.toggle('active');
+        }
     }
 }
 
@@ -48,6 +59,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (document.getElementById('cards-table-body')) {
         loadRegisteredCards();
     }
+    if (document.getElementById('extended-cards-table-body')) {
+        loadExtendedRegisteredCards();
+    }
     // Fetch initial latest scan to set lastScannedUid without auto-filling old scan
     try {
         const response = await fetch(`${API_BASE_URL}/latest-scan`);
@@ -68,7 +82,13 @@ function startLiveScanPolling() {
 
     pollInterval = setInterval(async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/latest-scan`);
+            // Check if any admin page is currently waiting for a scan
+            const isWaitingForScan = document.getElementById('rfid-uid-input') || 
+                                     document.getElementById('search-query-input') || 
+                                     document.getElementById('scan-uid');
+                                     
+            const endpoint = isWaitingForScan ? `${API_BASE_URL}/latest-scan?active=true` : `${API_BASE_URL}/latest-scan`;
+            const response = await fetch(endpoint);
             if (!response.ok) return;
 
             const scanData = await response.json();
@@ -208,6 +228,54 @@ async function loadRegisteredCards() {
         tableBody.innerHTML = `
             <tr>
                 <td colspan="6" class="text-center text-danger">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Server Offline or PostgreSQL Database Disconnected. Start <code>node server.js</code> on port 3000.
+                </td>
+            </tr>
+        `;
+    }
+}
+
+async function loadExtendedRegisteredCards() {
+    const tableBody = document.getElementById('extended-cards-table-body');
+    if (!tableBody) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/cards`);
+        if (!response.ok) throw new Error('Failed to fetch');
+
+        const cards = await response.json();
+
+        if (cards.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="10" class="text-center">No registered RFID cards found in database "StudentData".</td>
+                </tr>
+            `;
+            return;
+        }
+
+        tableBody.innerHTML = cards.map((card, index) => `
+            <tr>
+                <td>${index + 1}</td>
+                <td><code class="uid-tag">${card.uid}</code></td>
+                <td><strong class="student-id-tag">${card.student_id}</strong></td>
+                <td>${card.name || 'N/A'}</td>
+                <td>${card.class_name || 'N/A'}</td>
+                <td>${card.roll_number || 'N/A'}</td>
+                <td>${card.section || 'N/A'}</td>
+                <td>${card.shift || 'N/A'}</td>
+                <td>${card.academic_year || 'N/A'}</td>
+                <td>
+                    <button class="btn-delete-sm" onclick="deleteCard('${card.uid}')" title="Delete Record">
+                        <i class="fa-solid fa-trash-can"></i> Delete
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center text-danger">
                     <i class="fa-solid fa-triangle-exclamation"></i> Server Offline or PostgreSQL Database Disconnected. Start <code>node server.js</code> on port 3000.
                 </td>
             </tr>
@@ -849,3 +917,250 @@ async function handleImportStudents() {
 }
 
 
+
+
+// --- Auto-highlight active sidebar item ---
+document.addEventListener('DOMContentLoaded', () => {
+    const allLinks = document.querySelectorAll('.sidebar-subitem');
+    let foundActive = false;
+    allLinks.forEach(link => {
+        // Extract pathname, avoiding query string differences
+        const linkUrl = new URL(link.href, window.location.origin);
+        const currentUrl = new URL(window.location.href, window.location.origin);
+        
+        if (!foundActive && linkUrl.pathname === currentUrl.pathname) {
+            link.classList.add('active');
+            // We intentionally do NOT expand the parent menu here so that 
+            // all menus remain unexpanded by default on page load.
+            foundActive = true;
+        } else {
+            link.classList.remove('active');
+        }
+    });
+});
+
+// ==========================================
+// Replace RFID Card Logic
+// ==========================================
+
+async function searchStudentForReplace() {
+    const studentIdInput = document.getElementById('replace-student-id-search');
+    if (!studentIdInput || !studentIdInput.value.trim()) {
+        alert('Please enter a Student ID to search.');
+        return;
+    }
+
+    const searchTerm = studentIdInput.value.trim();
+
+    try {
+        const response = await fetch(`${STUDENT_API_BASE_URL}/search?query=${encodeURIComponent(searchTerm)}`);
+        if (!response.ok) {
+            throw new Error('Student not found or server error.');
+        }
+
+        const data = await response.json();
+        if (data && data.student_id) {
+            const student = data;
+            
+            // Populate fields
+            const nameInput = document.getElementById('replace-student-name-input');
+            const oldUidInput = document.getElementById('replace-old-uid-input');
+            
+            if (nameInput) nameInput.value = student.first_name ? `${student.first_name} ${student.last_name || ''}`.trim() : (student.card_name || 'N/A');
+            if (oldUidInput) oldUidInput.value = student.uid || 'No Card Found';
+
+            // Enable replace button if we have a student
+            const btnReplace = document.getElementById('btn-replace-rfid');
+            if (btnReplace) {
+                btnReplace.disabled = false;
+                btnReplace.style.opacity = '1';
+                btnReplace.style.cursor = 'pointer';
+            }
+            alert('Student found. Tap new card to replace.');
+        } else {
+            alert('No student found with that ID.');
+        }
+    } catch (err) {
+        console.error('Search error:', err);
+        alert('Error searching for student.');
+    }
+}
+
+async function handleRfidReplace(event) {
+    event.preventDefault();
+    
+    const studentId = document.getElementById('replace-student-id-search').value.trim();
+    const newUid = document.getElementById('rfid-uid-input').value.trim();
+    const oldUid = document.getElementById('replace-old-uid-input').value.trim();
+    const studentName = document.getElementById('replace-student-name-input').value.trim();
+
+    if (!studentId || !newUid) {
+        alert('Missing information. Ensure student is searched and new card is scanned.');
+        return;
+    }
+
+    if (newUid === oldUid) {
+        alert('The new card UID cannot be the same as the old card UID.');
+        return;
+    }
+
+    const confirmReplace = confirm(`Are you sure you want to assign the new card (${newUid}) to ${studentName || studentId}?`);
+    if (!confirmReplace) return;
+
+    try {
+        const btn = document.getElementById('btn-replace-rfid');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Replacing...';
+        btn.disabled = true;
+        
+        const response = await fetch(`${API_BASE_URL}/replace`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                oldUid: oldUid,
+                newUid: newUid, 
+                studentId: studentId,
+                name: studentName 
+            })
+        });
+
+        if (response.ok) {
+            alert('Card successfully replaced!');
+            document.getElementById('rfid-replace-form').reset();
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            if (typeof loadRegisteredCards === 'function') loadRegisteredCards();
+        } else {
+            const errData = await response.json();
+            alert(`Error: ${errData.error || 'Failed to replace card.'}`);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    } catch (err) {
+        console.error('Replace error:', err);
+        alert('Server error while replacing card.');
+        const btn = document.getElementById('btn-replace-rfid');
+        btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Replace Card';
+        btn.disabled = false;
+    }
+}
+
+// -------------------------------------------------------------------------
+// ADD TEACHER MODULE LOGIC
+// -------------------------------------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+    let currentPhotoBase64 = null;
+
+    // Photo Upload Handling
+    const photoInput = document.getElementById('teacher-photo');
+    const photoPreview = document.getElementById('photo-preview');
+
+    if (photoInput && photoPreview) {
+        photoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Check file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('File size exceeds 2MB limit.');
+                photoInput.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                currentPhotoBase64 = event.target.result;
+                photoPreview.innerHTML = `<img src="${currentPhotoBase64}" alt="Teacher Photo">`;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Handle Form Submission
+    const form = document.getElementById('add-teacher-form');
+    
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+            const payload = {
+                teacher_id: document.getElementById('teacher-id').value.trim(),
+                first_name: document.getElementById('first-name').value.trim(),
+                last_name: document.getElementById('last-name').value.trim(),
+                gender: document.getElementById('gender').value,
+                date_of_birth: document.getElementById('dob').value,
+                blood_group: document.getElementById('blood-group').value,
+                religion: document.getElementById('religion').value,
+                nationality: document.getElementById('nationality').value.trim(),
+                nid_number: document.getElementById('nid').value.trim(),
+                mobile_number: document.getElementById('mobile-number').value.trim(),
+                email_address: document.getElementById('email-address').value.trim(),
+                current_address: document.getElementById('current-address').value.trim(),
+                permanent_address: document.getElementById('permanent-address').value.trim(),
+                emergency_contact: document.getElementById('emergency-contact').value.trim(),
+                department: document.getElementById('department').value.trim(),
+                designation: document.getElementById('designation').value.trim(),
+                joining_date: document.getElementById('joining-date').value,
+                employment_type: document.getElementById('employment-type').value,
+                qualification: document.getElementById('qualification').value.trim(),
+                years_of_experience: document.getElementById('years-of-experience').value,
+                specialization: document.getElementById('specialization').value.trim(),
+                photo_url: currentPhotoBase64
+            };
+
+            try {
+                const response = await fetch('http://localhost:3000/api/teacher/personal-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Success: Teacher Personal Data saved successfully!');
+                    form.reset();
+                    photoPreview.innerHTML = '<i class="fa-solid fa-camera"></i><span>Teacher Photo</span>';
+                    currentPhotoBase64 = null;
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to save teacher data'));
+                }
+            } catch (err) {
+                console.error('Submission Error:', err);
+                alert('Server connection error. Make sure the Node.js backend is running!');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-save"></i> Save Teacher Data';
+            }
+        });
+    }
+});
+function showDashboardSection(sectionId) {
+    const rfidSection = document.getElementById('rfid-section');
+    const teacherSection = document.getElementById('add-teacher-section');
+    
+    if (rfidSection) rfidSection.style.display = 'none';
+    if (teacherSection) teacherSection.style.display = 'none';
+
+    const target = document.getElementById(sectionId);
+    if (target) {
+        target.style.display = 'block';
+        if (sectionId === 'add-teacher-section') {
+            generateTeacherId();
+        }
+    }
+}
+
+function generateTeacherId() {
+    const teacherIdInput = document.getElementById('teacher-id');
+    if (teacherIdInput && !teacherIdInput.value) {
+        // Generate a random 4-digit number (from 1000 to 9999)
+        const uniquePart = Math.floor(1000 + Math.random() * 9000).toString();
+        teacherIdInput.value = 'T-' + uniquePart;
+    }
+}

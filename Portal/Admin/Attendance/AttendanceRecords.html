@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Records - Kapataksha High School</title>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- External CSS -->
+    <link rel="stylesheet" href="../AdminDashboard.css">
+</head>
+<body>
+
+    <!-- Mobile Drawer Overlay Backdrop -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
+    <div class="dashboard-container">
+
+        <!-- Unified Top Header Navigation Bar -->
+        <header class="header">
+            <div class="header-left">
+                <!-- Mobile Hamburger Toggle inside Header -->
+                <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" title="Toggle Navigation Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
+                <!-- Clickable logo linking to Admin Dashboard Homepage -->
+                <a href="../AdminDashboard.html" class="header-brand-link" title="Admin Dashboard Home">
+                    <img src="../../Photos/KSHS.png" alt="KSHS Emblem" class="logo-img">
+                    <div class="brand-divider"></div>
+                    <div class="brand-text">
+                        <span class="brand-title">KSHS</span>
+                        <span class="brand-subtitle">PORTAL</span>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="header-nav" id="header-nav-menu">
+                <a class="nav-item active" href="../AdminDashboard.html" title="Portal Home">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Home</span>
+                </a>
+                <a class="nav-item" href="#courses">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Courses & Results</span>
+                </a>
+                <a class="nav-item" href="#registration">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Registration</span>
+                </a>
+                <a class="nav-item" href="#gradereport">
+                    <i class="fa-solid fa-certificate"></i>
+                    <span>Grade Report</span>
+                </a>
+            </nav>
+
+            <div class="header-right">
+                <!-- Only Logout Button -->
+                <a href="../AdminDashboard.html" class="logout-btn" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Body Layout -->
+        <div class="main-layout">
+
+            <!-- Left Navigation Sidebar (Slide-Out Drawer on Mobile) -->
+            <aside class="sidebar" id="sidebar-menu">
+                <!-- Dashboard -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-dashboard')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-chart-pie sidebar-icon"></i>
+                            <span>Dashboard</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-dashboard" class="sidebar-menu-content">
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-users subitem-icon"></i>
+                            <span>Total Students</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chalkboard-user subitem-icon"></i>
+                            <span>Total Teachers</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-calendar-check subitem-icon"></i>
+                            <span>Today's Attendance</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clock-rotate-left subitem-icon"></i>
+                            <span>Recent Activities</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Student Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-student')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-user-graduate sidebar-icon"></i>
+                            <span>Student Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-student" class="sidebar-menu-content">
+                        <a href="../StudentManagement/EditStudent.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-pen subitem-icon"></i>
+                            <span>Edit Student</span>
+                        </a>
+                        <a href="../StudentManagement/AcademicInformation.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-graduation-cap subitem-icon"></i>
+                            <span>Academic Information</span>
+                        </a>
+                        <a href="../StudentManagement/ContactInformation.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-book subitem-icon"></i>
+                            <span>Contact Information</span>
+                        </a>
+                        <a href="../StudentManagement/DeleteStudent.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-xmark subitem-icon"></i>
+                            <span>Delete Student</span>
+                        </a>
+                        <a href="../StudentManagement/ViewAllStudents.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-users-rectangle subitem-icon"></i>
+                            <span>View All Students</span>
+                        </a>
+                        <a href="../StudentManagement/StudentDetails.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-card subitem-icon"></i>
+                            <span>Student Details</span>
+                        </a>
+                        <a href="../StudentManagement/ImportExportStudents.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-file-csv subitem-icon"></i>
+                            <span>Import/Export Students</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Teacher Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-teacher')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-chalkboard-user sidebar-icon"></i>
+                            <span>Teacher Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-teacher" class="sidebar-menu-content">
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-plus subitem-icon"></i>
+                            <span>Add Teacher</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chalkboard subitem-icon"></i>
+                            <span>Assign Classes</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-book subitem-icon"></i>
+                            <span>Teacher List</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Attendance -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-attendance')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-calendar-days sidebar-icon"></i>
+                            <span>Attendance</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-attendance" class="sidebar-menu-content">
+                        <a href="../Attendance/LiveAttendance.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-signal subitem-icon"></i>
+                            <span>Live Attendance</span>
+                        </a>
+                        <a href="../Attendance/AttendanceRecords.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clipboard-user subitem-icon"></i>
+                            <span>Attendance Records</span>
+                        </a>
+                        <a href="AttendanceReports.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chart-line subitem-icon"></i>
+                            <span>Attendance Reports</span>
+                        </a>
+                        <a href="LateReport.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clock subitem-icon"></i>
+                            <span>Late Report</span>
+                        </a>
+                        <a href="BunkReport.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-person-walking-arrow-right subitem-icon"></i>
+                            <span>Bunk Report</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- RFID Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-rfid')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-id-card sidebar-icon"></i>
+                            <span>RFID Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-rfid" class="sidebar-menu-content">
+                        <a href="../RFID Management/RegisterCard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-id-badge subitem-icon"></i>
+                            <span>Register RFID Card</span>
+                        </a>
+                        <a href="../RFID Management/ReplaceCard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-arrows-rotate subitem-icon"></i>
+                            <span>Replace Lost Card</span>
+                        </a>
+                        <a href="../RFID Management/ViewRegisteredCards.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-card subitem-icon"></i>
+                            <span>View Registered Cards</span>
+                        </a>
+                    </div>
+                </div>
+
+</aside>
+
+            <!-- Right Content Area -->
+            <main class="content-area">
+    <div class="rfid-card-section" style="max-width: 1000px; margin: 0 auto;">
+        <div class="rfid-card-header" style="justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div class="rfid-title">
+                <i class="fa-solid fa-clipboard-list"></i>
+                <span>Historical Attendance Records</span>
+            </div>
+            <div class="date-filter-container" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <label for="start-date" style="font-weight: 500; color: #334155;">From:</label>
+                <input type="date" id="start-date" onchange="fetchHistoricalAttendance()" style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; font-family: 'Open Sans', sans-serif;">
+                
+                <label for="end-date" style="font-weight: 500; color: #334155;">To:</label>
+                <input type="date" id="end-date" onchange="fetchHistoricalAttendance()" style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; font-family: 'Open Sans', sans-serif;">
+                
+                <button onclick="clearDateFilter()" style="padding: 6px 12px; background: #e2e8f0; color: #475569; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: background 0.2s;">Clear</button>
+            </div>
+        </div>
+
+        <div class="table-container" style="margin-top: 20px; overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <table class="students-table" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Student Info</th>
+                        <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Class & Roll</th>
+                        <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Date</th>
+                        <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Time In</th>
+                        <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Time Out</th>
+                        <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="attendance-table-body">
+                    <!-- Data will be populated here by JS -->
+                </tbody>
+            </table>
+            <div id="no-attendance-msg" style="text-align: center; padding: 40px; color: #64748b; display: none;">
+                No attendance records found.
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    function clearDateFilter() {
+        document.getElementById('start-date').value = '';
+        document.getElementById('end-date').value = '';
+        fetchHistoricalAttendance();
+    }
+
+    async function fetchHistoricalAttendance() {
+        try {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            
+            let url = 'http://localhost:3000/api/attendance/history?';
+            if (startDate) url += `startDate=${startDate}&`;
+            if (endDate) url += `endDate=${endDate}&`;
+
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            const tbody = document.getElementById('attendance-table-body');
+            const noMsg = document.getElementById('no-attendance-msg');
+            
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                noMsg.style.display = 'block';
+            } else {
+                noMsg.style.display = 'none';
+                data.forEach(record => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid #e2e8f0';
+                    tr.style.transition = 'background-color 0.2s';
+                    tr.onmouseover = () => tr.style.backgroundColor = '#f8fafc';
+                    tr.onmouseout = () => tr.style.backgroundColor = 'transparent';
+                    
+                    const recordDate = new Date(record.time_in).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+                    const timeIn = new Date(record.time_in).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                    const timeOut = record.time_out ? new Date(record.time_out).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) : '-';
+                    const status = record.time_out 
+                        ? '<span style="color: #ef4444; font-weight: 600; background: #fee2e2; padding: 4px 8px; border-radius: 4px;">Left</span>' 
+                        : '<span style="color: #10b981; font-weight: 600; background: #d1fae5; padding: 4px 8px; border-radius: 4px;">Present</span>';
+                    
+                    tr.innerHTML = `
+                        <td style="padding: 16px;">
+                            <div style="font-weight: 600; color: #1e293b;">${record.first_name ? record.first_name + ' ' + (record.last_name || '') : (record.card_name || 'Unknown')}</div>
+                            <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">ID: ${record.student_id}</div>
+                        </td>
+                        <td style="padding: 16px;">
+                            <div style="color: #334155;">${record.class_name || 'N/A'}</div>
+                            <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">Roll: ${record.roll_number || 'N/A'}</div>
+                        </td>
+                        <td style="padding: 16px; color: #475569;">${recordDate}</td>
+                        <td style="padding: 16px; font-family: monospace; color: #475569;">${timeIn}</td>
+                        <td style="padding: 16px; font-family: monospace; color: #475569;">${timeOut}</td>
+                        <td style="padding: 16px;">${status}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching historical attendance:', error);
+        }
+    }
+
+    // Fetch immediately on page load
+    fetchHistoricalAttendance();
+</script>
+
+        </div>
+
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="../AdminDashboard.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bunk Report - Kapataksha High School Portal</title>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- External CSS -->
+    <link rel="stylesheet" href="../AdminDashboard.css">
+</head>
+<body>
+
+    <!-- Mobile Drawer Overlay Backdrop -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
+    <div class="dashboard-container">
+
+        <!-- Unified Top Header Navigation Bar -->
+        <header class="header">
+            <div class="header-left">
+                <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" title="Toggle Navigation Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
+                <a href="../AdminDashboard.html" class="header-brand-link" title="Admin Dashboard Home">
+                    <img src="../../Photos/KSHS.png" alt="KSHS Emblem" class="logo-img">
+                    <div class="brand-divider"></div>
+                    <div class="brand-text">
+                        <span class="brand-title">KSHS</span>
+                        <span class="brand-subtitle">PORTAL</span>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="header-nav" id="header-nav-menu">
+                <a class="nav-item" href="../AdminDashboard.html" title="Portal Home">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Home</span>
+                </a>
+                <a class="nav-item active" href="BunkReport.html">
+                    <i class="fa-solid fa-person-walking-arrow-right"></i>
+                    <span>Bunk Report</span>
+                </a>
+            </nav>
+
+            <div class="header-right">
+                <a href="../AdminDashboard.html" class="logout-btn" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Body Layout -->
+        <div class="main-layout">
+
+            <!-- Left Navigation Sidebar -->
+            <aside class="sidebar" id="sidebar-menu">
+                <!-- Dashboard -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-dashboard')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-chart-pie sidebar-icon"></i>
+                            <span>Dashboard</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-dashboard" class="sidebar-menu-content">
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-users subitem-icon"></i>
+                            <span>Total Students</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chalkboard-user subitem-icon"></i>
+                            <span>Total Teachers</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-calendar-check subitem-icon"></i>
+                            <span>Today's Attendance</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clock-rotate-left subitem-icon"></i>
+                            <span>Recent Activities</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Student Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-student')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-user-graduate sidebar-icon"></i>
+                            <span>Student Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-student" class="sidebar-menu-content">
+                        <a href="../StudentManagement/EditStudent.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-pen subitem-icon"></i>
+                            <span>Edit Student</span>
+                        </a>
+                        <a href="../StudentManagement/AcademicInformation.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-graduation-cap subitem-icon"></i>
+                            <span>Academic Information</span>
+                        </a>
+                        <a href="../StudentManagement/ContactInformation.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-book subitem-icon"></i>
+                            <span>Contact Information</span>
+                        </a>
+                        <a href="../StudentManagement/DeleteStudent.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-xmark subitem-icon"></i>
+                            <span>Delete Student</span>
+                        </a>
+                        <a href="../StudentManagement/ViewAllStudents.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-users-rectangle subitem-icon"></i>
+                            <span>View All Students</span>
+                        </a>
+                        <a href="../StudentManagement/StudentDetails.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-card subitem-icon"></i>
+                            <span>Student Details</span>
+                        </a>
+                        <a href="../StudentManagement/ImportExportStudents.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-file-csv subitem-icon"></i>
+                            <span>Import/Export Students</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Teacher Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-teacher')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-chalkboard-user sidebar-icon"></i>
+                            <span>Teacher Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-teacher" class="sidebar-menu-content">
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-plus subitem-icon"></i>
+                            <span>Add Teacher</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chalkboard subitem-icon"></i>
+                            <span>Assign Classes</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-book subitem-icon"></i>
+                            <span>Teacher List</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Attendance -->
+                <div class="menu-group">
+                    <button class="sidebar-btn active" onclick="toggleMenu('menu-attendance')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-calendar-days sidebar-icon"></i>
+                            <span>Attendance</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-attendance" class="sidebar-menu-content active">
+                        <a href="LiveAttendance.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-signal subitem-icon"></i>
+                            <span>Live Attendance</span>
+                        </a>
+                        <a href="AttendanceRecords.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clipboard-user subitem-icon"></i>
+                            <span>Attendance Records</span>
+                        </a>
+                        <a href="AttendanceReports.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chart-line subitem-icon"></i>
+                            <span>Attendance Reports</span>
+                        </a>
+                        <a href="LateReport.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clock subitem-icon"></i>
+                            <span>Late Report</span>
+                        </a>
+                        <a href="BunkReport.html" class="sidebar-subitem active">
+                            <i class="fa-solid fa-person-walking-arrow-right subitem-icon"></i>
+                            <span>Bunk Report</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- RFID Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-rfid')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-id-card sidebar-icon"></i>
+                            <span>RFID Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-rfid" class="sidebar-menu-content">
+                        <a href="../RFID Management/RegisterCard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-id-badge subitem-icon"></i>
+                            <span>Register RFID Card</span>
+                        </a>
+                        <a href="../RFID Management/ReplaceCard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-arrows-rotate subitem-icon"></i>
+                            <span>Replace Lost Card</span>
+                        </a>
+                        <a href="../RFID Management/ViewRegisteredCards.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-card subitem-icon"></i>
+                            <span>View Registered Cards</span>
+                        </a>
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- Right Content Area -->
+            <main class="content-area">
+                <div class="rfid-card-section" style="max-width: 1000px; margin: 0 auto;">
+                    <div class="rfid-card-header" style="justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <div class="rfid-title">
+                            <i class="fa-solid fa-person-walking-arrow-right"></i>
+                            <span>Bunk Report (Missing Check-Outs)</span>
+                        </div>
+                        <div class="date-filter-container" style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                            <div style="display: flex; gap: 5px; align-items: center;">
+                                <label for="filter-date" style="font-weight: 500; color: #334155;">Date:</label>
+                                <input type="date" id="filter-date" style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; font-family: 'Open Sans', sans-serif;">
+                            </div>
+                            
+                            <button class="btn-primary-blue" onclick="fetchBunkedStudents()" style="padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px; background-color: #d84315;">
+                                <i class="fa-solid fa-magnifying-glass"></i> Find Bunked Students
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-container" style="margin-top: 20px; overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div class="table-header" style="justify-content: space-between;">
+                            <h3><i class="fa-solid fa-list-check"></i> Bunked Students List</h3>
+                            <button class="btn-primary-blue" id="btn-notify-parents" onclick="sendBunkNotifications()" disabled style="background-color: #d84315; opacity: 0.5; cursor: not-allowed; display: flex; align-items: center; gap: 8px; padding: 8px 15px; border-radius: 6px; color: white; border: none;">
+                                <i class="fa-solid fa-envelope"></i> Send Notifications to Parents
+                            </button>
+                        </div>
+                        <table class="students-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="padding: 16px; text-align: center; border-bottom: 2px solid #e2e8f0; background: #f8fafc; width: 50px;">
+                                        <input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll()" disabled>
+                                    </th>
+                                    <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Student Info</th>
+                                    <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Class & Roll</th>
+                                    <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Time In</th>
+                                    <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Time Out</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-table-body">
+                                <tr>
+                                    <td colspan="5" class="text-center" style="padding: 40px; color: #64748b;">
+                                        Select a date, then click "Find Bunked Students".
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+
+            <script>
+                // Initialize date picker
+                document.addEventListener('DOMContentLoaded', () => {
+                    // Default date removed per user request to show mm/dd/yyyy
+                });
+
+                function toggleSelectAll() {
+                    const selectAll = document.getElementById('select-all-checkbox').checked;
+                    const checkboxes = document.querySelectorAll('.student-checkbox');
+                    checkboxes.forEach(cb => cb.checked = selectAll);
+                    updateNotifyButtonState();
+                }
+
+                function updateNotifyButtonState() {
+                    const checkboxes = document.querySelectorAll('.student-checkbox:checked');
+                    const btn = document.getElementById('btn-notify-parents');
+                    if (checkboxes.length > 0) {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                        btn.innerHTML = `<i class="fa-solid fa-envelope"></i> Send Notifications to Parents (${checkboxes.length})`;
+                    } else {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                        btn.innerHTML = `<i class="fa-solid fa-envelope"></i> Send Notifications to Parents`;
+                    }
+                }
+
+                async function fetchBunkedStudents() {
+                    const date = document.getElementById('filter-date').value;
+
+                    if (!date) {
+                        alert('Please select a Date.');
+                        return;
+                    }
+
+                    try {
+                        const url = `http://localhost:3000/api/attendance/bunk?date=${date}`;
+                        const res = await fetch(url);
+                        const data = await res.json();
+                        
+                        const tbody = document.getElementById('report-table-body');
+                        const selectAllCb = document.getElementById('select-all-checkbox');
+                        
+                        tbody.innerHTML = '';
+                        selectAllCb.checked = false;
+                        updateNotifyButtonState();
+                        
+                        if (data.length === 0) {
+                            selectAllCb.disabled = true;
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td colspan="5" class="text-center" style="padding: 40px; color: #10b981;">
+                                        <i class="fa-solid fa-circle-check" style="margin-right: 5px;"></i> All students checked out successfully! No bunk records found.
+                                    </td>
+                                </tr>
+                            `;
+                        } else {
+                            selectAllCb.disabled = false;
+                            data.forEach((record) => {
+                                const tr = document.createElement('tr');
+                                tr.style.borderBottom = '1px solid #e2e8f0';
+                                tr.style.transition = 'background-color 0.2s';
+                                tr.onmouseover = () => tr.style.backgroundColor = '#f8fafc';
+                                tr.onmouseout = () => tr.style.backgroundColor = 'transparent';
+                                
+                                const timeInObj = new Date(record.time_in);
+                                const timeOptions = { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dhaka' };
+                                const timeInStr = timeInObj.toLocaleTimeString('en-US', timeOptions);
+                                
+                                tr.innerHTML = `
+                                    <td style="padding: 16px; text-align: center;">
+                                        <input type="checkbox" class="student-checkbox" value="${record.student_id}" onchange="updateNotifyButtonState()">
+                                    </td>
+                                    <td style="padding: 16px;">
+                                        <div style="font-weight: 600; color: #1e293b;">${record.student_name || 'N/A'}</div>
+                                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">ID: ${record.student_id}</div>
+                                    </td>
+                                    <td style="padding: 16px;">
+                                        <div style="color: #334155;">${record.class_name || 'N/A'} - ${record.section || 'N/A'}</div>
+                                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">Roll: ${record.roll_number || 'N/A'}</div>
+                                    </td>
+                                    <td style="padding: 16px; font-family: monospace; color: #2e7d32; font-weight: bold;">
+                                        ${timeInStr}
+                                    </td>
+                                    <td style="padding: 16px; font-family: monospace; color: #d32f2f; font-weight: bold;">
+                                        Missing
+                                    </td>
+                                `;
+                                tbody.appendChild(tr);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error fetching bunked students:', error);
+                        alert('Error connecting to the server. Is the backend running?');
+                    }
+                }
+
+                async function sendBunkNotifications() {
+                    const checkboxes = document.querySelectorAll('.student-checkbox:checked');
+                    if (checkboxes.length === 0) return;
+
+                    const studentIds = Array.from(checkboxes).map(cb => cb.value);
+                    const date = document.getElementById('filter-date').value;
+
+                    if (!confirm(`Are you sure you want to send URGENT email notifications to the parents of ${studentIds.length} bunked students?`)) {
+                        return;
+                    }
+
+                    const btn = document.getElementById('btn-notify-parents');
+                    const originalBtnHtml = btn.innerHTML;
+                    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Sending...`;
+                    btn.disabled = true;
+
+                    try {
+                        const response = await fetch('http://localhost:3000/api/attendance/notify-bunk', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                student_ids: studentIds,
+                                date: date
+                            })
+                        });
+
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            alert(`Success: ${result.message}`);
+                            document.getElementById('select-all-checkbox').checked = false;
+                            toggleSelectAll();
+                        } else {
+                            alert(`Failed to send notifications: ${result.error}`);
+                        }
+                    } catch (error) {
+                        console.error('Error sending bunk notifications:', error);
+                        alert('Error communicating with the server.');
+                    } finally {
+                        btn.innerHTML = originalBtnHtml;
+                        updateNotifyButtonState();
+                    }
+                }
+            </script>
+
+        </div>
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="../AdminDashboard.js"></script>
+
+</body>
+</html>

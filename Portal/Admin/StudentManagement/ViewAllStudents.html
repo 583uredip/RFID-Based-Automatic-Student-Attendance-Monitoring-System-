@@ -98,28 +98,32 @@
                         </div>
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
-                    <div id="menu-student" class="sidebar-menu-content active">
-                        <a href="EditStudent.html" class="sidebar-subitem">
+                    <div id="menu-student" class="sidebar-menu-content">
+                        <a href="../StudentManagement/EditStudent.html" class="sidebar-subitem">
                             <i class="fa-solid fa-user-pen subitem-icon"></i>
                             <span>Edit Student</span>
                         </a>
-                        <a href="AcademicInformation.html" class="sidebar-subitem">
+                        <a href="../StudentManagement/AcademicInformation.html" class="sidebar-subitem">
                             <i class="fa-solid fa-graduation-cap subitem-icon"></i>
                             <span>Academic Information</span>
                         </a>
-                        <a href="ContactInformation.html" class="sidebar-subitem">
+                        <a href="../StudentManagement/ContactInformation.html" class="sidebar-subitem">
                             <i class="fa-solid fa-address-book subitem-icon"></i>
                             <span>Contact Information</span>
                         </a>
-                        <a href="DeleteStudent.html" class="sidebar-subitem">
+                        <a href="../StudentManagement/DeleteStudent.html" class="sidebar-subitem">
                             <i class="fa-solid fa-user-xmark subitem-icon"></i>
                             <span>Delete Student</span>
                         </a>
-                        <a href="ViewAllStudents.html" class="sidebar-subitem active">
+                        <a href="../StudentManagement/ViewAllStudents.html" class="sidebar-subitem">
                             <i class="fa-solid fa-users-rectangle subitem-icon"></i>
                             <span>View All Students</span>
                         </a>
-                        <a href="ImportExportStudents.html" class="sidebar-subitem">
+                        <a href="../StudentManagement/StudentDetails.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-card subitem-icon"></i>
+                            <span>Student Details</span>
+                        </a>
+                        <a href="../StudentManagement/ImportExportStudents.html" class="sidebar-subitem">
                             <i class="fa-solid fa-file-csv subitem-icon"></i>
                             <span>Import/Export Students</span>
                         </a>
@@ -161,21 +165,25 @@
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
                     <div id="menu-attendance" class="sidebar-menu-content">
-                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                        <a href="../Attendance/LiveAttendance.html" class="sidebar-subitem">
                             <i class="fa-solid fa-signal subitem-icon"></i>
                             <span>Live Attendance</span>
                         </a>
-                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                        <a href="../Attendance/AttendanceRecords.html" class="sidebar-subitem">
                             <i class="fa-solid fa-clipboard-user subitem-icon"></i>
                             <span>Attendance Records</span>
                         </a>
-                        <a href="../AdminDashboard.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-pen-to-square subitem-icon"></i>
-                            <span>Manual Attendance</span>
-                        </a>
-                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                        <a href="../Attendance/AttendanceReports.html" class="sidebar-subitem">
                             <i class="fa-solid fa-chart-line subitem-icon"></i>
                             <span>Attendance Reports</span>
+                        </a>
+                        <a href="../Attendance/LateReport.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clock subitem-icon"></i>
+                            <span>Late Report</span>
+                        </a>
+                        <a href="../Attendance/BunkReport.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-person-walking-arrow-right subitem-icon"></i>
+                            <span>Bunk Report</span>
                         </a>
                     </div>
                 </div>
@@ -194,21 +202,18 @@
                             <i class="fa-solid fa-id-badge subitem-icon"></i>
                             <span>Register RFID Card</span>
                         </a>
-                        <a href="../AdminDashboard.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-user-check subitem-icon"></i>
-                            <span>Assign Card to Student</span>
-                        </a>
-                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                        <a href="../RFID Management/ReplaceCard.html" class="sidebar-subitem">
                             <i class="fa-solid fa-arrows-rotate subitem-icon"></i>
                             <span>Replace Lost Card</span>
                         </a>
-                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                        <a href="../RFID Management/ViewRegisteredCards.html" class="sidebar-subitem">
                             <i class="fa-solid fa-address-card subitem-icon"></i>
                             <span>View Registered Cards</span>
                         </a>
                     </div>
                 </div>
-            </aside>
+
+</aside>
 
             <!-- Right Content Area -->
             <main class="content-area">
@@ -256,6 +261,80 @@
 
     <!-- External JavaScript -->
     <script src="../AdminDashboard.js"></script>
+
+    <script>
+        async function fetchAllStudents() {
+            const tableBody = document.getElementById('students-table-body');
+            const countBadge = document.getElementById('students-count-badge');
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/student/all');
+                if (!response.ok) throw new Error('Failed to fetch data');
+                
+                const students = await response.json();
+                
+                // Update the total count
+                countBadge.innerHTML = `<span>Total: ${students.length}</span>`;
+                
+                tableBody.innerHTML = '';
+                
+                if (students.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" style="padding: 20px; text-align: center; color: #64748b;">
+                                No students registered in the system yet.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                students.forEach(student => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid #e2e8f0';
+                    tr.style.transition = 'background-color 0.2s';
+                    tr.onmouseover = () => tr.style.backgroundColor = '#f8fafc';
+                    tr.onmouseout = () => tr.style.backgroundColor = 'transparent';
+                    
+                    const fullName = student.first_name ? `${student.first_name} ${student.last_name || ''}` : (student.card_name || 'N/A');
+                    const classStr = student.class_name ? `Class ${student.class_name}` : 'N/A';
+                    const rollStr = student.roll_number || 'N/A';
+                    const sectionStr = student.section ? `Sec: ${student.section}` : '';
+                    
+                    tr.innerHTML = `
+                        <td style="padding: 12px 15px; font-weight: 600; color: #1e293b;">${student.student_id}</td>
+                        <td style="padding: 12px 15px; color: #334155;">${fullName}</td>
+                        <td style="padding: 12px 15px; font-family: monospace; color: #64748b;">${student.uid || 'N/A'}</td>
+                        <td style="padding: 12px 15px; color: #334155;">
+                            <div>${classStr} - Roll ${rollStr}</div>
+                            <div style="font-size: 0.85rem; color: #64748b;">${sectionStr}</div>
+                        </td>
+                        <td style="padding: 12px 15px; color: #334155;">${student.mobile_number || 'N/A'}</td>
+                        <td style="padding: 12px 15px;">
+                            <a href="StudentDetails.html?id=${student.student_id}" class="action-btn" style="background-color: #e0f2fe; color: #0284c7; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-eye"></i> Details
+                            </a>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+                
+            } catch (err) {
+                console.error(err);
+                countBadge.innerHTML = `<span style="color: #ef4444;">Error</span>`;
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="padding: 20px; text-align: center; color: #ef4444;">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Error loading student data.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // Fetch data on page load
+        window.addEventListener('DOMContentLoaded', fetchAllStudents);
+    </script>
 
 </body>
 </html>

@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const bcrypt = require('bcrypt');
+const { sendAttendanceEmail, sendLateEmail, sendBunkEmail } = require('./emailService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +20,14 @@ const pool = new Pool({
     port: process.env.PGPORT || 5432,
 });
 
+// Sync PostgreSQL timezone with the local system timezone
+const systemTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+pool.on('connect', (client) => {
+    client.query(`SET TIME ZONE '${systemTimeZone}'`).catch(err => {
+        console.error('Failed to set timezone:', err.message);
+    });
+});
+
 // Verify PostgreSQL Connection
 pool.connect((err, client, release) => {
     if (err) {
@@ -27,6 +37,9 @@ pool.connect((err, client, release) => {
         release();
     }
 });
+
+// Global System State
+let lastWebPollTime = 0; // Tracks when a web UI was last waiting for a scan
 
 // In-Memory Storage for Live Scans
 let latestScan = {
@@ -73,9 +86,45 @@ app.post(['/api/rfid/scan', '/api/attendance', '/api/scan'], async (req, res) =>
                 name: card.name,
                 timestamp: new Date()
             };
+
+            // ---- ATTENDANCE LOGIC ----
+            const isWebWaiting = (Date.now() - lastWebPollTime) < 3000;
+            if (!isWebWaiting) {
+                try {
+                    const attQuery = await pool.query('SELECT * FROM Attendance WHERE student_id = $1 AND date = CURRENT_DATE', [card.student_id]);
+                    
+                    let checkType = null;
+                    if (attQuery.rows.length === 0) {
+                        await pool.query('INSERT INTO Attendance (student_id, date, time_in) VALUES ($1, CURRENT_DATE, CURRENT_TIMESTAMP)', [card.student_id]);
+                        checkType = 'IN';
+                    } else {
+                        await pool.query('UPDATE Attendance SET time_out = CURRENT_TIMESTAMP WHERE student_id = $1 AND date = CURRENT_DATE', [card.student_id]);
+                        checkType = 'OUT';
+                    }
+                    
+                    // Fetch student details for email
+                    const studentInfoQuery = await pool.query(`
+                        SELECT c.name, a.class_name, a.roll_number, a.section, p.fathers_email, p.mothers_email
+                        FROM cards c
+                        LEFT JOIN StudentAcademicInformation a ON c.student_id = a.student_id
+                        LEFT JOIN StudentContactInformation p ON c.student_id = p.student_id
+                        WHERE c.student_id = $1
+                    `, [card.student_id]);
+                    
+                    if (studentInfoQuery.rows.length > 0) {
+                        sendAttendanceEmail(studentInfoQuery.rows[0], checkType);
+                    }
+                } catch (attErr) {
+                    console.error('Error auto-logging attendance:', attErr.message);
+                }
+            } else {
+                console.log(`Scan skipped for Attendance: Attendance Mode is OFF. (Card: ${card.student_id})`);
+            }
+            // --------------------------
+
             return res.json({
                 status: 'registered',
-                message: 'Card already registered',
+                message: 'Card already registered and attendance logged',
                 uid: cleanUid,
                 studentId: card.student_id,
                 card_id: card.student_id,
@@ -108,6 +157,9 @@ app.post(['/api/rfid/scan', '/api/attendance', '/api/scan'], async (req, res) =>
 
 // 2. Web UI Live Tap Detection Endpoint
 app.get('/api/rfid/latest-scan', (req, res) => {
+    if (req.query.active === 'true') {
+        lastWebPollTime = Date.now();
+    }
     res.json(latestScan);
 });
 
@@ -205,7 +257,22 @@ app.post(['/api/rfid/sync', '/api/sync'], async (req, res) => {
 // 5. Fetch All Registered Cards List
 app.get('/api/rfid/cards', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM cards ORDER BY created_at DESC');
+        const query = `
+            SELECT 
+                c.uid, 
+                c.student_id, 
+                c.name, 
+                c.created_at,
+                a.class_name, 
+                a.roll_number, 
+                a.section, 
+                a.shift, 
+                a.academic_year
+            FROM cards c
+            LEFT JOIN StudentAcademicInformation a ON c.student_id = a.student_id
+            ORDER BY c.created_at DESC
+        `;
+        const result = await pool.query(query);
         res.json(result.rows);
     } catch (err) {
         console.error('Error fetching cards:', err.message);
@@ -274,6 +341,89 @@ app.get('/api/student/search', async (req, res) => {
 });
 
 // 7. Save / Upsert Student Personal Data
+// -------------------------------------------------------------------------
+// TEACHER MANAGEMENT APIs
+// -------------------------------------------------------------------------
+app.post('/api/teacher/personal-data', async (req, res) => {
+    const {
+        teacher_id, first_name, last_name,
+        gender, date_of_birth, blood_group, religion, nationality,
+        nid_number, photo_url, mobile_number, email_address,
+        current_address, permanent_address, emergency_contact,
+        department, designation, joining_date, employment_type,
+        qualification, years_of_experience, specialization
+    } = req.body;
+
+    const full_name = `${first_name} ${last_name}`.trim();
+
+    if (!teacher_id || !first_name || !last_name || !gender || !date_of_birth) {
+        return res.status(400).json({ error: 'Please fill in all mandatory teacher information fields.' });
+    }
+
+    try {
+        const upsertQuery = `
+            INSERT INTO TeacherPersonalData (
+                teacher_id, full_name, first_name, last_name, gender, date_of_birth,
+                blood_group, religion, nationality, nid_number, photo_url,
+                mobile_number, email_address, current_address, permanent_address, emergency_contact,
+                department, designation, joining_date, employment_type, qualification, years_of_experience, specialization,
+                updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, CURRENT_TIMESTAMP)
+            ON CONFLICT (teacher_id) DO UPDATE SET
+                full_name = EXCLUDED.full_name,
+                first_name = EXCLUDED.first_name,
+                last_name = EXCLUDED.last_name,
+                gender = EXCLUDED.gender,
+                date_of_birth = EXCLUDED.date_of_birth,
+                blood_group = EXCLUDED.blood_group,
+                religion = EXCLUDED.religion,
+                nationality = EXCLUDED.nationality,
+                nid_number = EXCLUDED.nid_number,
+                photo_url = EXCLUDED.photo_url,
+                mobile_number = EXCLUDED.mobile_number,
+                email_address = EXCLUDED.email_address,
+                current_address = EXCLUDED.current_address,
+                permanent_address = EXCLUDED.permanent_address,
+                emergency_contact = EXCLUDED.emergency_contact,
+                department = EXCLUDED.department,
+                designation = EXCLUDED.designation,
+                joining_date = EXCLUDED.joining_date,
+                employment_type = EXCLUDED.employment_type,
+                qualification = EXCLUDED.qualification,
+                years_of_experience = EXCLUDED.years_of_experience,
+                specialization = EXCLUDED.specialization,
+                updated_at = CURRENT_TIMESTAMP
+        `;
+
+        const values = [
+            teacher_id, full_name, first_name, last_name, gender, date_of_birth,
+            blood_group, religion, nationality || 'Bangladeshi', nid_number, photo_url,
+            mobile_number, email_address, current_address, permanent_address, emergency_contact,
+            department, designation, joining_date, employment_type, qualification, years_of_experience || null, specialization
+        ];
+
+        await pool.query(upsertQuery, values);
+
+        // Also create a default user account for the teacher if it doesn't exist
+        const hashedPassword = await bcrypt.hash('teacher1212', 10);
+        const userQuery = `
+            INSERT INTO Users (user_id, username, password, role, account_status)
+            VALUES ($1, $2, $3, 'Teacher', 'Active')
+            ON CONFLICT (user_id) DO NOTHING
+        `;
+        await pool.query(userQuery, [teacher_id, ' ', hashedPassword]);
+
+        res.json({ success: true, message: 'Teacher Personal Data and User Account saved successfully.' });
+    } catch (err) {
+        console.error('Error saving teacher data:', err.message);
+        res.status(500).json({ error: 'Server error saving teacher data.' });
+    }
+});
+
+
+// -------------------------------------------------------------------------
+// STUDENT APIs
+// -------------------------------------------------------------------------
 app.post('/api/student/personal-data', async (req, res) => {
     const {
         student_id,
@@ -560,6 +710,7 @@ app.get('/api/student/all', async (req, res) => {
                 p.last_name, 
                 a.class_name, 
                 a.roll_number,
+                a.section,
                 cont.mobile_number
             FROM cards c
             LEFT JOIN PersonalData p ON c.student_id = p.student_id
@@ -696,6 +847,413 @@ app.post('/api/student/import/bulk', async (req, res) => {
         res.status(500).json({ error: 'Database bulk import error', details: err.message });
     } finally {
         client.release();
+    }
+});
+
+// 16. ESP32 Attendance Scan Endpoint
+app.post('/api/attendance/scan', async (req, res) => {
+    const { uid } = req.body;
+    if (!uid) {
+        return res.status(400).json({ error: 'Card UID is required.' });
+    }
+
+    try {
+        // Find the student by card UID
+        const cardQuery = await pool.query('SELECT student_id FROM cards WHERE uid = $1', [uid]);
+        if (cardQuery.rows.length === 0) {
+            return res.status(404).json({ error: 'Unregistered Card' });
+        }
+        
+        const student_id = cardQuery.rows[0].student_id;
+        
+        // Check if there is an attendance record for today
+        const attQuery = await pool.query('SELECT * FROM Attendance WHERE student_id = $1 AND date = CURRENT_DATE', [student_id]);
+        
+        let checkType = null;
+        if (attQuery.rows.length === 0) {
+            // First scan of the day - In
+            await pool.query('INSERT INTO Attendance (student_id, date, time_in) VALUES ($1, CURRENT_DATE, CURRENT_TIMESTAMP)', [student_id]);
+            checkType = 'IN';
+        } else {
+            // Second (or later) scan of the day - Out
+            await pool.query('UPDATE Attendance SET time_out = CURRENT_TIMESTAMP WHERE student_id = $1 AND date = CURRENT_DATE', [student_id]);
+            checkType = 'OUT';
+        }
+
+        // Fetch student details for email
+        const studentInfoQuery = await pool.query(`
+            SELECT c.name, a.class_name, a.roll_number, a.section, p.fathers_email, p.mothers_email
+            FROM cards c
+            LEFT JOIN StudentAcademicInformation a ON c.student_id = a.student_id
+            LEFT JOIN StudentContactInformation p ON c.student_id = p.student_id
+            WHERE c.student_id = $1
+        `, [student_id]);
+        
+        if (studentInfoQuery.rows.length > 0) {
+            sendAttendanceEmail(studentInfoQuery.rows[0], checkType);
+        }
+
+        if (checkType === 'IN') {
+            return res.status(200).json({ message: 'Attendance IN recorded', student_id });
+        } else {
+            return res.status(200).json({ message: 'Attendance OUT recorded', student_id });
+        }
+    } catch (err) {
+        console.error('Error logging attendance:', err.message);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// 17. Live Attendance Data Fetch
+app.get('/api/attendance/live', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                a.id, a.student_id, a.time_in, a.time_out,
+                p.first_name, p.last_name, p.photo_url,
+                cards.name AS card_name,
+                c.class_name, c.roll_number, c.section
+            FROM Attendance a
+            JOIN cards ON a.student_id = cards.student_id
+            LEFT JOIN PersonalData p ON a.student_id = p.student_id
+            LEFT JOIN StudentAcademicInformation c ON a.student_id = c.student_id
+            WHERE a.date = CURRENT_DATE
+            ORDER BY COALESCE(a.time_out, a.time_in) DESC
+        `;
+        const result = await pool.query(query);
+        res.status(200).json(result.rows);
+    } catch (err) {
+        console.error('Error fetching live attendance:', err.message);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// GET: Fetch historical attendance records with optional date filtering
+app.get('/api/attendance/history', async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        let query = `
+            SELECT 
+                a.id, a.student_id, a.date, a.time_in, a.time_out,
+                p.first_name, p.last_name, p.photo_url,
+                cards.name AS card_name,
+                c.class_name, c.roll_number, c.section
+            FROM Attendance a
+            JOIN cards ON a.student_id = cards.student_id
+            LEFT JOIN PersonalData p ON a.student_id = p.student_id
+            LEFT JOIN StudentAcademicInformation c ON a.student_id = c.student_id
+            WHERE 1=1
+        `;
+        let values = [];
+        let index = 1;
+
+        if (startDate) {
+            query += ` AND a.date >= $${index++} `;
+            values.push(startDate);
+        }
+        if (endDate) {
+            query += ` AND a.date <= $${index++} `;
+            values.push(endDate);
+        }
+
+        query += ` ORDER BY a.date DESC, COALESCE(a.time_out, a.time_in) DESC `;
+        
+        const result = await pool.query(query, values);
+        res.status(200).json(result.rows);
+    } catch (err) {
+        console.error('Error fetching attendance history:', err.message);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// 18. Attendance Report Endpoint (Aggregated Data)
+app.get('/api/attendance/report', async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        let query = `
+            SELECT 
+                c.student_id,
+                c.name AS student_name,
+                s.class_name,
+                s.section,
+                s.roll_number,
+                COUNT(a.id) AS total_present
+            FROM cards c
+            JOIN Attendance a ON c.student_id = a.student_id
+            LEFT JOIN StudentAcademicInformation s ON c.student_id = s.student_id
+            WHERE 1=1
+        `;
+        const values = [];
+
+        if (startDate) {
+            values.push(startDate);
+            query += ` AND a.date >= $${values.length}`;
+        }
+        if (endDate) {
+            values.push(endDate);
+            query += ` AND a.date <= $${values.length}`;
+        }
+
+        query += ` GROUP BY c.student_id, c.name, s.class_name, s.section, s.roll_number ORDER BY s.class_name, s.roll_number, c.student_id`;
+
+        const result = await pool.query(query, values);
+        res.status(200).json(result.rows);
+    } catch (err) {
+        console.error('Error fetching attendance report:', err.message);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// 19. Fetch Late Students Endpoint
+app.get('/api/attendance/late', async (req, res) => {
+    try {
+        const { date, threshold } = req.query;
+        if (!date || !threshold) {
+            return res.status(400).json({ error: 'date and threshold are required' });
+        }
+
+        const query = `
+            SELECT 
+                a.student_id,
+                c.name AS student_name,
+                a.time_in,
+                s.class_name,
+                s.section,
+                s.roll_number
+            FROM Attendance a
+            JOIN cards c ON a.student_id = c.student_id
+            LEFT JOIN StudentAcademicInformation s ON a.student_id = s.student_id
+            WHERE a.date = $1 
+              AND CAST(a.time_in AS TIME) > $2
+            ORDER BY a.time_in DESC
+        `;
+        const result = await pool.query(query, [date, threshold]);
+        res.status(200).json(result.rows);
+    } catch (err) {
+        console.error('Error fetching late students:', err.message);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// 20. Notify Late Students via Email
+app.post('/api/attendance/notify-late', express.json(), async (req, res) => {
+    try {
+        const { student_ids, date, threshold } = req.body;
+        
+        if (!student_ids || !Array.isArray(student_ids) || student_ids.length === 0) {
+            return res.status(400).json({ error: 'student_ids array is required' });
+        }
+        
+        // Fetch contact information for these students
+        const placeholders = student_ids.map((_, i) => `$${i + 1}`).join(',');
+        const query = `
+            SELECT 
+                c.student_id,
+                cards.name,
+                c.fathers_email,
+                c.mothers_email,
+                s.class_name,
+                s.section,
+                s.roll_number,
+                a.time_in
+            FROM StudentContactInformation c
+            JOIN cards ON c.student_id = cards.student_id
+            LEFT JOIN StudentAcademicInformation s ON c.student_id = s.student_id
+            JOIN Attendance a ON c.student_id = a.student_id AND a.date = $${student_ids.length + 1}
+            WHERE c.student_id IN (${placeholders})
+        `;
+        
+        const values = [...student_ids, date];
+        const result = await pool.query(query, values);
+        
+        let sentCount = 0;
+        
+        // Use a standard date format
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const dateStr = new Date(date).toLocaleDateString('en-US', dateOptions);
+
+        for (const student of result.rows) {
+            const timeInObj = new Date(student.time_in);
+            const timeOptions = { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dhaka' };
+            const timeInStr = timeInObj.toLocaleTimeString('en-US', timeOptions);
+            
+            // Format threshold string AM/PM for display
+            let thresholdStr = threshold; // fallback
+            try {
+                const [h, m] = threshold.split(':');
+                const tDate = new Date();
+                tDate.setHours(parseInt(h), parseInt(m), 0);
+                thresholdStr = tDate.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'});
+            } catch (e) {}
+
+            await sendLateEmail(student, dateStr, timeInStr, thresholdStr);
+            sentCount++;
+        }
+        
+        res.status(200).json({ message: `Sent ${sentCount} notifications.` });
+    } catch (err) {
+        console.error('Error notifying late students:', err.message);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// 21. Fetch Bunked Students Endpoint
+app.get('/api/attendance/bunk', async (req, res) => {
+    try {
+        const { date } = req.query;
+        if (!date) {
+            return res.status(400).json({ error: 'date is required' });
+        }
+
+        const query = `
+            SELECT 
+                a.student_id,
+                c.name AS student_name,
+                a.time_in,
+                s.class_name,
+                s.section,
+                s.roll_number
+            FROM Attendance a
+            JOIN cards c ON a.student_id = c.student_id
+            LEFT JOIN StudentAcademicInformation s ON a.student_id = s.student_id
+            WHERE a.date = $1 
+              AND a.time_in IS NOT NULL 
+              AND a.time_out IS NULL
+            ORDER BY a.time_in ASC
+        `;
+        const result = await pool.query(query, [date]);
+        res.status(200).json(result.rows);
+    } catch (err) {
+        console.error('Error fetching bunked students:', err.message);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// 22. Notify Bunked Students via Email
+app.post('/api/attendance/notify-bunk', express.json(), async (req, res) => {
+    try {
+        const { student_ids, date } = req.body;
+        
+        if (!student_ids || !Array.isArray(student_ids) || student_ids.length === 0) {
+            return res.status(400).json({ error: 'student_ids array is required' });
+        }
+        
+        const placeholders = student_ids.map((_, i) => `$${i + 1}`).join(',');
+        const query = `
+            SELECT 
+                c.student_id,
+                cards.name,
+                c.fathers_email,
+                c.mothers_email,
+                s.class_name,
+                s.section,
+                s.roll_number,
+                a.time_in
+            FROM StudentContactInformation c
+            JOIN cards ON c.student_id = cards.student_id
+            LEFT JOIN StudentAcademicInformation s ON c.student_id = s.student_id
+            JOIN Attendance a ON c.student_id = a.student_id AND a.date = $${student_ids.length + 1}
+            WHERE c.student_id IN (${placeholders})
+        `;
+        
+        const values = [...student_ids, date];
+        const result = await pool.query(query, values);
+        
+        let sentCount = 0;
+        
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const dateStr = new Date(date).toLocaleDateString('en-US', dateOptions);
+
+        for (const student of result.rows) {
+            const timeInObj = new Date(student.time_in);
+            const timeOptions = { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dhaka' };
+            const timeInStr = timeInObj.toLocaleTimeString('en-US', timeOptions);
+
+            await sendBunkEmail(student, dateStr, timeInStr);
+            sentCount++;
+        }
+        
+        res.status(200).json({ message: `Sent ${sentCount} notifications.` });
+    } catch (err) {
+        console.error('Error notifying bunked students:', err.message);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// -------------------------------------------------------------------------
+// Replace RFID Card Endpoint
+// -------------------------------------------------------------------------
+app.post('/api/rfid/replace', async (req, res) => {
+    const { oldUid, newUid, studentId, name } = req.body;
+
+    if (!newUid || !studentId) {
+        return res.status(400).json({ error: 'New UID and Student ID are required.' });
+    }
+
+    const cleanNewUid = newUid.toUpperCase().trim();
+    
+    try {
+        // 1. Check if the new card is already registered to someone else
+        const checkResult = await pool.query('SELECT * FROM cards WHERE uid = $1', [cleanNewUid]);
+        if (checkResult.rows.length > 0) {
+            return res.status(400).json({ error: 'This new RFID card is already registered to another student.' });
+        }
+
+        // 2. Check if the student currently has a card. If so, update it.
+        const checkStudent = await pool.query('SELECT * FROM cards WHERE student_id = $1', [studentId]);
+        if (checkStudent.rows.length > 0) {
+            const updateQuery = `
+                UPDATE cards 
+                SET uid = $1 
+                WHERE student_id = $2 
+                RETURNING *;
+            `;
+            const updateResult = await pool.query(updateQuery, [cleanNewUid, studentId]);
+            const updatedCard = updateResult.rows[0];
+
+            // Reset live scan state
+            latestScan = {
+                uid: cleanNewUid,
+                studentId: updatedCard.student_id,
+                registered: true,
+                name: updatedCard.name,
+                timestamp: new Date()
+            };
+
+            return res.status(200).json({
+                status: 'success',
+                message: 'RFID Card successfully replaced!',
+                card: updatedCard
+            });
+        } else {
+            // If somehow the student didn't have a card, insert a new one
+            const cleanName = name ? name.trim() : 'Unknown';
+            const insertQuery = `
+                INSERT INTO cards (uid, student_id, name)
+                VALUES ($1, $2, $3)
+                RETURNING *;
+            `;
+            const insertResult = await pool.query(insertQuery, [cleanNewUid, studentId, cleanName]);
+            const newCard = insertResult.rows[0];
+
+            latestScan = {
+                uid: cleanNewUid,
+                studentId: newCard.student_id,
+                registered: true,
+                name: newCard.name,
+                timestamp: new Date()
+            };
+
+            return res.status(201).json({
+                status: 'success',
+                message: 'RFID Card successfully added for student!',
+                card: newCard
+            });
+        }
+
+    } catch (err) {
+        console.error('Error replacing RFID card:', err.message);
+        return res.status(500).json({ error: 'Database update error' });
     }
 });
 

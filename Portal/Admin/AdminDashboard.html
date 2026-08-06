@@ -77,7 +77,7 @@
                         </div>
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
-                    <div id="menu-dashboard" class="sidebar-menu-content active">
+                    <div id="menu-dashboard" class="sidebar-menu-content">
                         <a href="AdminDashboard.html" class="sidebar-subitem">
                             <i class="fa-solid fa-users subitem-icon"></i>
                             <span>Total Students</span>
@@ -127,6 +127,10 @@
                             <i class="fa-solid fa-users-rectangle subitem-icon"></i>
                             <span>View All Students</span>
                         </a>
+                        <a href="StudentManagement/StudentDetails.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-card subitem-icon"></i>
+                            <span>Student Details</span>
+                        </a>
                         <a href="StudentManagement/ImportExportStudents.html" class="sidebar-subitem">
                             <i class="fa-solid fa-file-csv subitem-icon"></i>
                             <span>Import/Export Students</span>
@@ -144,7 +148,7 @@
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
                     <div id="menu-teacher" class="sidebar-menu-content">
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                        <a href="#" onclick="showDashboardSection('add-teacher-section'); return false;" class="sidebar-subitem">
                             <i class="fa-solid fa-user-plus subitem-icon"></i>
                             <span>Add Teacher</span>
                         </a>
@@ -169,21 +173,25 @@
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
                     <div id="menu-attendance" class="sidebar-menu-content">
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                        <a href="Attendance/LiveAttendance.html" class="sidebar-subitem">
                             <i class="fa-solid fa-signal subitem-icon"></i>
                             <span>Live Attendance</span>
                         </a>
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                        <a href="Attendance/AttendanceRecords.html" class="sidebar-subitem">
                             <i class="fa-solid fa-clipboard-user subitem-icon"></i>
                             <span>Attendance Records</span>
                         </a>
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-pen-to-square subitem-icon"></i>
-                            <span>Manual Attendance</span>
-                        </a>
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                        <a href="Attendance/AttendanceReports.html" class="sidebar-subitem">
                             <i class="fa-solid fa-chart-line subitem-icon"></i>
                             <span>Attendance Reports</span>
+                        </a>
+                        <a href="Attendance/LateReport.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clock subitem-icon"></i>
+                            <span>Late Report</span>
+                        </a>
+                        <a href="Attendance/BunkReport.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-person-walking-arrow-right subitem-icon"></i>
+                            <span>Bunk Report</span>
                         </a>
                     </div>
                 </div>
@@ -198,19 +206,15 @@
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
                     <div id="menu-rfid" class="sidebar-menu-content">
-                        <a href="RFID Management/RegisterCard.html" class="sidebar-subitem">
+                        <a href="#" onclick="showDashboardSection('rfid-section'); return false;" class="sidebar-subitem">
                             <i class="fa-solid fa-id-badge subitem-icon"></i>
                             <span>Register RFID Card</span>
                         </a>
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-user-check subitem-icon"></i>
-                            <span>Assign Card to Student</span>
-                        </a>
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                        <a href="RFID Management/ReplaceCard.html" class="sidebar-subitem">
                             <i class="fa-solid fa-arrows-rotate subitem-icon"></i>
                             <span>Replace Lost Card</span>
                         </a>
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                        <a href="RFID Management/ViewRegisteredCards.html" class="sidebar-subitem">
                             <i class="fa-solid fa-address-card subitem-icon"></i>
                             <span>View Registered Cards</span>
                         </a>
@@ -300,7 +304,204 @@
                     </div>
                 </div>
 
-                <!-- Quick Action Buttons -->
+                <!-- Add Teacher Section (Hidden by Default) -->
+                <div class="add-teacher-section" id="add-teacher-section" style="display: none;">
+                    <div class="rfid-card-header">
+                        <div class="rfid-title">
+                            <i class="fa-solid fa-user-plus"></i>
+                            <span>Add New Teacher</span>
+                        </div>
+                    </div>
+
+                    <div class="form-container">
+                        <form id="add-teacher-form">
+                            
+                            <div class="form-grid">
+                                
+                                <!-- Left Column: Basic Info -->
+                                <div class="form-column">
+                                    <h3 class="section-title">Identity Information</h3>
+                                    
+                                    <div class="input-group">
+                                        <label for="teacher-id">Teacher ID <span class="required-star">*</span></label>
+                                        <input type="text" id="teacher-id" placeholder="e.g. T-1001" required>
+                                    </div>
+                                    
+
+                                    
+
+
+                                    <div class="input-row">
+                                        <div class="input-group">
+                                            <label for="first-name">First Name <span class="required-star">*</span></label>
+                                            <input type="text" id="first-name" required>
+                                        </div>
+                                        <div class="input-group">
+                                            <label for="last-name">Last Name <span class="required-star">*</span></label>
+                                            <input type="text" id="last-name" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <h3 class="section-title" style="margin-top: 2rem;">Contact Information</h3>
+                                    
+                                    <div class="input-row">
+                                        <div class="input-group">
+                                            <label for="mobile-number">Mobile Number</label>
+                                            <input type="tel" id="mobile-number" placeholder="e.g. +88017XXXXXXXX">
+                                        </div>
+                                        <div class="input-group">
+                                            <label for="email-address">Email Address</label>
+                                            <input type="email" id="email-address" placeholder="e.g. teacher@school.edu">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="input-group">
+                                        <label for="current-address">Current Address</label>
+                                        <input type="text" id="current-address" placeholder="Current residential address">
+                                    </div>
+                                    
+                                    <div class="input-group">
+                                        <label for="permanent-address">Permanent Address</label>
+                                        <input type="text" id="permanent-address" placeholder="Permanent address">
+                                    </div>
+                                    
+                                    <div class="input-group">
+                                        <label for="emergency-contact">Emergency Contact Number</label>
+                                        <input type="tel" id="emergency-contact" placeholder="Emergency contact">
+                                    </div>
+                                    
+                                </div>
+
+                                <!-- Right Column: Personal & Photo -->
+                                <div class="form-column">
+                                    <h3 class="section-title">Personal Details</h3>
+
+                                    <div class="photo-upload-section">
+                                        <div class="photo-preview" id="photo-preview">
+                                            <i class="fa-solid fa-camera"></i>
+                                            <span>Teacher Photo</span>
+                                        </div>
+                                        <div class="photo-controls">
+                                            <input type="file" id="teacher-photo" accept="image/*" style="display: none;">
+                                            <button type="button" class="btn-outline" onclick="document.getElementById('teacher-photo').click()">
+                                                <i class="fa-solid fa-upload"></i> Upload Photo
+                                            </button>
+                                            <small>Max size: 2MB. Format: JPG, PNG.</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="input-row">
+                                        <div class="input-group">
+                                            <label for="gender">Gender <span class="required-star">*</span></label>
+                                            <select id="gender" required>
+                                                <option value="" disabled selected>Select Gender</option>
+                                                <option value="Male">Male</option>
+                                                <option value="Female">Female</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div class="input-group">
+                                            <label for="dob">Date of Birth <span class="required-star">*</span></label>
+                                            <input type="date" id="dob" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="input-row">
+                                        <div class="input-group">
+                                            <label for="blood-group">Blood Group <span class="required-star">*</span></label>
+                                            <select id="blood-group" required>
+                                                <option value="" disabled selected>Select</option>
+                                                <option value="A+">A+</option>
+                                                <option value="A-">A-</option>
+                                                <option value="B+">B+</option>
+                                                <option value="B-">B-</option>
+                                                <option value="O+">O+</option>
+                                                <option value="O-">O-</option>
+                                                <option value="AB+">AB+</option>
+                                                <option value="AB-">AB-</option>
+                                            </select>
+                                        </div>
+                                        <div class="input-group">
+                                            <label for="religion">Religion <span class="required-star">*</span></label>
+                                            <select id="religion" required>
+                                                <option value="" disabled selected>Select</option>
+                                                <option value="Islam">Islam</option>
+                                                <option value="Hinduism">Hinduism</option>
+                                                <option value="Christianity">Christianity</option>
+                                                <option value="Buddhism">Buddhism</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="input-row">
+                                        <div class="input-group">
+                                            <label for="nationality">Nationality <span class="required-star">*</span></label>
+                                            <input type="text" id="nationality" value="Bangladeshi" required>
+                                        </div>
+                                        <div class="input-group">
+                                            <label for="nid">National ID (Optional)</label>
+                                            <input type="text" id="nid" placeholder="NID Number">
+                                        </div>
+                                    </div>
+                                    
+                                    <h3 class="section-title" style="margin-top: 2rem;">Employment Details</h3>
+                                    
+                                    <div class="input-row">
+                                        <div class="input-group">
+                                            <label for="department">Department</label>
+                                            <input type="text" id="department" placeholder="e.g. Science, Arts">
+                                        </div>
+                                        <div class="input-group">
+                                            <label for="designation">Designation</label>
+                                            <input type="text" id="designation" placeholder="e.g. Senior Teacher">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="input-row">
+                                        <div class="input-group">
+                                            <label for="joining-date">Joining Date</label>
+                                            <input type="date" id="joining-date">
+                                        </div>
+                                        <div class="input-group">
+                                            <label for="employment-type">Employment Type</label>
+                                            <select id="employment-type">
+                                                <option value="" disabled selected>Select Type</option>
+                                                <option value="Full-time">Full-time</option>
+                                                <option value="Part-time">Part-time</option>
+                                                <option value="Contract">Contract</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="input-group">
+                                        <label for="qualification">Highest Qualification</label>
+                                        <input type="text" id="qualification" placeholder="e.g. M.Sc. in Physics">
+                                    </div>
+                                    
+                                    <div class="input-row">
+                                        <div class="input-group">
+                                            <label for="specialization">Specialization</label>
+                                            <input type="text" id="specialization" placeholder="e.g. Mathematics">
+                                        </div>
+                                        <div class="input-group">
+                                            <label for="years-of-experience">Years of Experience</label>
+                                            <input type="number" id="years-of-experience" placeholder="e.g. 5" min="0">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" onclick="document.getElementById('add-teacher-form').reset(); document.getElementById('photo-preview').innerHTML = '<i class=\'fa-solid fa-camera\'></i><span>Teacher Photo</span>'; generateTeacherId();">Clear Form</button>
+                                <button type="submit" class="btn-primary" id="submit-btn">
+                                    <i class="fa-solid fa-save"></i> Save Teacher Data
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
                 <div class="action-buttons-box">
                     <button class="btn-cyan">Submit Identity Information</button>
                     <button class="btn-cyan">Covid-19 Vaccine Information</button>

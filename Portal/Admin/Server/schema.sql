@@ -96,3 +96,66 @@ CREATE TABLE IF NOT EXISTS StudentContactInformation (
 );
 
 CREATE INDEX IF NOT EXISTS idx_contact_student_id ON StudentContactInformation(student_id);
+
+
+CREATE TABLE IF NOT EXISTS Attendance (
+    id SERIAL PRIMARY KEY,
+    student_id VARCHAR(50) NOT NULL REFERENCES cards(student_id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    time_in TIMESTAMP,
+    time_out TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(student_id, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON Attendance(student_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_date ON Attendance(date);
+
+-- -------------------------------------------------------------------------
+-- Step 8: Create "TeacherPersonalData" Table
+-- Stores detailed Teacher Personal Information
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS TeacherPersonalData (
+    teacher_id VARCHAR(50) PRIMARY KEY,
+    full_name VARCHAR(100) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    gender VARCHAR(10) NOT NULL,
+    date_of_birth DATE NOT NULL,
+    blood_group VARCHAR(5) NOT NULL,
+    religion VARCHAR(30) NOT NULL,
+    nationality VARCHAR(50) DEFAULT 'Bangladeshi',
+    nid_number VARCHAR(50),
+    mobile_number VARCHAR(20),
+    email_address VARCHAR(100),
+    current_address TEXT,
+    permanent_address TEXT,
+    emergency_contact VARCHAR(20),
+    department VARCHAR(50),
+    designation VARCHAR(50),
+    joining_date DATE,
+    employment_type VARCHAR(20),
+    qualification VARCHAR(100),
+    years_of_experience INTEGER,
+    specialization VARCHAR(100),
+    photo_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- -------------------------------------------------------------------------
+-- Step 9: Create "Users" Table
+-- Stores user accounts for students and teachers
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS Users (
+    user_id VARCHAR(50) PRIMARY KEY, -- StudentID or TeacherID
+    username VARCHAR(100),
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('Teacher', 'Student', 'Admin')),
+    account_status VARCHAR(20) DEFAULT 'Active' CHECK (account_status IN ('Active', 'Inactive')),
+    last_login TIMESTAMP,
+    last_logout TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_users_user_id ON Users(user_id);

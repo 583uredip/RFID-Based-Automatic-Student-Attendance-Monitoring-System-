@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Details - Kapataksha High School Portal</title>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- External CSS -->
+    <link rel="stylesheet" href="../AdminDashboard.css">
+    
+    <style>
+        .details-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .profile-header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #f1f5f9;
+            background-color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #94a3b8;
+        }
+        
+        .profile-info h1 {
+            font-size: 1.8rem;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+        
+        .profile-badges {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .badge-primary { background: #e0f2fe; color: #0284c7; }
+        .badge-success { background: #dcfce7; color: #16a34a; }
+        .badge-secondary { background: #f1f5f9; color: #475569; }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+        }
+        
+        .detail-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .detail-card-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .detail-card-header h2 {
+            font-size: 1.2rem;
+            color: #1e293b;
+            margin: 0;
+        }
+        
+        .detail-card-header i {
+            color: #3b82f6;
+            font-size: 1.2rem;
+        }
+        
+        .detail-card-body {
+            padding: 20px;
+        }
+        
+        .info-group {
+            margin-bottom: 16px;
+        }
+        
+        .info-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        .info-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            font-size: 1rem;
+            color: #1e293b;
+            font-weight: 500;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            font-size: 1.5rem;
+            color: #3b82f6;
+            flex-direction: column;
+            gap: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Mobile Drawer Overlay Backdrop -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
+    <div class="dashboard-container">
+
+        <!-- Unified Top Header Navigation Bar -->
+        <header class="header">
+            <div class="header-left">
+                <!-- Mobile Hamburger Toggle inside Header -->
+                <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" title="Toggle Navigation Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
+                <!-- Clickable logo linking to Admin Dashboard Homepage -->
+                <a href="../AdminDashboard.html" class="header-brand-link" title="Admin Dashboard Home">
+                    <img src="../../Photos/KSHS.png" alt="KSHS Emblem" class="logo-img">
+                    <div class="brand-divider"></div>
+                    <div class="brand-text">
+                        <span class="brand-title">KSHS</span>
+                        <span class="brand-subtitle">PORTAL</span>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="header-nav" id="header-nav-menu">
+                <a class="nav-item" href="ViewAllStudents.html">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to Students</span>
+                </a>
+            </nav>
+
+            <div class="header-right">
+                <!-- Only Logout Button -->
+                <a href="../AdminDashboard.html" class="logout-btn" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Body Layout -->
+        <div class="main-layout">
+
+            <!-- Left Navigation Sidebar -->
+            <aside class="sidebar" id="sidebar-menu">
+                <!-- Dashboard -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-dashboard')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-chart-pie sidebar-icon"></i>
+                            <span>Dashboard</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-dashboard" class="sidebar-menu-content">
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-users subitem-icon"></i>
+                            <span>Total Students</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chalkboard-user subitem-icon"></i>
+                            <span>Total Teachers</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-calendar-check subitem-icon"></i>
+                            <span>Today's Attendance</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clock-rotate-left subitem-icon"></i>
+                            <span>Recent Activities</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Student Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-student')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-user-graduate sidebar-icon"></i>
+                            <span>Student Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-student" class="sidebar-menu-content">
+                        <a href="../StudentManagement/EditStudent.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-pen subitem-icon"></i>
+                            <span>Edit Student</span>
+                        </a>
+                        <a href="../StudentManagement/AcademicInformation.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-graduation-cap subitem-icon"></i>
+                            <span>Academic Information</span>
+                        </a>
+                        <a href="../StudentManagement/ContactInformation.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-book subitem-icon"></i>
+                            <span>Contact Information</span>
+                        </a>
+                        <a href="../StudentManagement/DeleteStudent.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-xmark subitem-icon"></i>
+                            <span>Delete Student</span>
+                        </a>
+                        <a href="../StudentManagement/ViewAllStudents.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-users-rectangle subitem-icon"></i>
+                            <span>View All Students</span>
+                        </a>
+                        <a href="../StudentManagement/StudentDetails.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-card subitem-icon"></i>
+                            <span>Student Details</span>
+                        </a>
+                        <a href="../StudentManagement/ImportExportStudents.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-file-csv subitem-icon"></i>
+                            <span>Import/Export Students</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Teacher Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-teacher')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-chalkboard-user sidebar-icon"></i>
+                            <span>Teacher Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-teacher" class="sidebar-menu-content">
+                        <a href="../TeacherManagement/AddTeacher.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-plus subitem-icon"></i>
+                            <span>Add Teacher</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chalkboard subitem-icon"></i>
+                            <span>Assign Classes</span>
+                        </a>
+                        <a href="../AdminDashboard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-book subitem-icon"></i>
+                            <span>Teacher List</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Attendance -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-attendance')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-calendar-days sidebar-icon"></i>
+                            <span>Attendance</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-attendance" class="sidebar-menu-content">
+                        <a href="../Attendance/LiveAttendance.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-signal subitem-icon"></i>
+                            <span>Live Attendance</span>
+                        </a>
+                        <a href="../Attendance/AttendanceRecords.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clipboard-user subitem-icon"></i>
+                            <span>Attendance Records</span>
+                        </a>
+                        <a href="../Attendance/AttendanceReports.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-chart-line subitem-icon"></i>
+                            <span>Attendance Reports</span>
+                        </a>
+                        <a href="../Attendance/LateReport.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-clock subitem-icon"></i>
+                            <span>Late Report</span>
+                        </a>
+                        <a href="../Attendance/BunkReport.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-person-walking-arrow-right subitem-icon"></i>
+                            <span>Bunk Report</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- RFID Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-rfid')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-id-card sidebar-icon"></i>
+                            <span>RFID Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-rfid" class="sidebar-menu-content">
+                        <a href="../RFID Management/RegisterCard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-id-badge subitem-icon"></i>
+                            <span>Register RFID Card</span>
+                        </a>
+                        <a href="../RFID Management/ReplaceCard.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-arrows-rotate subitem-icon"></i>
+                            <span>Replace Lost Card</span>
+                        </a>
+                        <a href="../RFID Management/ViewRegisteredCards.html" class="sidebar-subitem">
+                            <i class="fa-solid fa-address-card subitem-icon"></i>
+                            <span>View Registered Cards</span>
+                        </a>
+                    </div>
+                </div>
+
+</aside>
+
+            <!-- Right Content Area -->
+            <main class="content-area">
+                
+                <div id="loading-overlay" class="loading-overlay" style="display: none;">
+                    <i class="fa-solid fa-spinner fa-spin fa-2xl"></i>
+                    <span>Loading Student Profile...</span>
+                </div>
+
+                <!-- Search Container when no ID is provided -->
+                <div class="details-container" id="search-container" style="display: none; max-width: 600px; text-align: center; margin-top: 50px;">
+                    <i class="fa-solid fa-id-card-clip" style="font-size: 4rem; color: #94a3b8; margin-bottom: 20px;"></i>
+                    <h2 style="color: #1e293b; margin-bottom: 10px;">Find a Student</h2>
+                    <p style="color: #64748b; margin-bottom: 24px;">Enter a Student ID or scan an RFID card to view their full details.</p>
+                    
+                    <div style="background: #e0f2fe; color: #0284c7; padding: 12px 24px; border-radius: 8px; margin-bottom: 24px; font-weight: 600; display: inline-flex; align-items: center; gap: 10px;">
+                        <i class="fa-solid fa-wifi fa-fade"></i> Ready to Scan RFID Card
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="search-input" placeholder="e.g. 26-00001" style="flex: 1; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem;">
+                        <button onclick="searchStudent()" style="padding: 12px 24px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;">Search</button>
+                    </div>
+                </div>
+
+                <div class="details-container" style="display: none;" id="profile-container">
+                    
+                    <!-- Top Profile Header -->
+                    <div class="profile-header">
+                        <img src="" alt="Student Avatar" class="profile-avatar" id="ui-avatar" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="profile-avatar" id="ui-avatar-fallback" style="display: none;">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        
+                        <div class="profile-info">
+                            <h1 id="ui-name">Loading Name...</h1>
+                            <div class="profile-badges">
+                                <div class="badge badge-primary">
+                                    <i class="fa-solid fa-id-badge"></i>
+                                    <span id="ui-student-id">...</span>
+                                </div>
+                                <div class="badge badge-success">
+                                    <i class="fa-solid fa-credit-card"></i>
+                                    <span id="ui-card-uid">RFID: ...</span>
+                                </div>
+                                <div class="badge badge-secondary">
+                                    <i class="fa-solid fa-graduation-cap"></i>
+                                    <span id="ui-class-roll">Class ... - Roll ...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="details-grid">
+                        
+                        <!-- Personal Info Card -->
+                        <div class="detail-card">
+                            <div class="detail-card-header">
+                                <i class="fa-solid fa-user-tie"></i>
+                                <h2>Personal Information</h2>
+                            </div>
+                            <div class="detail-card-body">
+                                <div class="info-group">
+                                    <div class="info-label">First Name</div>
+                                    <div class="info-value" id="info-first-name">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Last Name</div>
+                                    <div class="info-value" id="info-last-name">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Gender</div>
+                                    <div class="info-value" id="info-gender">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Date of Birth</div>
+                                    <div class="info-value" id="info-dob">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Blood Group</div>
+                                    <div class="info-value" id="info-blood">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Religion & Nationality</div>
+                                    <div class="info-value" id="info-religion-nat">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">NID / Birth Certificate</div>
+                                    <div class="info-value" id="info-nid">-</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Academic Info Card -->
+                        <div class="detail-card">
+                            <div class="detail-card-header">
+                                <i class="fa-solid fa-school"></i>
+                                <h2>Academic Information</h2>
+                            </div>
+                            <div class="detail-card-body">
+                                <div class="info-group">
+                                    <div class="info-label">Admission Number</div>
+                                    <div class="info-value" id="info-admission-num">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Admission Date</div>
+                                    <div class="info-value" id="info-admission-date">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Current Class</div>
+                                    <div class="info-value" id="info-class">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Section / Group</div>
+                                    <div class="info-value" id="info-section-group">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Roll Number</div>
+                                    <div class="info-value" id="info-roll">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Previous School</div>
+                                    <div class="info-value" id="info-prev-school">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Last Last Saved</div>
+                                    <div class="info-value" id="info-academic-updated">-</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Info Card -->
+                        <div class="detail-card">
+                            <div class="detail-card-header">
+                                <i class="fa-solid fa-address-book"></i>
+                                <h2>Contact Information</h2>
+                            </div>
+                            <div class="detail-card-body">
+                                <div class="info-group">
+                                    <div class="info-label">Mobile Number</div>
+                                    <div class="info-value" id="info-mobile">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Email Address</div>
+                                    <div class="info-value" id="info-email">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Current Address</div>
+                                    <div class="info-value" id="info-current-address">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Permanent Address</div>
+                                    <div class="info-value" id="info-permanent-address">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Father's Info</div>
+                                    <div class="info-value" id="info-father">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Mother's Info</div>
+                                    <div class="info-value" id="info-mother">-</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Guardian Info</div>
+                                    <div class="info-value" id="info-guardian">-</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </main>
+
+        </div>
+
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="../AdminDashboard.js"></script>
+    <script>
+        async function loadStudentDetails() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const studentId = urlParams.get('id');
+            
+            if (!studentId) {
+                document.getElementById('loading-overlay').style.display = 'none';
+                document.getElementById('search-container').style.display = 'block';
+                startCardScanner();
+                return;
+            }
+
+            document.getElementById('loading-overlay').style.display = 'flex';
+            document.getElementById('search-container').style.display = 'none';
+            
+            const API_BASE = 'http://localhost:3000/api';
+            
+            try {
+                // Fetch data from all 3 endpoints concurrently
+                const [personalRes, academicRes, contactRes] = await Promise.all([
+                    fetch(`${API_BASE}/student/search?query=${studentId}`),
+                    fetch(`${API_BASE}/student/academic-data/${studentId}`),
+                    fetch(`${API_BASE}/student/contact-data/${studentId}`)
+                ]);
+                
+                const personal = personalRes.ok ? await personalRes.json() : null;
+                const academic = academicRes.ok ? await academicRes.json() : null;
+                const contact = contactRes.ok ? await contactRes.json() : null;
+                
+                if (!personal && !academic && !contact) {
+                    alert('Student not found!');
+                    window.location.href = 'StudentDetails.html';
+                    return;
+                }
+                
+                // --- Populate Profile Header ---
+                // We use the studentId from the API response (in case we searched by UID)
+                const finalStudentId = personal && personal.student_id ? personal.student_id : studentId;
+                const fullName = personal && personal.first_name 
+                    ? `${personal.first_name} ${personal.last_name || ''}` 
+                    : (personal && personal.card_name ? personal.card_name : 'Unknown Student');
+                
+                document.getElementById('ui-name').innerText = fullName;
+                document.getElementById('ui-student-id').innerText = finalStudentId;
+                document.getElementById('ui-card-uid').innerText = personal && personal.uid ? `RFID: ${personal.uid}` : 'No RFID Assigned';
+                
+                if (academic && academic.class_name) {
+                    document.getElementById('ui-class-roll').innerText = `Class ${academic.class_name} - Roll ${academic.roll_number || 'N/A'}`;
+                } else {
+                    document.getElementById('ui-class-roll').innerText = 'No Academic Info';
+                }
+                
+                if (personal && personal.photo_url) {
+                    document.getElementById('ui-avatar').src = personal.photo_url;
+                } else {
+                    document.getElementById('ui-avatar').style.display = 'none';
+                    document.getElementById('ui-avatar-fallback').style.display = 'flex';
+                }
+                
+                // --- Populate Personal Info ---
+                if (personal) {
+                    document.getElementById('info-first-name').innerText = personal.first_name || '-';
+                    document.getElementById('info-last-name').innerText = personal.last_name || '-';
+                    document.getElementById('info-gender').innerText = personal.gender || '-';
+                    document.getElementById('info-dob').innerText = personal.date_of_birth || '-';
+                    document.getElementById('info-blood').innerText = personal.blood_group || '-';
+                    document.getElementById('info-religion-nat').innerText = `${personal.religion || '-'} / ${personal.nationality || '-'}`;
+                    document.getElementById('info-nid').innerText = personal.nid_birth_cert || '-';
+                }
+                
+                // --- Populate Academic Info ---
+                if (academic) {
+                    document.getElementById('info-admission-num').innerText = academic.admission_number || '-';
+                    document.getElementById('info-admission-date').innerText = academic.admission_date ? new Date(academic.admission_date).toLocaleDateString() : '-';
+                    document.getElementById('info-class').innerText = academic.class_name || '-';
+                    document.getElementById('info-section-group').innerText = `${academic.section || '-'} / ${academic.student_group || '-'}`;
+                    document.getElementById('info-roll').innerText = academic.roll_number || '-';
+                    document.getElementById('info-prev-school').innerText = academic.previous_school || '-';
+                    document.getElementById('info-academic-updated').innerText = academic.updated_at ? new Date(academic.updated_at).toLocaleString() : '-';
+                }
+                
+                // --- Populate Contact Info ---
+                if (contact) {
+                    document.getElementById('info-mobile').innerText = contact.mobile_number || '-';
+                    document.getElementById('info-email').innerText = contact.email_address || '-';
+                    document.getElementById('info-current-address').innerText = contact.current_address || '-';
+                    document.getElementById('info-permanent-address').innerText = contact.permanent_address || '-';
+                    
+                    document.getElementById('info-father').innerHTML = `
+                        ${contact.fathers_name || '-'}<br>
+                        <span style="font-size:0.85em; color:#64748b;">${contact.fathers_phone || ''} ${contact.fathers_occupation ? '| '+contact.fathers_occupation : ''}</span>
+                    `;
+                    document.getElementById('info-mother').innerHTML = `
+                        ${contact.mothers_name || '-'}<br>
+                        <span style="font-size:0.85em; color:#64748b;">${contact.mothers_phone || ''} ${contact.mothers_occupation ? '| '+contact.mothers_occupation : ''}</span>
+                    `;
+                    document.getElementById('info-guardian').innerHTML = `
+                        ${contact.guardian_name || '-'} ${contact.guardian_relationship ? '('+contact.guardian_relationship+')' : ''}<br>
+                        <span style="font-size:0.85em; color:#64748b;">${contact.guardian_phone || ''}</span>
+                    `;
+                }
+
+                // Hide loading overlay and show content
+                document.getElementById('loading-overlay').style.display = 'none';
+                document.getElementById('profile-container').style.display = 'block';
+                
+            } catch (err) {
+                console.error(err);
+                alert('Error fetching student details. Check console for details.');
+                document.getElementById('loading-overlay').innerHTML = `
+                    <i class="fa-solid fa-triangle-exclamation" style="color:#ef4444;"></i>
+                    <span style="color:#ef4444;">Failed to load data. Ensure server is running.</span>
+                    <button onclick="window.location.href='StudentDetails.html'" style="margin-top:20px; padding:8px 16px; border:none; background:#3b82f6; color:white; border-radius:4px; cursor:pointer;">Go Back</button>
+                `;
+            }
+        }
+        
+        function searchStudent() {
+            const query = document.getElementById('search-input').value.trim();
+            if (query) {
+                // We'll redirect to the same page but with the ?id= parameter
+                window.location.href = `StudentDetails.html?id=${encodeURIComponent(query)}`;
+            }
+        }
+
+        let scanPollInterval = null;
+        let lastScanTimestamp = null;
+        
+        async function startCardScanner() {
+            try {
+                // Fetch initial state so we don't trigger on an old scan
+                const res = await fetch('http://localhost:3000/api/rfid/latest-scan?active=true');
+                if (res.ok) {
+                    const data = await res.json();
+                    lastScanTimestamp = data.timestamp;
+                }
+            } catch (e) {}
+
+            scanPollInterval = setInterval(async () => {
+                try {
+                    const res = await fetch('http://localhost:3000/api/rfid/latest-scan?active=true');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.uid && data.timestamp !== lastScanTimestamp) {
+                            lastScanTimestamp = data.timestamp;
+                            
+                            // Auto-fill and search using the Student ID if registered, or UID if unassigned
+                            const searchInput = document.getElementById('search-input');
+                            if (searchInput) {
+                                searchInput.value = data.studentId || data.uid;
+                                searchStudent();
+                            }
+                        }
+                    }
+                } catch (err) {}
+            }, 1000);
+        }
+
+        // Allow pressing Enter to search
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') searchStudent();
+                });
+            }
+            loadStudentDetails();
+        });
+    </script>
+</body>
+</html>
