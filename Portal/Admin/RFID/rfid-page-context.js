@@ -20,7 +20,9 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 (function () {
-    const SERVER = 'http://192.168.0.197:3000';
+    const SERVER = (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin.includes('http'))
+        ? window.location.origin
+        : 'http://localhost:3000';
     const ENDPOINT = SERVER + '/api/rfid/page-context';
     const HEARTBEAT_MS = 4000; // must be less than PAGE_CONTEXT_EXPIRE_MS (6000) on server
 

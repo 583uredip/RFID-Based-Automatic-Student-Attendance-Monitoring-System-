@@ -66,7 +66,7 @@
         <!-- Main Body Layout -->
         <div class="main-layout">
 
-            <!-- Left Navigation Sidebar (Slide-Out Drawer on Mobile) -->
+            <!-- Left Navigation Sidebar -->
             <aside class="sidebar" id="sidebar-menu">
                 <!-- Dashboard -->
                 <div class="menu-group">
@@ -169,15 +169,15 @@
 
                 <!-- Attendance -->
                 <div class="menu-group">
-                    <button class="sidebar-btn" onclick="toggleMenu('menu-attendance')">
+                    <button class="sidebar-btn active" onclick="toggleMenu('menu-attendance')">
                         <div class="sidebar-btn-left">
                             <i class="fa-solid fa-calendar-days sidebar-icon"></i>
                             <span>Attendance</span>
                         </div>
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
-                    <div id="menu-attendance" class="sidebar-menu-content">
-                        <a href="../Attendance/LiveAttendance.html" class="sidebar-subitem">
+                    <div id="menu-attendance" class="sidebar-menu-content active">
+                        <a href="../Attendance/LiveAttendance.html" class="sidebar-subitem active">
                             <i class="fa-solid fa-signal subitem-icon"></i>
                             <span>Live Attendance</span>
                         </a>
@@ -225,103 +225,51 @@
                     </div>
                 </div>
 
-</aside>
+            </aside>
 
             <!-- Right Content Area -->
             <main class="content-area">
-    <div class="rfid-card-section" style="max-width: 1000px; margin: 0 auto;">
-        <div class="rfid-card-header">
-            <div class="rfid-title">
-                <i class="fa-solid fa-signal"></i>
-                <span>Live Attendance Log - <span id="current-date-display"></span></span>
-            </div>
-            <div class="live-status-badge">
-                <span class="status-dot pulsing"></span>
-                <span>Auto-updating...</span>
-            </div>
-        </div>
+                <div class="rfid-card-section">
+                    <div class="rfid-card-header">
+                        <div class="rfid-title">
+                            <i class="fa-solid fa-signal"></i>
+                            <span>Live Attendance Log - <span id="current-date-display"></span></span>
+                        </div>
+                        <div class="live-status-badge success">
+                            <span class="status-dot pulsing"></span>
+                            <span id="live-count-text">Auto-updating...</span>
+                        </div>
+                    </div>
 
-        <div class="table-container" style="margin-top: 20px; overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <table class="students-table" style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr>
-                        <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Student Info</th>
-                        <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Class & Roll</th>
-                        <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Date</th>
-                        <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Time In</th>
-                        <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Time Out</th>
-                        <th style="padding: 16px; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc;">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="attendance-table-body">
-                    <!-- Data will be populated here by JS -->
-                </tbody>
-            </table>
-            <div id="no-attendance-msg" style="text-align: center; padding: 40px; color: #64748b; display: none;">
-                No attendance records for today yet.
-            </div>
-        </div>
-    </div>
-</main>
-
-<script>
-    document.getElementById('current-date-display').innerText = new Date().toLocaleDateString();
-
-    async function fetchLiveAttendance() {
-        try {
-            const API_BASE = 'http://localhost:3000/api';
-            const res = await fetch(`${API_BASE}/attendance/live`);
-            const data = await res.json();
-            
-            const tbody = document.getElementById('attendance-table-body');
-            const noMsg = document.getElementById('no-attendance-msg');
-            
-            tbody.innerHTML = '';
-            
-            if (data.length === 0) {
-                noMsg.style.display = 'block';
-            } else {
-                noMsg.style.display = 'none';
-                data.forEach(record => {
-                    const tr = document.createElement('tr');
-                    tr.style.borderBottom = '1px solid #e2e8f0';
-                    tr.style.transition = 'background-color 0.2s';
-                    tr.onmouseover = () => tr.style.backgroundColor = '#f8fafc';
-                    tr.onmouseout = () => tr.style.backgroundColor = 'transparent';
-                    
-                    const recordDate = new Date(record.time_in).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-                    const timeIn = new Date(record.time_in).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-                    const timeOut = record.time_out ? new Date(record.time_out).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) : '-';
-                    const status = record.time_out 
-                        ? '<span style="color: #ef4444; font-weight: 600; background: #fee2e2; padding: 4px 8px; border-radius: 4px;">Left</span>' 
-                        : '<span style="color: #10b981; font-weight: 600; background: #d1fae5; padding: 4px 8px; border-radius: 4px;">Present</span>';
-                    
-                    tr.innerHTML = `
-                        <td style="padding: 16px;">
-                            <div style="font-weight: 600; color: #1e293b;">${record.first_name ? record.first_name + ' ' + (record.last_name || '') : (record.card_name || 'Unknown')}</div>
-                            <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">ID: ${record.student_id}</div>
-                        </td>
-                        <td style="padding: 16px;">
-                            <div style="color: #334155;">${record.class_name || 'N/A'}</div>
-                            <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">Roll: ${record.roll_number || 'N/A'}</div>
-                        </td>
-                        <td style="padding: 16px; color: #475569;">${recordDate}</td>
-                        <td style="padding: 16px; font-family: monospace; color: #475569;">${timeIn}</td>
-                        <td style="padding: 16px; font-family: monospace; color: #475569;">${timeOut}</td>
-                        <td style="padding: 16px;">${status}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
-        } catch (error) {
-            console.error('Error fetching live attendance:', error);
-        }
-    }
-
-    // Fetch immediately, then poll every 3 seconds
-    fetchLiveAttendance();
-    setInterval(fetchLiveAttendance, 3000);
-</script>
+                    <div class="table-container" style="margin-top: 20px; overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <table class="students-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                            <thead>
+                                <tr style="background-color: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
+                                    <th style="padding: 14px 16px; font-weight: 600; color: #475569;">Student</th>
+                                    <th style="padding: 14px 16px; font-weight: 600; color: #475569;">Academic Info</th>
+                                    <th style="padding: 14px 16px; font-weight: 600; color: #475569;">Contact</th>
+                                    <th style="padding: 14px 16px; font-weight: 600; color: #475569;">Time In</th>
+                                    <th style="padding: 14px 16px; font-weight: 600; color: #475569;">Time Out</th>
+                                    <th style="padding: 14px 16px; font-weight: 600; color: #475569;">Duration</th>
+                                    <th style="padding: 14px 16px; font-weight: 600; color: #475569;">Status</th>
+                                    <th style="padding: 14px 16px; font-weight: 600; color: #475569;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendance-table-body">
+                                <tr>
+                                    <td colspan="8" style="padding: 24px; text-align: center; color: #64748b;">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Loading live attendance data...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div id="no-attendance-msg" style="text-align: center; padding: 40px; color: #64748b; display: none;">
+                            <i class="fa-solid fa-user-clock" style="font-size: 2rem; color: #cbd5e1; margin-bottom: 10px; display: block;"></i>
+                            No attendance scans recorded for today yet.
+                        </div>
+                    </div>
+                </div>
+            </main>
 
         </div>
 
@@ -330,5 +278,121 @@
     <!-- External JavaScript -->
     <script src="../AdminDashboard.js"></script>
 
+    <script>
+        document.getElementById('current-date-display').innerText = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+        function formatDuration(timeInStr, timeOutStr) {
+            if (!timeInStr) return '-';
+            const start = new Date(timeInStr);
+            const end = timeOutStr ? new Date(timeOutStr) : new Date();
+            const diffMs = end - start;
+            if (diffMs < 0) return '0 min';
+            
+            const totalMins = Math.floor(diffMs / 60000);
+            const hours = Math.floor(totalMins / 60);
+            const mins = totalMins % 60;
+            
+            if (!timeOutStr) {
+                return `<span style="color: #0284c7; font-weight: 500;"><i class="fa-solid fa-building-user"></i> ${hours > 0 ? hours + 'h ' : ''}${mins}m (In School)</span>`;
+            }
+            return `<span style="color: #475569;"><i class="fa-solid fa-hourglass-half"></i> ${hours > 0 ? hours + 'h ' : ''}${mins}m</span>`;
+        }
+
+        async function fetchLiveAttendance() {
+            try {
+                const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:3000';
+                const res = await fetch(`${apiBase}/api/attendance/live`);
+                if (!res.ok) throw new Error('Server error');
+                
+                const data = await res.json();
+                
+                const tbody = document.getElementById('attendance-table-body');
+                const noMsg = document.getElementById('no-attendance-msg');
+                const countText = document.getElementById('live-count-text');
+                
+                if (countText) {
+                    countText.innerText = `Auto-updating (${data.length} Present Today)`;
+                }
+
+                tbody.innerHTML = '';
+                
+                if (data.length === 0) {
+                    noMsg.style.display = 'block';
+                } else {
+                    noMsg.style.display = 'none';
+                    data.forEach(record => {
+                        const tr = document.createElement('tr');
+                        tr.style.borderBottom = '1px solid #e2e8f0';
+                        tr.style.transition = 'background-color 0.2s';
+                        tr.onmouseover = () => tr.style.backgroundColor = '#f8fafc';
+                        tr.onmouseout = () => tr.style.backgroundColor = 'transparent';
+                        
+                        const timeIn = new Date(record.time_in).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        const timeOut = record.time_out ? new Date(record.time_out).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-';
+                        
+                        const statusBadge = record.time_out 
+                            ? '<span style="color: #b91c1c; font-weight: 600; background: #fee2e2; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-arrow-right-from-bracket"></i> Left</span>' 
+                            : '<span style="color: #15803d; font-weight: 600; background: #dcfce7; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-circle" style="font-size: 0.5rem; color: #22c55e;"></i> Present</span>';
+                        
+                        const fullName = record.first_name ? `${record.first_name} ${record.last_name || ''}` : (record.card_name || 'N/A');
+                        const classStr = record.class_name ? `Class ${record.class_name}` : 'N/A';
+                        const rollStr = record.roll_number ? `Roll: ${record.roll_number}` : '';
+                        const secStr = record.section ? `Sec: ${record.section}` : '';
+                        const groupStr = record.student_group ? `Group: ${record.student_group}` : '';
+                        const shiftStr = record.shift ? `Shift: ${record.shift}` : '';
+
+                        const academicMeta = [secStr, groupStr, shiftStr].filter(Boolean).join(' | ');
+                        const phone = record.mobile_number || record.fathers_phone || 'N/A';
+
+                        const avatarSrc = record.photo_url || '../../Photos/KSHS.png';
+
+                        tr.innerHTML = `
+                            <td style="padding: 14px 16px;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <img src="${avatarSrc}" alt="Photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #cbd5e1; background: #f1f5f9;" onerror="this.src='../../Photos/KSHS.png'">
+                                    <div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 0.95rem;">${fullName}</div>
+                                        <div style="display: flex; gap: 8px; align-items: center; margin-top: 2px;">
+                                            <span style="font-size: 0.8rem; font-weight: 600; color: #0284c7; background: #e0f2fe; padding: 2px 6px; border-radius: 4px;">ID: ${record.student_id}</span>
+                                            <span style="font-size: 0.75rem; font-family: monospace; color: #64748b;">UID: ${record.uid || 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="padding: 14px 16px;">
+                                <div style="font-weight: 600; color: #334155; font-size: 0.9rem;">${classStr} ${rollStr ? '(' + rollStr + ')' : ''}</div>
+                                <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">${academicMeta || 'Standard Stream'}</div>
+                            </td>
+                            <td style="padding: 14px 16px; color: #334155; font-size: 0.88rem;">
+                                <i class="fa-solid fa-phone" style="color: #94a3b8; font-size: 0.8rem; margin-right: 4px;"></i>${phone}
+                            </td>
+                            <td style="padding: 14px 16px; font-family: monospace; color: #166534; font-weight: 600; font-size: 0.9rem;">
+                                <i class="fa-solid fa-right-to-bracket" style="color: #22c55e; margin-right: 4px;"></i>${timeIn}
+                            </td>
+                            <td style="padding: 14px 16px; font-family: monospace; color: ${record.time_out ? '#991b1b' : '#64748b'}; font-weight: ${record.time_out ? '600' : 'normal'}; font-size: 0.9rem;">
+                                ${record.time_out ? '<i class="fa-solid fa-right-from-bracket" style="color: #ef4444; margin-right: 4px;"></i>' + timeOut : '-'}
+                            </td>
+                            <td style="padding: 14px 16px; font-size: 0.85rem;">
+                                ${formatDuration(record.time_in, record.time_out)}
+                            </td>
+                            <td style="padding: 14px 16px;">${statusBadge}</td>
+                            <td style="padding: 14px 16px;">
+                                <a href="../StudentManagement/StudentDetails.html?id=${record.student_id}" class="action-btn" style="background-color: #e0f2fe; color: #0284c7; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.82rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-eye"></i> Details
+                                </a>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching live attendance:', error);
+            }
+        }
+
+        // Fetch immediately, then poll every 3 seconds
+        fetchLiveAttendance();
+        setInterval(fetchLiveAttendance, 3000);
+    </script>
 </body>
 </html>

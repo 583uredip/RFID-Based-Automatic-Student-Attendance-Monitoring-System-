@@ -338,9 +338,16 @@ app.get('/api/rfid/cards', async (req, res) => {
 // 6. Delete Registered Card Endpoint
 app.delete('/api/rfid/cards/:uid', async (req, res) => {
     const { uid } = req.params;
+    const cleanUid = uid.toUpperCase().trim();
     try {
-        await pool.query('DELETE FROM cards WHERE uid = $1', [uid.toUpperCase()]);
-        res.json({ message: 'Card record deleted successfully' });
+        const cardRes = await pool.query('DELETE FROM cards WHERE uid = $1 RETURNING *', [cleanUid]);
+        if (cardRes.rows.length > 0) {
+            const deletedCard = cardRes.rows[0];
+            if (deletedCard.student_id) {
+                await pool.query('DELETE FROM Users WHERE UPPER(user_id) = $1', [deletedCard.student_id.toUpperCase()]);
+            }
+        }
+        res.json({ message: 'Card record and associated user account deleted successfully' });
     } catch (err) {
         console.error('Error deleting card:', err.message);
         res.status(500).json({ error: 'Failed to delete card' });
@@ -780,15 +787,30 @@ app.post('/api/student/contact-data', async (req, res) => {
 // 12. Delete Student by Student ID or UID
 app.delete('/api/student/:identifier', async (req, res) => {
     const identifier = req.params.identifier;
+    const cleanIdentifier = identifier.toUpperCase().trim();
     
     try {
         const query = 'DELETE FROM cards WHERE UPPER(student_id) = $1 OR UPPER(uid) = $1 RETURNING *';
-        const result = await pool.query(query, [identifier.toUpperCase()]);
+        const result = await pool.query(query, [cleanIdentifier]);
 
         if (result.rows.length > 0) {
-            res.status(200).json({ message: 'Student and all related data deleted successfully.' });
+            const deletedCard = result.rows[0];
+            
+            // Delete user account from Users table if present
+            await pool.query('DELETE FROM Users WHERE UPPER(user_id) = $1 OR UPPER(user_id) = $2', [
+                deletedCard.student_id.toUpperCase(),
+                cleanIdentifier
+            ]);
+
+            res.status(200).json({ message: 'Student, card record, and user account deleted successfully.' });
         } else {
-            res.status(404).json({ error: 'Student not found.' });
+            // Check if user account exists in Users directly and delete it
+            const userDelete = await pool.query('DELETE FROM Users WHERE UPPER(user_id) = $1 RETURNING *', [cleanIdentifier]);
+            if (userDelete.rows.length > 0) {
+                res.status(200).json({ message: 'User account deleted successfully.' });
+            } else {
+                res.status(404).json({ error: 'Student not found.' });
+            }
         }
     } catch (err) {
         console.error('Error deleting student:', err.message);
@@ -1009,12 +1031,14 @@ app.get('/api/attendance/live', async (req, res) => {
             SELECT 
                 a.id, a.student_id, a.time_in, a.time_out,
                 p.first_name, p.last_name, p.photo_url,
-                cards.name AS card_name,
-                c.class_name, c.roll_number, c.section
+                cards.name AS card_name, cards.uid,
+                c.class_name, c.roll_number, c.section, c.student_group, c.shift,
+                cont.mobile_number, cont.fathers_phone
             FROM Attendance a
             JOIN cards ON a.student_id = cards.student_id
             LEFT JOIN PersonalData p ON a.student_id = p.student_id
             LEFT JOIN StudentAcademicInformation c ON a.student_id = c.student_id
+            LEFT JOIN StudentContactInformation cont ON a.student_id = cont.student_id
             WHERE a.date = CURRENT_DATE
             ORDER BY COALESCE(a.time_out, a.time_in) DESC
         `;
@@ -1034,12 +1058,14 @@ app.get('/api/attendance/history', async (req, res) => {
             SELECT 
                 a.id, a.student_id, a.date, a.time_in, a.time_out,
                 p.first_name, p.last_name, p.photo_url,
-                cards.name AS card_name,
-                c.class_name, c.roll_number, c.section
+                cards.name AS card_name, cards.uid,
+                c.class_name, c.roll_number, c.section, c.student_group, c.shift,
+                cont.mobile_number, cont.fathers_phone
             FROM Attendance a
             JOIN cards ON a.student_id = cards.student_id
             LEFT JOIN PersonalData p ON a.student_id = p.student_id
             LEFT JOIN StudentAcademicInformation c ON a.student_id = c.student_id
+            LEFT JOIN StudentContactInformation cont ON a.student_id = cont.student_id
             WHERE 1=1
         `;
         let values = [];

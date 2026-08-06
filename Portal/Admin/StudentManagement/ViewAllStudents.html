@@ -91,14 +91,14 @@
 
                 <!-- Student Management -->
                 <div class="menu-group">
-                    <button class="sidebar-btn" onclick="toggleMenu('menu-student')">
+                    <button class="sidebar-btn active" onclick="toggleMenu('menu-student')">
                         <div class="sidebar-btn-left">
                             <i class="fa-solid fa-user-graduate sidebar-icon"></i>
                             <span>Student Management</span>
                         </div>
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
-                    <div id="menu-student" class="sidebar-menu-content">
+                    <div id="menu-student" class="sidebar-menu-content active">
                         <a href="../StudentManagement/EditStudent.html" class="sidebar-subitem">
                             <i class="fa-solid fa-user-pen subitem-icon"></i>
                             <span>Edit Student</span>
@@ -115,7 +115,7 @@
                             <i class="fa-solid fa-user-xmark subitem-icon"></i>
                             <span>Delete Student</span>
                         </a>
-                        <a href="../StudentManagement/ViewAllStudents.html" class="sidebar-subitem">
+                        <a href="../StudentManagement/ViewAllStudents.html" class="sidebar-subitem active">
                             <i class="fa-solid fa-users-rectangle subitem-icon"></i>
                             <span>View All Students</span>
                         </a>
@@ -217,7 +217,7 @@
                     </div>
                 </div>
 
-</aside>
+            </aside>
 
             <!-- Right Content Area -->
             <main class="content-area">
@@ -272,183 +272,8 @@
             const countBadge = document.getElementById('students-count-badge');
             
             try {
-                const response = await fetch('http://localhost:3000/api/student/all');
-                if (!response.ok) throw new Error('Failed to fetch data');
-                
-                const students = await response.json();
-                
-                // Update the total count
-                countBadge.innerHTML = `<span>Total: ${students.length}</span>`;
-                
-                tableBody.innerHTML = '';
-                
-                if (students.length === 0) {
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="6" style="padding: 20px; text-align: center; color: #64748b;">
-                                No students registered in the system yet.
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-                
-                students.forEach(student => {
-                    const tr = document.createElement('tr');
-                    tr.style.borderBottom = '1px solid #e2e8f0';
-                    tr.style.transition = 'background-color 0.2s';
-                    tr.onmouseover = () => tr.style.backgroundColor = '#f8fafc';
-                    tr.onmouseout = () => tr.style.backgroundColor = 'transparent';
-                    
-                    const fullName = student.first_name ? `${student.first_name} ${student.last_name || ''}` : (student.card_name || 'N/A');
-                    const classStr = student.class_name ? `Class ${student.class_name}` : 'N/A';
-                    const rollStr = student.roll_number || 'N/A';
-                    const sectionStr = student.section ? `Sec: ${student.section}` : '';
-                    
-                    tr.innerHTML = `
-                        <td style="padding: 12px 15px; font-weight: 600; color: #1e293b;">${student.student_id}</td>
-                        <td style="padding: 12px 15px; color: #334155;">${fullName}</td>
-                        <td style="padding: 12px 15px; font-family: monospace; color: #64748b;">${student.uid || 'N/A'}</td>
-                        <td style="padding: 12px 15px; color: #334155;">
-                            <div>${classStr} - Roll ${rollStr}</div>
-                            <div style="font-size: 0.85rem; color: #64748b;">${sectionStr}</div>
-                        </td>
-                        <td style="padding: 12px 15px; color: #334155;">${student.mobile_number || 'N/A'}</td>
-                        <td style="padding: 12px 15px;">
-                            <a href="StudentDetails.html?id=${student.student_id}" class="action-btn" style="background-color: #e0f2fe; color: #0284c7; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;">
-                                <i class="fa-solid fa-eye"></i> Details
-                            </a>
-                        </td>
-                    `;
-                    tableBody.appendChild(tr);
-                });
-                
-            } catch (err) {
-                console.error(err);
-                countBadge.innerHTML = `<span style="color: #ef4444;">Error</span>`;
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" style="padding: 20px; text-align: center; color: #ef4444;">
-                            <i class="fa-solid fa-triangle-exclamation"></i> Error loading student data.
-                        </td>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Attendance -->
-                <div class="menu-group">
-                    <button class="sidebar-btn" onclick="toggleMenu('menu-attendance')">
-                        <div class="sidebar-btn-left">
-                            <i class="fa-solid fa-calendar-days sidebar-icon"></i>
-                            <span>Attendance</span>
-                        </div>
-                        <i class="fa-solid fa-caret-down caret-icon"></i>
-                    </button>
-                    <div id="menu-attendance" class="sidebar-menu-content">
-                        <a href="../Attendance/LiveAttendance.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-signal subitem-icon"></i>
-                            <span>Live Attendance</span>
-                        </a>
-                        <a href="../Attendance/AttendanceRecords.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-clipboard-user subitem-icon"></i>
-                            <span>Attendance Records</span>
-                        </a>
-                        <a href="../Attendance/AttendanceReports.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-chart-line subitem-icon"></i>
-                            <span>Attendance Reports</span>
-                        </a>
-                        <a href="../Attendance/LateReport.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-clock subitem-icon"></i>
-                            <span>Late Report</span>
-                        </a>
-                        <a href="../Attendance/BunkReport.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-person-walking-arrow-right subitem-icon"></i>
-                            <span>Bunk Report</span>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- RFID Management -->
-                <div class="menu-group">
-                    <button class="sidebar-btn" onclick="toggleMenu('menu-rfid')">
-                        <div class="sidebar-btn-left">
-                            <i class="fa-solid fa-id-card sidebar-icon"></i>
-                            <span>RFID Management</span>
-                        </div>
-                        <i class="fa-solid fa-caret-down caret-icon"></i>
-                    </button>
-                    <div id="menu-rfid" class="sidebar-menu-content">
-                        <a href="../RFID Management/RegisterCard.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-id-badge subitem-icon"></i>
-                            <span>Register RFID Card</span>
-                        </a>
-                        <a href="../RFID Management/ReplaceCard.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-arrows-rotate subitem-icon"></i>
-                            <span>Replace Lost Card</span>
-                        </a>
-                        <a href="../RFID Management/ViewRegisteredCards.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-address-card subitem-icon"></i>
-                            <span>View Registered Cards</span>
-                        </a>
-                    </div>
-                </div>
-
-</aside>
-
-            <!-- Right Content Area -->
-            <main class="content-area">
-
-                <!-- View All Students Section -->
-                <div class="rfid-card-section">
-                    <div class="rfid-card-header">
-                        <div class="rfid-title">
-                            <i class="fa-solid fa-users-rectangle"></i>
-                            <span>All Registered Students</span>
-                        </div>
-                        <div class="live-status-badge success" id="students-count-badge">
-                            <span>Loading...</span>
-                        </div>
-                    </div>
-
-                    <div style="overflow-x: auto; margin-top: 20px;">
-                        <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                            <thead>
-                                <tr style="background-color: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
-                                    <th style="padding: 12px 15px; font-weight: 600; color: #475569;">Student ID</th>
-                                    <th style="padding: 12px 15px; font-weight: 600; color: #475569;">Name</th>
-                                    <th style="padding: 12px 15px; font-weight: 600; color: #475569;">Card UID</th>
-                                    <th style="padding: 12px 15px; font-weight: 600; color: #475569;">Class & Roll</th>
-                                    <th style="padding: 12px 15px; font-weight: 600; color: #475569;">Mobile</th>
-                                    <th style="padding: 12px 15px; font-weight: 600; color: #475569;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="students-table-body">
-                                <tr>
-                                    <td colspan="6" style="padding: 20px; text-align: center; color: #64748b;">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> Loading students...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-            </main>
-
-        </div>
-
-    </div>
-
-    <!-- External JavaScript -->
-    <script src="../AdminDashboard.js"></script>
-
-    <script>
-        async function fetchAllStudents() {
-            const tableBody = document.getElementById('students-table-body');
-            const countBadge = document.getElementById('students-count-badge');
-            
-            try {
-                const response = await fetch('http://localhost:3000/api/student/all');
+                const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:3000';
+                const response = await fetch(`${apiBase}/api/student/all`);
                 if (!response.ok) throw new Error('Failed to fetch data');
                 
                 const students = await response.json();

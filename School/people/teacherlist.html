@@ -116,7 +116,8 @@
 
             try {
                 // Assuming the backend is running on localhost:3000
-                const response = await fetch('http://localhost:3000/api/teacher/all');
+                const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:3000';
+                const response = await fetch(`${apiBase}/api/teacher/all`);
                 
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -147,7 +148,7 @@
                     // If current_address is JSON or comma-separated string, we'll try to just show it raw for now
                     const address = teacher.current_address ? teacher.current_address.replace(/\\n/g, ', ') : 'N/A';
                     
-                    const photoUrl = teacher.photo_url || '../photos/default_user.png'; // Fallback photo
+                    const photoUrl = teacher.photo_url || '../photos/KSHS.png'; // Fallback photo
 
                     col.innerHTML = `
                         <div class="teacher-card">
