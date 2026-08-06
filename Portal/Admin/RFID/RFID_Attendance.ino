@@ -11,8 +11,9 @@
  *    - Anti-Passback / Rapid Double-Tap Cooldown
  *    - Relay Door Unlock Access Control
  *    - RGB LED Status Indicator & Multi-Frequency Audio Feedback
- *    - Live OLED Status Bar (NTP/RTC Time, WiFi RSSI, Queue badge)
- *    - OLED Screen Saver / Display Burn-In Protection
+ *    - Live OLED clock (seconds update) + ATTENDANCE MODE label
+ *    - OLED Screen Saver / Sleep after 5 minutes of inactivity
+ *    - Web command messages shown directly on OLED display
  *    - ArduinoOTA (Over-The-Air Wireless Firmware Updates)
  *    - Hardware DS3231 RTC fallback & auto-sync from NTP
  * ============================================================
@@ -84,24 +85,26 @@
 const bool COMMON_ANODE = false;
 
 // ── System Rules & Configuration ─────────────────────────────────
-const char* DEFAULT_WIFI_SSID = "A36";
-const char* DEFAULT_WIFI_PASS = "12345678";
+const char* DEFAULT_WIFI_SSID = "5G";
+const char* DEFAULT_WIFI_PASS = "12345345";
 
 // Node.js Express Server API Endpoints (Port 3000)
-const char* SERVER_URL   = "http://192.168.0.197:3000/api/rfid/scan";
-const char* REGISTER_URL = "http://192.168.0.197:3000/api/rfid/register";
-const char* SCAN_URL     = "http://192.168.0.197:3000/api/rfid/scan";
-const char* CARDREAD_URL = "http://192.168.0.197:3000/api/rfid/latest-scan";
-const char* DETSCAN_URL  = "http://192.168.0.197:3000/api/student/search";
-const char* SYNC_URL     = "http://192.168.0.197:3000/api/rfid/sync";
+const char* SERVER_URL      = "http://192.168.0.197:3000/api/rfid/scan";
+const char* REGISTER_URL    = "http://192.168.0.197:3000/api/rfid/register";
+const char* SCAN_URL        = "http://192.168.0.197:3000/api/rfid/scan";
+const char* CARDREAD_URL    = "http://192.168.0.197:3000/api/rfid/latest-scan";
+const char* DETSCAN_URL     = "http://192.168.0.197:3000/api/student/search";
+const char* SYNC_URL        = "http://192.168.0.197:3000/api/rfid/sync";
+const char* PAGE_CONTEXT_URL = "http://192.168.0.197:3000/api/rfid/page-context";
 
 // Master Card UID (Change to your admin card UID)
 String MASTER_CARD_UID = "AA:BB:CC:DD";
 
 // Timers & Intervals
-const unsigned long COOLDOWN_MS     = 5000;  // Anti-passback double-tap cooldown (5s)
-const unsigned long OLED_TIMEOUT_MS = 60000; // Screen saver display timeout (60s)
-const unsigned long RELAY_UNLOCK_MS = 3000;  // Relay unlock pulse duration (3s)
+const unsigned long COOLDOWN_MS      = 5000;   // Anti-passback double-tap cooldown (5s)
+const unsigned long OLED_TIMEOUT_MS  = 300000; // Screen saver / sleep timeout (5 minutes)
+const unsigned long RELAY_UNLOCK_MS  = 3000;   // Relay unlock pulse duration (3s)
+const unsigned long CLOCK_UPDATE_MS  = 1000;   // Idle clock refresh interval (1s)
 
 // Storage Paths on Flash
 #define QUEUE_FILE    "/offline_queue.json"
@@ -117,11 +120,15 @@ bool webReadMode     = false;
 bool webDetScanMode  = false;
 bool adminMode       = false;
 bool displayOn       = true;
+bool idleScreen      = false;   // true when showing idle/ready screen
+bool studentMgmtMode = false;   // true when a Student Management page is open
+String studentMgmtPage = "";    // e.g. "Edit Student", "View All Students"
 
 unsigned long lastPoll         = 0;
 unsigned long lastScanTime     = 0;
 unsigned long lastActivityTime = 0;
 unsigned long relayOffTime     = 0;
+unsigned long lastClockUpdate  = 0;
 String        lastScannedUID   = "";
 
 // ── Function Declarations ────────────────────────────────────────
@@ -144,6 +151,7 @@ bool getStudentFromCache(String uid, String &cardIdOut, String &nameOut);
 void checkWebScanRequest();
 void checkWebReadRequest();
 void checkWebDetScanRequest();
+void checkPageContext();    // polls page-context — enables Student Mgmt mode
 
 void sendScanUID(String uid);
 void sendReadUID(String uid);
@@ -166,15 +174,19 @@ void beepAdmin();
 
 void resetDisplayTimeout();
 void checkScreenSaver();
+void updateIdleClock();
 
 void oledReady();
+void oledWebMode(String title, String line1, String line2, String line3);
 void oledMsg(String l1, String l2, String l3, String l4);
 void oledAttendance(String name, String cardId, String action);
 void oledSuccess(String id, String name, String uid, String dbStatus);
 void oledRead(String uid, String id, String name);
+void drawStatusBar();
 
 String getUID();
 String getFormattedTime();
+String getFormattedDate();
 String buf2str(byte *buf);
 bool waitForCard(unsigned long ms);
 void writeFailed();
@@ -205,9 +217,16 @@ void loop() {
   checkRelayTimer();
   checkScreenSaver();
 
+  // ── Live clock update on idle screen (every second, no full redraw) ──
+  if (idleScreen && displayOn && (millis() - lastClockUpdate > CLOCK_UPDATE_MS)) {
+    lastClockUpdate = millis();
+    updateIdleClock();
+  }
+
   // ── Poll backend every 1s ──────────────────────────────────────
   if (WiFi.status() == WL_CONNECTED && millis() - lastPoll > 1000) {
     lastPoll = millis();
+    checkPageContext();        // ← must run first so studentMgmtMode is current
     checkWebScanRequest();
     checkWebReadRequest();
     checkWebDetScanRequest();
@@ -230,6 +249,7 @@ void loop() {
   if (!mfrc522.PICC_ReadCardSerial())   return;
 
   resetDisplayTimeout();
+  idleScreen = false;
   String uid = getUID();
   Serial.println("Scanned UID: " + uid);
 
@@ -300,6 +320,25 @@ void loop() {
     return;
   }
 
+  // ── Student Management Mode: redirect tap to web, no attendance ──
+  if (studentMgmtMode && !webScanMode && !webReadMode && !webDetScanMode) {
+    setRGB(128, 0, 255); // Purple
+    beepOK();
+    oledMsg("[ STUDENT MGMT ]", studentMgmtPage.length() ? studentMgmtPage : "Web page active",
+            "Sending to web:", uid);
+    // Forward the UID to the scan endpoint so the web page can receive it
+    if (WiFi.status() == WL_CONNECTED) sendScanUID(uid);
+    mfrc522.PICC_HaltA();
+    mfrc522.PCD_StopCrypto1();
+    delay(2000);
+    setRGB(0, 0, 0);
+    // Restore student mgmt screen (don't go back to attendance mode)
+    idleScreen = false;
+    oledWebMode("[STUDENT MGMT]", studentMgmtPage.length() ? studentMgmtPage : "Web page active",
+                "Tap card to load", "student on web");
+    return;
+  }
+
   // ── Standard Attendance Punch ──────────────────────────────────
   processCardScan(uid);
 
@@ -351,10 +390,13 @@ void setupPeripherals() {
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
   display.setTextSize(1);
-  display.setCursor(10, 20);
+  display.setCursor(10, 8);
+  display.print("KAPATAKSHA H.S.");
+  display.setCursor(10, 24);
   display.print("RFID ATTENDANCE");
-  display.setCursor(15, 38);
+  display.setCursor(20, 40);
   display.print("Initializing...");
+  display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
   display.display();
 }
 
@@ -738,22 +780,34 @@ void beepAdmin() {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// OLED Screen Saver & Burn-In Protection
+// OLED Screen Saver & Sleep (5-minute inactivity timeout)
 // ─────────────────────────────────────────────────────────────────
 void resetDisplayTimeout() {
   lastActivityTime = millis();
   if (!displayOn) {
     displayOn = true;
     display.ssd1306_command(SSD1306_DISPLAYON);
+    Serial.println("Display woke up");
   }
 }
 
 void checkScreenSaver() {
   if (displayOn && (millis() - lastActivityTime > OLED_TIMEOUT_MS)) {
-    displayOn = false;
+    displayOn  = false;
+    idleScreen = false;
     display.ssd1306_command(SSD1306_DISPLAYOFF);
-    Serial.println("OLED Screen Saver Activated (Display OFF)");
+    Serial.println("OLED Sleep activated (5-min timeout)");
   }
+}
+
+// Partial clock-only update while on the idle screen (no full redraw → no flicker)
+void updateIdleClock() {
+  display.fillRect(2, 2, 66, 9, SSD1306_WHITE); // clear time area in status bar
+  display.setTextColor(SSD1306_BLACK);
+  display.setTextSize(1);
+  display.setCursor(2, 2);
+  display.print(getFormattedTime());
+  display.display();
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -771,8 +825,9 @@ void checkWebScanRequest() {
       bool waiting = doc["waiting"].as<bool>();
       if (waiting && !webScanMode) {
         webScanMode = true;
+        idleScreen  = false;
         setRGB(0, 0, 255);
-        oledMsg("[ WEB SCAN ]", "Tap card to", "register student", "on website...");
+        oledWebMode("[ WEB SCAN MODE ]", "Web portal ready.", "Tap RFID card to", "register student");
       } else if (!waiting && webScanMode) {
         webScanMode = false;
         setRGB(0, 0, 0);
@@ -795,8 +850,9 @@ void checkWebDetScanRequest() {
       bool waiting = doc["waiting"].as<bool>();
       if (waiting && !webDetScanMode) {
         webDetScanMode = true;
+        idleScreen     = false;
         setRGB(0, 0, 255);
-        oledMsg("[ DET SCAN ]", "Tap card to", "load student", "details...");
+        oledWebMode("[ DETAIL SCAN ]", "Web portal ready.", "Tap RFID card to", "load student info");
       } else if (!waiting && webDetScanMode) {
         webDetScanMode = false;
         setRGB(0, 0, 0);
@@ -819,12 +875,67 @@ void checkWebReadRequest() {
       bool waiting = doc["waiting"].as<bool>();
       if (waiting && !webReadMode) {
         webReadMode = true;
+        idleScreen  = false;
         setRGB(0, 0, 255);
-        oledMsg("[ READ CARD ]", "Tap card to", "view student", "info on website");
+        oledWebMode("[ READ CARD ]", "Web portal ready.", "Tap RFID card to", "view card info");
       } else if (!waiting && webReadMode) {
         webReadMode = false;
         setRGB(0, 0, 0);
         oledReady();
+      }
+    }
+  }
+  http.end();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Page Context Polling — Student Management Mode Intelligence
+// Polls /api/rfid/page-context (GET) every second.
+// When the browser has a Student Management page open:
+//   - Sets studentMgmtMode = true
+//   - Shows a dedicated OLED screen (no attendance mode)
+// When the browser navigates away / context expires:
+//   - Clears studentMgmtMode and returns to attendance mode
+// ─────────────────────────────────────────────────────────────────
+void checkPageContext() {
+  // Don't override explicit web-scan / web-read modes
+  if (webScanMode || webReadMode || webDetScanMode) return;
+
+  HTTPClient http;
+  http.begin(PAGE_CONTEXT_URL);
+  http.setTimeout(800);
+  int code = http.GET();
+
+  if (code == 200) {
+    String resp = http.getString();
+    StaticJsonDocument<128> doc;
+    if (!deserializeJson(doc, resp)) {
+      bool active    = doc["active"].as<bool>();
+      String page    = doc["page"].as<String>();
+      String pgName  = doc["pageName"].as<String>();
+
+      if (active && page == "student_management") {
+        if (!studentMgmtMode || studentMgmtPage != pgName) {
+          // Mode just activated or page name changed
+          studentMgmtMode = true;
+          studentMgmtPage = pgName;
+          idleScreen      = false;
+          setRGB(128, 0, 255); // Purple — distinct from blue (web) and green (attendance)
+          Serial.println("[PageContext] Student Mgmt mode ON: " + pgName);
+          oledWebMode("[STUDENT MGMT]",
+                      pgName.length() ? pgName : "Student Management",
+                      "Attendance PAUSED.",
+                      "Tap card to search");
+        }
+      } else {
+        if (studentMgmtMode) {
+          // Mode just deactivated — return to attendance
+          studentMgmtMode = false;
+          studentMgmtPage = "";
+          setRGB(0, 0, 0);
+          Serial.println("[PageContext] Student Mgmt mode OFF \u2014 Attendance mode restored");
+          oledReady();
+        }
       }
     }
   }
@@ -1002,78 +1113,146 @@ void doDiag() {
 // ─────────────────────────────────────────────────────────────────
 // OLED Screen Display Views
 // ─────────────────────────────────────────────────────────────────
-void oledReady() {
-  display.clearDisplay();
-  display.setTextColor(SSD1306_WHITE);
 
-  // Status Top Bar
-  display.fillRect(0, 0, OLED_W, 14, SSD1306_WHITE);
+// drawStatusBar — inverted top bar: live time (left) + WiFi (right)
+void drawStatusBar() {
+  display.fillRect(0, 0, OLED_W, 13, SSD1306_WHITE);
   display.setTextColor(SSD1306_BLACK);
   display.setTextSize(1);
-  display.setCursor(2, 3);
+  display.setCursor(2, 2);
   display.print(getFormattedTime());
-
-  display.setCursor(85, 3);
+  display.setCursor(72, 2);
   if (WiFi.status() == WL_CONNECTED) {
-    display.print("WiFi:OK");
+    int rssi = WiFi.RSSI();
+    if      (rssi > -60) display.print("WiFi+++");
+    else if (rssi > -75) display.print("WiFi++ ");
+    else                 display.print("WiFi+  ");
   } else {
     display.print("OFFLINE");
   }
-
   display.setTextColor(SSD1306_WHITE);
+}
+
+// oledReady — main idle screen: live clock + ATTENDANCE MODE label
+void oledReady() {
+  idleScreen = true;
+  display.clearDisplay();
+  drawStatusBar();
 
   if (WiFi.status() != WL_CONNECTED) {
     int q = offlineQueueCount();
     display.setTextSize(1);
-    display.setCursor(10, 20);
-    display.print("OFFLINE MODE");
-    display.setCursor(10, 34);
-    display.print("Queue: " + String(q) + " record(s)");
-    display.setCursor(10, 48);
+    display.setCursor(5, 16);
+    display.print("-- OFFLINE MODE --");
+    display.setCursor(5, 28);
+    display.print("Queue: " + String(q) + " records");
+    display.setCursor(10, 40);
     display.print("Tap card to log");
+    display.setCursor(10, 52);
+    display.print("WiFi disconnected");
   } else {
+    // ATTENDANCE MODE label
+    display.setTextSize(1);
+    display.setCursor(14, 16);
+    display.print("ATTENDANCE MODE");
+    // Divider
+    display.drawLine(0, 26, OLED_W, 26, SSD1306_WHITE);
+    // Big SCAN CARD prompt
     display.setTextSize(2);
-    display.setCursor(35, 24);
+    display.setCursor(14, 31);
     display.print("SCAN");
-    display.setCursor(37, 44);
+    display.setCursor(14, 48);
     display.print("CARD");
+    // Arrow triangle hint
+    display.fillTriangle(100, 34, 122, 46, 100, 58, SSD1306_WHITE);
   }
+
+  display.display();
+  lastClockUpdate = millis();
+}
+
+// oledWebMode — shown when web portal is waiting for a card tap
+void oledWebMode(String title, String line1, String line2, String line3) {
+  idleScreen = false;
+  display.clearDisplay();
+
+  // Full-width inverted header
+  display.fillRect(0, 0, OLED_W, 13, SSD1306_WHITE);
+  display.setTextColor(SSD1306_BLACK);
+  display.setTextSize(1);
+  int tx = max(0, (int)((OLED_W - (int)title.length() * 6) / 2));
+  display.setCursor(tx, 2);
+  display.print(title.substring(0, 21));
+
+  display.setTextColor(SSD1306_WHITE);
+
+  // Thin accent line below header
+  display.fillRect(0, 14, OLED_W, 2, SSD1306_WHITE);
+
+  display.setCursor(2, 18);
+  display.print(line1.substring(0, 21));
+  display.setCursor(2, 30);
+  display.print(line2.substring(0, 21));
+  display.setCursor(2, 42);
+  display.print(line3.substring(0, 21));
+
+  // Current time at bottom
+  display.setCursor(2, 55);
+  display.print(getFormattedTime());
+  display.setCursor(80, 55);
+  display.print(WiFi.status() == WL_CONNECTED ? "Online" : "Offlin");
+
+  display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
   display.display();
 }
 
 void oledMsg(String l1, String l2, String l3, String l4) {
+  idleScreen = false;
   display.clearDisplay();
   display.setTextSize(1);
-  display.fillRect(0, 0, OLED_W, 14, SSD1306_WHITE);
+  display.fillRect(0, 0, OLED_W, 13, SSD1306_WHITE);
   display.setTextColor(SSD1306_BLACK);
-  display.setCursor(2, 3);
+  display.setCursor(2, 2);
   display.print(l1.substring(0, 21));
   display.setTextColor(SSD1306_WHITE);
-  if (l2.length()) { display.setCursor(2, 18); display.print(l2.substring(0, 21)); }
-  if (l3.length()) { display.setCursor(2, 34); display.print(l3.substring(0, 21)); }
-  if (l4.length()) { display.setCursor(2, 50); display.print(l4.substring(0, 21)); }
+  if (l2.length()) { display.setCursor(2, 17); display.print(l2.substring(0, 21)); }
+  if (l3.length()) { display.setCursor(2, 31); display.print(l3.substring(0, 21)); }
+  if (l4.length()) { display.setCursor(2, 47); display.print(l4.substring(0, 21)); }
   display.display();
 }
 
 void oledAttendance(String name, String cardId, String action) {
+  idleScreen = false;
   display.clearDisplay();
-  display.setTextColor(SSD1306_WHITE);
-  display.fillRect(0, 0, OLED_W, 14, SSD1306_WHITE);
+
+  // Header bar
+  display.fillRect(0, 0, OLED_W, 13, SSD1306_WHITE);
   display.setTextColor(SSD1306_BLACK);
   display.setTextSize(1);
-  display.setCursor(action == "IN" ? 30 : (action == "OUT" ? 28 : 22), 3);
-  display.print(action == "IN" ? "CHECKED IN" : (action == "OUT" ? "CHECKED OUT" : "OFFLINE LOG"));
+  String hdr = (action == "IN") ? "  CHECKED IN  " :
+               (action == "OUT") ? " CHECKED OUT  " : " OFFLINE LOG  ";
+  display.setCursor(2, 2);
+  display.print(hdr.substring(0, 21));
 
   display.setTextColor(SSD1306_WHITE);
+
+  // Name — large
   display.setTextSize(2);
   String n = name.length() > 8 ? name.substring(0, 8) : name;
-  int x = (OLED_W - n.length() * 12) / 2;
-  display.setCursor(max(0, x), 18);
+  int nx = max(0, (int)((OLED_W - (int)n.length() * 12) / 2));
+  display.setCursor(nx, 17);
   display.print(n);
 
+  // Divider
+  display.drawLine(0, 36, OLED_W, 36, SSD1306_WHITE);
+
+  // ID + current time
   display.setTextSize(1);
-  display.setCursor(28, 44);
+  display.setCursor(4, 40);
   display.print("ID: " + cardId);
+  display.setCursor(4, 52);
+  display.print(getFormattedTime());
+
   display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
   display.display();
 }
@@ -1133,7 +1312,17 @@ String getFormattedTime() {
     snprintf(buf, sizeof(buf), "%02d:%02d:%02d", ti.tm_hour, ti.tm_min, ti.tm_sec);
     return String(buf);
   }
-  return "00:00:00";
+  return "--:--:--";
+}
+
+String getFormattedDate() {
+  struct tm ti;
+  if (getLocalTime(&ti)) {
+    char buf[12];
+    snprintf(buf, sizeof(buf), "%02d/%02d/%04d", ti.tm_mday, ti.tm_mon + 1, ti.tm_year + 1900);
+    return String(buf);
+  }
+  return "--/--/----";
 }
 
 String buf2str(byte *buf) {

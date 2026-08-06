@@ -44,6 +44,15 @@ pool.connect((err, client, release) => {
 // Global System State
 let lastWebPollTime = 0; // Tracks when a web UI was last waiting for a scan
 
+// Page Context: tracks which web page the admin has open
+// Automatically expires after 6 seconds of no heartbeat
+let pageContext = {
+    page: 'none',           // 'student_management' | 'none'
+    pageName: '',           // human-readable page name shown on OLED
+    lastHeartbeat: 0        // epoch ms of last heartbeat from the browser
+};
+const PAGE_CONTEXT_EXPIRE_MS = 6000; // 6s — browser sends heartbeat every 4s
+
 // In-Memory Storage for Live Scans
 let latestScan = {
     uid: null,
@@ -91,8 +100,13 @@ app.post(['/api/rfid/scan', '/api/attendance', '/api/scan'], async (req, res) =>
             };
 
             // ---- ATTENDANCE LOGIC ----
-            const isWebWaiting = (Date.now() - lastWebPollTime) < 3000;
-            if (!isWebWaiting) {
+            // Skip attendance if: web UI is actively polling  OR  a Student Management
+            // page is currently open in the browser (page-context heartbeat is fresh).
+            const isWebWaiting      = (Date.now() - lastWebPollTime) < 3000;
+            const ctxExpired        = (Date.now() - pageContext.lastHeartbeat) > PAGE_CONTEXT_EXPIRE_MS;
+            const isStudentMgmtOpen = !ctxExpired && pageContext.page === 'student_management';
+
+            if (!isWebWaiting && !isStudentMgmtOpen) {
                 try {
                     const attQuery = await pool.query('SELECT * FROM Attendance WHERE student_id = $1 AND date = CURRENT_DATE', [card.student_id]);
                     
@@ -170,6 +184,44 @@ app.get('/api/rfid/latest-scan', (req, res) => {
 app.get(['/api/scan', '/api/card-read', '/api/details-scan'], (req, res) => {
     res.json({ waiting: false });
 });
+
+// ── Page Context Endpoints ────────────────────────────────────────────────────
+// Student Management pages POST a heartbeat every 4s to signal they are active.
+// The ESP32 GETs this every 1s to decide whether to take attendance or redirect
+// the card tap to the web portal for student lookup.
+
+// POST /api/rfid/page-context  — browser heartbeat (called by Student Mgmt pages)
+app.post('/api/rfid/page-context', (req, res) => {
+    const { page, pageName } = req.body;
+    if (!page) return res.status(400).json({ error: 'page field is required' });
+    pageContext.page = page;
+    pageContext.pageName = pageName || page;
+    pageContext.lastHeartbeat = Date.now();
+    console.log(`[PageContext] Browser heartbeat: page="${pageContext.pageName}"`);
+    res.json({ ok: true, page: pageContext.page, pageName: pageContext.pageName });
+});
+
+// DELETE /api/rfid/page-context  — browser signals it is leaving the page
+app.delete('/api/rfid/page-context', (req, res) => {
+    console.log(`[PageContext] Browser left page: was "${pageContext.pageName}"`);
+    pageContext = { page: 'none', pageName: '', lastHeartbeat: 0 };
+    res.json({ ok: true });
+});
+
+// GET /api/rfid/page-context  — ESP32 polls this to know the active mode
+app.get('/api/rfid/page-context', (req, res) => {
+    const expired = (Date.now() - pageContext.lastHeartbeat) > PAGE_CONTEXT_EXPIRE_MS;
+    if (expired && pageContext.page !== 'none') {
+        console.log(`[PageContext] Heartbeat expired — resetting to "none"`);
+        pageContext = { page: 'none', pageName: '', lastHeartbeat: 0 };
+    }
+    res.json({
+        page: pageContext.page,
+        pageName: pageContext.pageName,
+        active: pageContext.page !== 'none'
+    });
+});
+// ─────────────────────────────────────────────────────────────────────────────
 
 // 3. Register RFID Card & Student Endpoint (Supports /api/rfid/register, /api/register)
 app.post(['/api/rfid/register', '/api/register'], async (req, res) => {

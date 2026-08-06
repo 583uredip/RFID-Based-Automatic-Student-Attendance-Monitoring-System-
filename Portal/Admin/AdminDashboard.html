@@ -157,7 +157,7 @@
                             <i class="fa-solid fa-user-plus subitem-icon"></i>
                             <span>Add Teacher</span>
                         </a>
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                        <a href="#" onclick="showDashboardSection('class-management-section'); return false;" class="sidebar-subitem">
                             <i class="fa-solid fa-chalkboard subitem-icon"></i>
                             <span>Assign Classes</span>
                         </a>
@@ -222,6 +222,31 @@
                         <a href="RFID Management/ViewRegisteredCards.html" class="sidebar-subitem">
                             <i class="fa-solid fa-address-card subitem-icon"></i>
                             <span>View Registered Cards</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Class Management -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-class')">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-school sidebar-icon"></i>
+                            <span>Class Management</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-class" class="sidebar-menu-content">
+                        <a href="#" onclick="showDashboardSection('class-management-section'); switchClassTab('add-class'); return false;" class="sidebar-subitem">
+                            <i class="fa-solid fa-plus-circle subitem-icon"></i>
+                            <span>Add Class</span>
+                        </a>
+                        <a href="#" onclick="showDashboardSection('class-management-section'); switchClassTab('edit-class'); return false;" class="sidebar-subitem">
+                            <i class="fa-solid fa-pen-to-square subitem-icon"></i>
+                            <span>Edit Class</span>
+                        </a>
+                        <a href="#" onclick="showDashboardSection('class-management-section'); switchClassTab('assign-teacher'); return false;" class="sidebar-subitem">
+                            <i class="fa-solid fa-chalkboard-user subitem-icon"></i>
+                            <span>Assign Teacher</span>
                         </a>
                     </div>
                 </div>
@@ -560,6 +585,283 @@
                         <button type="button" id="btn-make-student-user" class="btn-primary" onclick="makeStudentUser()">Confirm & Make User</button>
                     </div>
                 </div>
+
+                <!-- =========================================================== -->
+                <!-- CLASS MANAGEMENT SECTION                                     -->
+                <!-- =========================================================== -->
+                <div class="class-management-section" id="class-management-section" style="display: none;">
+
+                    <!-- Section Header -->
+                    <div class="cm-header">
+                        <div class="cm-header-title">
+                            <i class="fa-solid fa-school"></i>
+                            <span>Class Management</span>
+                        </div>
+                        <p class="cm-header-subtitle">Create and manage class schedules, edit details, and assign teachers with conflict detection.</p>
+                    </div>
+
+                    <!-- Tab Navigation -->
+                    <div class="cm-tabs">
+                        <button class="cm-tab-btn active" id="tab-btn-add-class" onclick="switchClassTab('add-class')">
+                            <i class="fa-solid fa-plus"></i> Add Class
+                        </button>
+                        <button class="cm-tab-btn" id="tab-btn-edit-class" onclick="switchClassTab('edit-class')">
+                            <i class="fa-solid fa-pen-to-square"></i> All Classes
+                        </button>
+                        <button class="cm-tab-btn" id="tab-btn-assign-teacher" onclick="switchClassTab('assign-teacher')">
+                            <i class="fa-solid fa-chalkboard-user"></i> Assign Teacher
+                        </button>
+                    </div>
+
+                    <!-- ========================== -->
+                    <!-- TAB 1: ADD / EDIT CLASS    -->
+                    <!-- ========================== -->
+                    <div class="cm-tab-panel active" id="panel-add-class">
+                        <div class="cm-panel-card">
+                            <div class="cm-panel-card-header">
+                                <h3 id="class-form-title"><i class="fa-solid fa-plus-circle"></i> Add New Class</h3>
+                                <button type="button" class="btn-sm-refresh" id="btn-cancel-edit-class" style="display:none;" onclick="cancelEditClass()">
+                                    <i class="fa-solid fa-xmark"></i> Cancel Edit
+                                </button>
+                            </div>
+
+                            <form id="class-form" onsubmit="handleSaveClass(event)">
+                                <input type="hidden" id="edit-class-id" value="">
+
+                                <div class="cm-form-grid">
+                                    <!-- Row 1 -->
+                                    <div class="cm-input-group">
+                                        <label for="cm-class-name"><i class="fa-solid fa-graduation-cap"></i> Class Name <span class="required-star">*</span></label>
+                                        <select id="cm-class-name" required>
+                                            <option value="" disabled selected>Select Class</option>
+                                            <option>Class 6</option>
+                                            <option>Class 7</option>
+                                            <option>Class 8</option>
+                                            <option>Class 9</option>
+                                            <option>Class 10</option>
+                                            <option>Class 11</option>
+                                            <option>Class 12</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="cm-input-group">
+                                        <label for="cm-section"><i class="fa-solid fa-layer-group"></i> Section <span class="required-star">*</span></label>
+                                        <select id="cm-section" required>
+                                            <option value="" disabled selected>Select Section</option>
+                                            <option value="A">Section A</option>
+                                            <option value="B">Section B</option>
+                                            <option value="C">Section C</option>
+                                            <option value="D">Section D</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="cm-input-group">
+                                        <label for="cm-subject"><i class="fa-solid fa-book"></i> Subject <span class="required-star">*</span></label>
+                                        <input type="text" id="cm-subject" placeholder="e.g. Mathematics, Physics" required>
+                                    </div>
+
+                                    <div class="cm-input-group">
+                                        <label for="cm-room"><i class="fa-solid fa-door-open"></i> Room Number <span class="required-star">*</span></label>
+                                        <input type="text" id="cm-room" placeholder="e.g. 101, Lab-A" required>
+                                    </div>
+
+                                    <!-- Row 2 -->
+                                    <div class="cm-input-group">
+                                        <label for="cm-start-time"><i class="fa-solid fa-clock"></i> Start Time <span class="required-star">*</span></label>
+                                        <input type="time" id="cm-start-time" required>
+                                    </div>
+
+                                    <div class="cm-input-group">
+                                        <label for="cm-end-time"><i class="fa-solid fa-clock"></i> End Time <span class="required-star">*</span></label>
+                                        <input type="time" id="cm-end-time" required>
+                                    </div>
+
+                                    <div class="cm-input-group">
+                                        <label for="cm-shift"><i class="fa-solid fa-sun"></i> Shift</label>
+                                        <select id="cm-shift">
+                                            <option value="Morning">Morning</option>
+                                            <option value="Day">Day</option>
+                                            <option value="Evening">Evening</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="cm-input-group">
+                                        <label for="cm-academic-year"><i class="fa-solid fa-calendar"></i> Academic Year</label>
+                                        <input type="text" id="cm-academic-year" value="2026-2027" placeholder="e.g. 2026-2027">
+                                    </div>
+
+                                    <div class="cm-input-group">
+                                        <label for="cm-capacity"><i class="fa-solid fa-users"></i> Student Capacity</label>
+                                        <input type="number" id="cm-capacity" placeholder="e.g. 40" min="1" max="200">
+                                    </div>
+
+                                    <div class="cm-input-group">
+                                        <label for="cm-class-type"><i class="fa-solid fa-tag"></i> Class Type</label>
+                                        <select id="cm-class-type">
+                                            <option value="Regular">Regular</option>
+                                            <option value="Lab">Laboratory</option>
+                                            <option value="Extra">Extra / Remedial</option>
+                                            <option value="Exam">Examination</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Days of Week -->
+                                <div class="cm-days-group">
+                                    <label><i class="fa-solid fa-calendar-week"></i> Days of Week <span class="required-star">*</span></label>
+                                    <div class="cm-days-checkboxes">
+                                        <label class="day-check"><input type="checkbox" name="class-day" value="Sun"> Sun</label>
+                                        <label class="day-check"><input type="checkbox" name="class-day" value="Mon"> Mon</label>
+                                        <label class="day-check"><input type="checkbox" name="class-day" value="Tue"> Tue</label>
+                                        <label class="day-check"><input type="checkbox" name="class-day" value="Wed"> Wed</label>
+                                        <label class="day-check"><input type="checkbox" name="class-day" value="Thu"> Thu</label>
+                                        <label class="day-check"><input type="checkbox" name="class-day" value="Fri"> Fri</label>
+                                        <label class="day-check"><input type="checkbox" name="class-day" value="Sat"> Sat</label>
+                                    </div>
+                                </div>
+
+                                <!-- Form Actions -->
+                                <div class="form-actions">
+                                    <button type="button" class="btn-secondary" onclick="resetClassForm()">
+                                        <i class="fa-solid fa-rotate-left"></i> Clear Form
+                                    </button>
+                                    <button type="submit" class="btn-primary" id="btn-save-class">
+                                        <i class="fa-solid fa-floppy-disk"></i> Save Class
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- ========================== -->
+                    <!-- TAB 2: ALL CLASSES         -->
+                    <!-- ========================== -->
+                    <div class="cm-tab-panel" id="panel-edit-class" style="display:none;">
+                        <div class="cm-panel-card">
+                            <div class="cm-panel-card-header">
+                                <h3><i class="fa-solid fa-list"></i> All Classes</h3>
+                                <div class="cm-header-actions">
+                                    <input type="text" id="cm-search-classes" placeholder="Search by class, subject, room..." oninput="filterClasses()" class="cm-search-input">
+                                    <button class="btn-sm-refresh" onclick="loadClassList()">
+                                        <i class="fa-solid fa-rotate"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="table-container">
+                                <table class="data-table" id="cm-classes-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Class</th>
+                                            <th>Section</th>
+                                            <th>Subject</th>
+                                            <th>Room</th>
+                                            <th>Time</th>
+                                            <th>Days</th>
+                                            <th>Assigned Teacher</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cm-classes-tbody">
+                                        <tr>
+                                            <td colspan="9" class="text-center">No classes found. Add a class first.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========================== -->
+                    <!-- TAB 3: ASSIGN TEACHER      -->
+                    <!-- ========================== -->
+                    <div class="cm-tab-panel" id="panel-assign-teacher" style="display:none;">
+                        <div class="cm-panel-card">
+                            <div class="cm-panel-card-header">
+                                <h3><i class="fa-solid fa-chalkboard-user"></i> Assign Teacher to Class</h3>
+                            </div>
+
+                            <form id="assign-teacher-form" onsubmit="handleAssignTeacher(event)">
+                                <div class="cm-form-grid">
+                                    <div class="cm-input-group cm-span-2">
+                                        <label for="at-teacher-select"><i class="fa-solid fa-user-tie"></i> Select Teacher <span class="required-star">*</span></label>
+                                        <select id="at-teacher-select" required onchange="onTeacherSelectChange()">
+                                            <option value="" disabled selected>Loading teachers...</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="cm-input-group cm-span-2">
+                                        <label for="at-class-select"><i class="fa-solid fa-school"></i> Select Class <span class="required-star">*</span></label>
+                                        <select id="at-class-select" required onchange="onClassSelectChange()">
+                                            <option value="" disabled selected>Select a class...</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Teacher Schedule Preview -->
+                                <div id="at-teacher-schedule" class="at-schedule-preview" style="display:none;">
+                                    <h4><i class="fa-solid fa-calendar-check"></i> Teacher's Current Schedule</h4>
+                                    <div id="at-teacher-schedule-body"></div>
+                                </div>
+
+                                <!-- Conflict Alert -->
+                                <div id="at-conflict-alert" class="cm-conflict-alert" style="display:none;">
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                    <span id="at-conflict-msg"></span>
+                                </div>
+
+                                <!-- Success Preview -->
+                                <div id="at-assignment-preview" class="cm-assignment-preview" style="display:none;">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    <span id="at-preview-msg"></span>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="button" class="btn-secondary" onclick="document.getElementById('assign-teacher-form').reset(); clearAssignPreview();">
+                                        <i class="fa-solid fa-rotate-left"></i> Reset
+                                    </button>
+                                    <button type="submit" class="btn-primary" id="btn-assign-teacher">
+                                        <i class="fa-solid fa-link"></i> Assign Teacher
+                                    </button>
+                                </div>
+                            </form>
+
+                            <!-- Current Assignments Table -->
+                            <div style="margin-top: 2rem;">
+                                <div class="cm-panel-card-header">
+                                    <h3><i class="fa-solid fa-table-list"></i> Current Assignments</h3>
+                                    <button class="btn-sm-refresh" onclick="loadAssignmentsTable()">
+                                        <i class="fa-solid fa-rotate"></i> Refresh
+                                    </button>
+                                </div>
+                                <div class="table-container">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Teacher</th>
+                                                <th>Class</th>
+                                                <th>Subject</th>
+                                                <th>Time</th>
+                                                <th>Days</th>
+                                                <th>Room</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="at-assignments-tbody">
+                                            <tr>
+                                                <td colspan="8" class="text-center">No assignments yet.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- END CLASS MANAGEMENT SECTION -->
 
             </main>
 

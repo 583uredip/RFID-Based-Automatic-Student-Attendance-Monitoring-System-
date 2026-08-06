@@ -1162,11 +1162,13 @@ function showDashboardSection(sectionId) {
     const teacherSection = document.getElementById('add-teacher-section');
     const makeStudentUserSection = document.getElementById('make-student-user-section');
     const teacherListSection = document.getElementById('teacher-list-section');
+    const classManagementSection = document.getElementById('class-management-section');
     
     if (rfidSection) rfidSection.style.display = 'none';
     if (teacherSection) teacherSection.style.display = 'none';
     if (makeStudentUserSection) makeStudentUserSection.style.display = 'none';
     if (teacherListSection) teacherListSection.style.display = 'none';
+    if (classManagementSection) classManagementSection.style.display = 'none';
 
     const target = document.getElementById(sectionId);
     if (target) {
@@ -1175,6 +1177,10 @@ function showDashboardSection(sectionId) {
             generateTeacherId();
         } else if (sectionId === 'teacher-list-section') {
             loadTeacherList();
+        } else if (sectionId === 'class-management-section') {
+            // Default: show Add Class tab
+            switchClassTab('add-class');
+            loadTeachersForAssign();
         }
     }
 }
@@ -1358,4 +1364,531 @@ async function makeStudentUser() {
         console.error('Error creating user account:', error);
         alert('Server error while creating user account.');
     }
+}
+
+
+// =========================================================================
+// CLASS MANAGEMENT MODULE
+// =========================================================================
+
+// --- localStorage keys ---
+const CM_CLASSES_KEY = 'kshs_classes';
+const CM_ASSIGNMENTS_KEY = 'kshs_teacher_assignments';
+
+// ---- Helpers ----
+function cmGetClasses() {
+    try { return JSON.parse(localStorage.getItem(CM_CLASSES_KEY)) || []; } catch { return []; }
+}
+function cmSaveClasses(arr) {
+    localStorage.setItem(CM_CLASSES_KEY, JSON.stringify(arr));
+}
+function cmGetAssignments() {
+    try { return JSON.parse(localStorage.getItem(CM_ASSIGNMENTS_KEY)) || []; } catch { return []; }
+}
+function cmSaveAssignments(arr) {
+    localStorage.setItem(CM_ASSIGNMENTS_KEY, JSON.stringify(arr));
+}
+function cmGenerateId() {
+    return 'CLS-' + Date.now().toString(36).toUpperCase();
+}
+function cmFormatTime(t) {
+    if (!t) return '';
+    const [h, m] = t.split(':');
+    const hr = parseInt(h);
+    return `${hr % 12 || 12}:${m} ${hr < 12 ? 'AM' : 'PM'}`;
+}
+
+// ---- Tab Switching ----
+function switchClassTab(tab) {
+    // tab: 'add-class' | 'edit-class' | 'assign-teacher'
+    const tabMap = {
+        'add-class':       { panel: 'panel-add-class',       btn: 'tab-btn-add-class' },
+        'edit-class':      { panel: 'panel-edit-class',      btn: 'tab-btn-edit-class' },
+        'assign-teacher':  { panel: 'panel-assign-teacher',  btn: 'tab-btn-assign-teacher' }
+    };
+    Object.values(tabMap).forEach(({ panel, btn }) => {
+        const p = document.getElementById(panel);
+        const b = document.getElementById(btn);
+        if (p) p.style.display = 'none';
+        if (b) b.classList.remove('active');
+    });
+    const selected = tabMap[tab];
+    if (!selected) return;
+    const panel = document.getElementById(selected.panel);
+    const btn   = document.getElementById(selected.btn);
+    if (panel) panel.style.display = 'block';
+    if (btn)   btn.classList.add('active');
+
+    if (tab === 'edit-class')      loadClassList();
+    if (tab === 'assign-teacher') { loadTeachersForAssign(); loadClassSelectForAssign(); loadAssignmentsTable(); }
+}
+
+// ---- Add / Edit / Delete Class ----
+function handleSaveClass(event) {
+    event.preventDefault();
+
+    const days = [...document.querySelectorAll('input[name="class-day"]:checked')].map(c => c.value);
+    if (days.length === 0) {
+        showCmToast('Please select at least one day of the week.', 'error');
+        return;
+    }
+
+    const startTime = document.getElementById('cm-start-time').value;
+    const endTime   = document.getElementById('cm-end-time').value;
+    if (endTime <= startTime) {
+        showCmToast('End time must be after start time.', 'error');
+        return;
+    }
+
+    const editId = document.getElementById('edit-class-id').value;
+    const classes = cmGetClasses();
+
+    const classData = {
+        id:            editId || cmGenerateId(),
+        class_name:    document.getElementById('cm-class-name').value,
+        section:       document.getElementById('cm-section').value,
+        subject:       document.getElementById('cm-subject').value,
+        room_number:   document.getElementById('cm-room').value,
+        start_time:    startTime,
+        end_time:      endTime,
+        shift:         document.getElementById('cm-shift').value,
+        academic_year: document.getElementById('cm-academic-year').value,
+        capacity:      document.getElementById('cm-capacity').value || '',
+        class_type:    document.getElementById('cm-class-type').value,
+        days:          days,
+        assigned_teacher_id:   '',
+        assigned_teacher_name: ''
+    };
+
+    if (editId) {
+        // Preserve teacher assignment when editing
+        const existing = classes.find(c => c.id === editId);
+        if (existing) {
+            classData.assigned_teacher_id   = existing.assigned_teacher_id   || '';
+            classData.assigned_teacher_name = existing.assigned_teacher_name || '';
+        }
+        const idx = classes.findIndex(c => c.id === editId);
+        if (idx !== -1) classes[idx] = classData;
+    } else {
+        classes.push(classData);
+    }
+
+    cmSaveClasses(classes);
+    showCmToast(editId ? 'Class updated successfully!' : 'Class added successfully!', 'success');
+    resetClassForm();
+    // Refresh assign dropdowns if open
+    loadClassSelectForAssign();
+}
+
+function editClass(classId) {
+    const classes = cmGetClasses();
+    const cls = classes.find(c => c.id === classId);
+    if (!cls) return;
+
+    // Switch to Add Class tab
+    switchClassTab('add-class');
+
+    document.getElementById('edit-class-id').value       = cls.id;
+    document.getElementById('cm-class-name').value       = cls.class_name;
+    document.getElementById('cm-section').value          = cls.section;
+    document.getElementById('cm-subject').value          = cls.subject;
+    document.getElementById('cm-room').value             = cls.room_number;
+    document.getElementById('cm-start-time').value       = cls.start_time;
+    document.getElementById('cm-end-time').value         = cls.end_time;
+    document.getElementById('cm-shift').value            = cls.shift;
+    document.getElementById('cm-academic-year').value    = cls.academic_year;
+    document.getElementById('cm-capacity').value         = cls.capacity || '';
+    document.getElementById('cm-class-type').value       = cls.class_type || 'Regular';
+
+    // Restore day checkboxes
+    document.querySelectorAll('input[name="class-day"]').forEach(cb => {
+        cb.checked = cls.days && cls.days.includes(cb.value);
+    });
+
+    document.getElementById('class-form-title').innerHTML   = '<i class="fa-solid fa-pen-to-square"></i> Edit Class';
+    document.getElementById('btn-cancel-edit-class').style.display = 'inline-flex';
+    document.getElementById('btn-save-class').innerHTML     = '<i class="fa-solid fa-floppy-disk"></i> Update Class';
+}
+
+function cancelEditClass() {
+    resetClassForm();
+}
+
+function resetClassForm() {
+    document.getElementById('class-form').reset();
+    document.getElementById('edit-class-id').value                 = '';
+    document.getElementById('class-form-title').innerHTML          = '<i class="fa-solid fa-plus-circle"></i> Add New Class';
+    document.getElementById('btn-cancel-edit-class').style.display = 'none';
+    document.getElementById('btn-save-class').innerHTML            = '<i class="fa-solid fa-floppy-disk"></i> Save Class';
+    document.getElementById('cm-academic-year').value              = '2026-2027';
+}
+
+function deleteClass(classId) {
+    if (!confirm('Are you sure you want to delete this class? This will also remove any teacher assignment for it.')) return;
+    let classes = cmGetClasses();
+    classes = classes.filter(c => c.id !== classId);
+    cmSaveClasses(classes);
+
+    // Remove any assignments for this class
+    let assignments = cmGetAssignments();
+    assignments = assignments.filter(a => a.class_id !== classId);
+    cmSaveAssignments(assignments);
+
+    showCmToast('Class deleted.', 'success');
+    loadClassList();
+    loadClassSelectForAssign();
+    loadAssignmentsTable();
+}
+
+// ---- All Classes Table ----
+let _allClassesCache = [];
+
+function loadClassList() {
+    const tbody = document.getElementById('cm-classes-tbody');
+    if (!tbody) return;
+    _allClassesCache = cmGetClasses();
+    renderClassTable(_allClassesCache);
+}
+
+function renderClassTable(classes) {
+    const tbody = document.getElementById('cm-classes-tbody');
+    if (!tbody) return;
+
+    if (classes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center">No classes found. Add a class using the <strong>Add Class</strong> tab.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = classes.map((cls, i) => {
+        const daysHtml = (cls.days || []).map(d => `<span class="day-pill">${d}</span>`).join('');
+        const teacher  = cls.assigned_teacher_name
+            ? `<span class="cm-teacher-badge"><i class="fa-solid fa-user-tie"></i> ${cls.assigned_teacher_name}</span>`
+            : '<span style="color:#94a3b8;font-style:italic;">Unassigned</span>';
+        const typeBadgeColor = { Regular:'#3b82f6', Lab:'#8b5cf6', Extra:'#f59e0b', Exam:'#ef4444' }[cls.class_type] || '#3b82f6';
+
+        return `
+        <tr>
+            <td>${i + 1}</td>
+            <td><strong>${cls.class_name}</strong></td>
+            <td><span class="section-pill">${cls.section}</span></td>
+            <td>${cls.subject} <span class="type-badge" style="background:${typeBadgeColor}">${cls.class_type || 'Regular'}</span></td>
+            <td><span class="room-pill"><i class="fa-solid fa-door-open"></i> ${cls.room_number}</span></td>
+            <td class="time-col">
+                <span class="time-badge">
+                    <i class="fa-solid fa-clock"></i>
+                    ${cmFormatTime(cls.start_time)} – ${cmFormatTime(cls.end_time)}
+                </span>
+            </td>
+            <td>${daysHtml}</td>
+            <td>${teacher}</td>
+            <td>
+                <button class="btn-edit-sm" onclick="editClass('${cls.id}')" title="Edit Class">
+                    <i class="fa-solid fa-pen"></i> Edit
+                </button>
+                <button class="btn-delete-sm" onclick="deleteClass('${cls.id}')" title="Delete Class" style="margin-top:4px;">
+                    <i class="fa-solid fa-trash-can"></i> Delete
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function filterClasses() {
+    const query = (document.getElementById('cm-search-classes')?.value || '').toLowerCase();
+    if (!query) {
+        renderClassTable(_allClassesCache);
+        return;
+    }
+    const filtered = _allClassesCache.filter(c =>
+        (c.class_name   || '').toLowerCase().includes(query) ||
+        (c.subject      || '').toLowerCase().includes(query) ||
+        (c.room_number  || '').toLowerCase().includes(query) ||
+        (c.section      || '').toLowerCase().includes(query) ||
+        (c.shift        || '').toLowerCase().includes(query) ||
+        (c.assigned_teacher_name || '').toLowerCase().includes(query)
+    );
+    renderClassTable(filtered);
+}
+
+// ---- Assign Teacher ----
+async function loadTeachersForAssign() {
+    const select = document.getElementById('at-teacher-select');
+    if (!select) return;
+
+    select.innerHTML = '<option value="" disabled selected>Loading teachers...</option>';
+    try {
+        const response = await fetch('http://localhost:3000/api/teacher/all');
+        if (!response.ok) throw new Error('Server error');
+        const teachers = await response.json();
+
+        if (teachers.length === 0) {
+            select.innerHTML = '<option value="" disabled selected>No teachers found — add a teacher first</option>';
+            return;
+        }
+
+        select.innerHTML = '<option value="" disabled selected>Select a teacher...</option>' +
+            teachers.map(t => `<option value="${t.teacher_id}" data-name="${t.full_name || ''}">${
+                t.full_name || t.teacher_id} — ${t.designation || 'Teacher'}</option>`).join('');
+    } catch {
+        // Fallback: show empty state
+        select.innerHTML = '<option value="" disabled selected>Could not load teachers (server offline)</option>';
+    }
+}
+
+function loadClassSelectForAssign() {
+    const select = document.getElementById('at-class-select');
+    if (!select) return;
+    const classes = cmGetClasses();
+
+    if (classes.length === 0) {
+        select.innerHTML = '<option value="" disabled selected>No classes found — add a class first</option>';
+        return;
+    }
+
+    select.innerHTML = '<option value="" disabled selected>Select a class...</option>' +
+        classes.map(c => `<option value="${c.id}">${c.class_name} ${c.section} — ${c.subject} | ${cmFormatTime(c.start_time)}–${cmFormatTime(c.end_time)} | Room ${c.room_number}</option>`).join('');
+}
+
+function onTeacherSelectChange() {
+    const teacherId = document.getElementById('at-teacher-select').value;
+    showTeacherSchedulePreview(teacherId);
+    clearAssignPreview();
+    checkAssignConflict();
+}
+
+function onClassSelectChange() {
+    clearAssignPreview();
+    checkAssignConflict();
+}
+
+function showTeacherSchedulePreview(teacherId) {
+    const scheduleDiv  = document.getElementById('at-teacher-schedule');
+    const scheduleBody = document.getElementById('at-teacher-schedule-body');
+    if (!scheduleDiv || !scheduleBody) return;
+
+    const assignments = cmGetAssignments().filter(a => a.teacher_id === teacherId);
+    const classes     = cmGetClasses();
+
+    if (assignments.length === 0) {
+        scheduleDiv.style.display = 'block';
+        scheduleBody.innerHTML = '<p style="color:#64748b;font-style:italic;">No classes assigned yet.</p>';
+        return;
+    }
+
+    const rows = assignments.map(a => {
+        const cls = classes.find(c => c.id === a.class_id);
+        if (!cls) return '';
+        return `<div class="at-schedule-row">
+            <span class="at-schedule-badge">${cls.class_name} ${cls.section}</span>
+            <span>${cls.subject}</span>
+            <span class="time-badge"><i class="fa-solid fa-clock"></i> ${cmFormatTime(cls.start_time)}–${cmFormatTime(cls.end_time)}</span>
+            <span>${(cls.days || []).map(d => `<span class="day-pill">${d}</span>`).join('')}</span>
+            <span class="room-pill"><i class="fa-solid fa-door-open"></i> ${cls.room_number}</span>
+        </div>`;
+    }).filter(Boolean).join('');
+
+    scheduleDiv.style.display = 'block';
+    scheduleBody.innerHTML    = rows || '<p style="color:#64748b;">No valid classes found.</p>';
+}
+
+function checkAssignConflict() {
+    const teacherId = document.getElementById('at-teacher-select')?.value;
+    const classId   = document.getElementById('at-class-select')?.value;
+    const conflictDiv  = document.getElementById('at-conflict-alert');
+    const previewDiv   = document.getElementById('at-assignment-preview');
+    const assignBtn    = document.getElementById('btn-assign-teacher');
+    const conflictMsg  = document.getElementById('at-conflict-msg');
+    const previewMsg   = document.getElementById('at-preview-msg');
+
+    if (!teacherId || !classId) {
+        if (conflictDiv) conflictDiv.style.display = 'none';
+        if (previewDiv)  previewDiv.style.display  = 'none';
+        return;
+    }
+
+    const newCls      = cmGetClasses().find(c => c.id === classId);
+    const assignments = cmGetAssignments();
+    const classes     = cmGetClasses();
+
+    if (!newCls) return;
+
+    // Check if already assigned
+    const alreadyAssigned = assignments.find(a => a.teacher_id === teacherId && a.class_id === classId);
+    if (alreadyAssigned) {
+        conflictDiv.style.display = 'flex';
+        conflictMsg.textContent   = 'This teacher is already assigned to this class.';
+        previewDiv.style.display  = 'none';
+        if (assignBtn) assignBtn.disabled = true;
+        return;
+    }
+
+    // Check time conflicts
+    const teacherClasses = assignments
+        .filter(a => a.teacher_id === teacherId)
+        .map(a => classes.find(c => c.id === a.class_id))
+        .filter(Boolean);
+
+    for (const existing of teacherClasses) {
+        const daysOverlap = (existing.days || []).some(d => (newCls.days || []).includes(d));
+        if (!daysOverlap) continue;
+
+        const existStart = existing.start_time;
+        const existEnd   = existing.end_time;
+        const newStart   = newCls.start_time;
+        const newEnd     = newCls.end_time;
+
+        // Overlap: new starts before existing ends AND new ends after existing starts
+        if (newStart < existEnd && newEnd > existStart) {
+            conflictDiv.style.display = 'flex';
+            conflictMsg.textContent   =
+                `⚠ Conflict detected! This teacher is already assigned to "${existing.class_name} ${existing.section} — ${existing.subject}" ` +
+                `(${cmFormatTime(existing.start_time)}–${cmFormatTime(existing.end_time)}) on overlapping days (${(existing.days||[]).filter(d=>(newCls.days||[]).includes(d)).join(', ')}). ` +
+                `A teacher cannot be assigned to two classes at the same time.`;
+            previewDiv.style.display  = 'none';
+            if (assignBtn) assignBtn.disabled = true;
+            return;
+        }
+    }
+
+    // No conflict — show preview
+    if (conflictDiv) conflictDiv.style.display = 'none';
+    if (previewDiv)  {
+        previewDiv.style.display = 'flex';
+        const teacherName = document.getElementById('at-teacher-select').selectedOptions[0]?.text.split(' — ')[0] || teacherId;
+        previewMsg.textContent = `✓ No conflict. "${teacherName}" can be assigned to "${newCls.class_name} ${newCls.section} — ${newCls.subject}" (${cmFormatTime(newCls.start_time)}–${cmFormatTime(newCls.end_time)}).`;
+    }
+    if (assignBtn) assignBtn.disabled = false;
+}
+
+function clearAssignPreview() {
+    const conflictDiv = document.getElementById('at-conflict-alert');
+    const previewDiv  = document.getElementById('at-assignment-preview');
+    const scheduleDiv = document.getElementById('at-teacher-schedule');
+    if (conflictDiv) conflictDiv.style.display = 'none';
+    if (previewDiv)  previewDiv.style.display  = 'none';
+    if (scheduleDiv) scheduleDiv.style.display  = 'none';
+    const assignBtn = document.getElementById('btn-assign-teacher');
+    if (assignBtn) assignBtn.disabled = false;
+}
+
+function handleAssignTeacher(event) {
+    event.preventDefault();
+
+    const teacherId   = document.getElementById('at-teacher-select').value;
+    const classId     = document.getElementById('at-class-select').value;
+    const teacherName = document.getElementById('at-teacher-select').selectedOptions[0]?.text.split(' — ')[0] || teacherId;
+
+    // Re-run conflict check (safety guard)
+    const classes     = cmGetClasses();
+    const assignments = cmGetAssignments();
+    const newCls      = classes.find(c => c.id === classId);
+    if (!newCls) { showCmToast('Class not found.', 'error'); return; }
+
+    const alreadyAssigned = assignments.find(a => a.teacher_id === teacherId && a.class_id === classId);
+    if (alreadyAssigned) { showCmToast('Already assigned!', 'error'); return; }
+
+    const teacherClasses = assignments
+        .filter(a => a.teacher_id === teacherId)
+        .map(a => classes.find(c => c.id === a.class_id))
+        .filter(Boolean);
+
+    for (const existing of teacherClasses) {
+        const daysOverlap = (existing.days||[]).some(d => (newCls.days||[]).includes(d));
+        if (!daysOverlap) continue;
+        if (newCls.start_time < existing.end_time && newCls.end_time > existing.start_time) {
+            showCmToast('Cannot assign: Time conflict detected!', 'error');
+            return;
+        }
+    }
+
+    // Save assignment
+    assignments.push({ teacher_id: teacherId, class_id: classId, teacher_name: teacherName });
+    cmSaveAssignments(assignments);
+
+    // Update class record with teacher name
+    const classIdx = classes.findIndex(c => c.id === classId);
+    if (classIdx !== -1) {
+        classes[classIdx].assigned_teacher_id   = teacherId;
+        classes[classIdx].assigned_teacher_name = teacherName;
+    }
+    cmSaveClasses(classes);
+
+    showCmToast(`Teacher "${teacherName}" successfully assigned!`, 'success');
+    document.getElementById('assign-teacher-form').reset();
+    clearAssignPreview();
+    loadTeachersForAssign();
+    loadClassSelectForAssign();
+    loadAssignmentsTable();
+}
+
+function removeAssignment(teacherId, classId) {
+    if (!confirm('Remove this teacher assignment?')) return;
+
+    let assignments = cmGetAssignments();
+    assignments = assignments.filter(a => !(a.teacher_id === teacherId && a.class_id === classId));
+    cmSaveAssignments(assignments);
+
+    // Clear teacher from class record
+    const classes = cmGetClasses();
+    const idx = classes.findIndex(c => c.id === classId);
+    if (idx !== -1) {
+        classes[idx].assigned_teacher_id   = '';
+        classes[idx].assigned_teacher_name = '';
+    }
+    cmSaveClasses(classes);
+
+    showCmToast('Assignment removed.', 'success');
+    loadAssignmentsTable();
+    loadClassList();
+    checkAssignConflict();
+}
+
+function loadAssignmentsTable() {
+    const tbody = document.getElementById('at-assignments-tbody');
+    if (!tbody) return;
+
+    const assignments = cmGetAssignments();
+    const classes     = cmGetClasses();
+
+    if (assignments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No assignments yet.</td></tr>';
+        return;
+    }
+
+    const rows = assignments.map((a, i) => {
+        const cls = classes.find(c => c.id === a.class_id);
+        if (!cls) return '';
+        const daysHtml = (cls.days||[]).map(d => `<span class="day-pill">${d}</span>`).join('');
+        return `
+        <tr>
+            <td>${i + 1}</td>
+            <td><span class="cm-teacher-badge"><i class="fa-solid fa-user-tie"></i> ${a.teacher_name || a.teacher_id}</span></td>
+            <td><strong>${cls.class_name}</strong> <span class="section-pill">${cls.section}</span></td>
+            <td>${cls.subject}</td>
+            <td><span class="time-badge"><i class="fa-solid fa-clock"></i> ${cmFormatTime(cls.start_time)}–${cmFormatTime(cls.end_time)}</span></td>
+            <td>${daysHtml}</td>
+            <td><span class="room-pill"><i class="fa-solid fa-door-open"></i> ${cls.room_number}</span></td>
+            <td>
+                <button class="btn-delete-sm" onclick="removeAssignment('${a.teacher_id}','${a.class_id}')">
+                    <i class="fa-solid fa-unlink"></i> Remove
+                </button>
+            </td>
+        </tr>`;
+    }).filter(Boolean).join('');
+
+    tbody.innerHTML = rows || '<tr><td colspan="8" class="text-center">No valid assignments found.</td></tr>';
+}
+
+// ---- Toast Notification ----
+function showCmToast(message, type = 'success') {
+    let toast = document.getElementById('cm-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'cm-toast';
+        document.body.appendChild(toast);
+    }
+    toast.className = `cm-toast cm-toast-${type} show`;
+    toast.innerHTML = `<i class="fa-solid fa-${type === 'success' ? 'circle-check' : 'circle-xmark'}"></i> ${message}`;
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('show'), 3500);
 }
