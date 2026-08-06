@@ -44,15 +44,6 @@ pool.connect((err, client, release) => {
 // Global System State
 let lastWebPollTime = 0; // Tracks when a web UI was last waiting for a scan
 
-// Page Context: tracks which web page the admin has open
-// Automatically expires after 6 seconds of no heartbeat
-let pageContext = {
-    page: 'none',           // 'student_management' | 'none'
-    pageName: '',           // human-readable page name shown on OLED
-    lastHeartbeat: 0        // epoch ms of last heartbeat from the browser
-};
-const PAGE_CONTEXT_EXPIRE_MS = 6000; // 6s — browser sends heartbeat every 4s
-
 // In-Memory Storage for Live Scans
 let latestScan = {
     uid: null,
@@ -100,13 +91,10 @@ app.post(['/api/rfid/scan', '/api/attendance', '/api/scan'], async (req, res) =>
             };
 
             // ---- ATTENDANCE LOGIC ----
-            // Skip attendance if: web UI is actively polling  OR  a Student Management
-            // page is currently open in the browser (page-context heartbeat is fresh).
-            const isWebWaiting      = (Date.now() - lastWebPollTime) < 3000;
-            const ctxExpired        = (Date.now() - pageContext.lastHeartbeat) > PAGE_CONTEXT_EXPIRE_MS;
-            const isStudentMgmtOpen = !ctxExpired && pageContext.page === 'student_management';
+            // Skip attendance if web UI is actively polling for registration
+            const isWebWaiting = (Date.now() - lastWebPollTime) < 3000;
 
-            if (!isWebWaiting && !isStudentMgmtOpen) {
+            if (!isWebWaiting) {
                 try {
                     const attQuery = await pool.query('SELECT * FROM Attendance WHERE student_id = $1 AND date = CURRENT_DATE', [card.student_id]);
                     
@@ -185,43 +173,66 @@ app.get(['/api/scan', '/api/card-read', '/api/details-scan'], (req, res) => {
     res.json({ waiting: false });
 });
 
+// POST /api/rfid/sync — Offline Queue Batch Sync Endpoint
+app.post('/api/rfid/sync', async (req, res) => {
+    const { records } = req.body;
+    if (!Array.isArray(records) || records.length === 0) {
+        return res.json({ synced: 0, skipped: 0, message: 'No records to sync' });
+    }
+
+    let synced = 0;
+    let skipped = 0;
+
+    for (const item of records) {
+        if (!item.uid) { skipped++; continue; }
+        const cleanUid = item.uid.toUpperCase().trim();
+        const tapTime = item.timestamp ? new Date(item.timestamp * 1000) : new Date();
+        const tapDateStr = tapTime.toISOString().split('T')[0];
+
+        try {
+            const cardRes = await pool.query('SELECT student_id FROM cards WHERE uid = $1', [cleanUid]);
+            if (cardRes.rows.length === 0) {
+                skipped++;
+                continue;
+            }
+            const studentId = cardRes.rows[0].student_id;
+
+            const attQuery = await pool.query(
+                'SELECT * FROM Attendance WHERE student_id = $1 AND date = $2',
+                [studentId, tapDateStr]
+            );
+
+            if (attQuery.rows.length === 0) {
+                await pool.query(
+                    'INSERT INTO Attendance (student_id, date, time_in) VALUES ($1, $2, $3)',
+                    [studentId, tapDateStr, tapTime]
+                );
+                synced++;
+            } else if (!attQuery.rows[0].time_out) {
+                await pool.query(
+                    'UPDATE Attendance SET time_out = $1 WHERE student_id = $2 AND date = $3',
+                    [tapTime, studentId, tapDateStr]
+                );
+                synced++;
+            } else {
+                skipped++;
+            }
+        } catch (err) {
+            console.error('Error syncing offline record:', err.message);
+            skipped++;
+        }
+    }
+
+    console.log(`[Offline Sync] Batch completed: ${synced} synced, ${skipped} skipped.`);
+    res.json({ synced, skipped, message: `Synced ${synced} records successfully.` });
+});
+
 // ── Page Context Endpoints ────────────────────────────────────────────────────
 // Student Management pages POST a heartbeat every 4s to signal they are active.
 // The ESP32 GETs this every 1s to decide whether to take attendance or redirect
 // the card tap to the web portal for student lookup.
 
-// POST /api/rfid/page-context  — browser heartbeat (called by Student Mgmt pages)
-app.post('/api/rfid/page-context', (req, res) => {
-    const { page, pageName } = req.body;
-    if (!page) return res.status(400).json({ error: 'page field is required' });
-    pageContext.page = page;
-    pageContext.pageName = pageName || page;
-    pageContext.lastHeartbeat = Date.now();
-    console.log(`[PageContext] Browser heartbeat: page="${pageContext.pageName}"`);
-    res.json({ ok: true, page: pageContext.page, pageName: pageContext.pageName });
-});
 
-// DELETE /api/rfid/page-context  — browser signals it is leaving the page
-app.delete('/api/rfid/page-context', (req, res) => {
-    console.log(`[PageContext] Browser left page: was "${pageContext.pageName}"`);
-    pageContext = { page: 'none', pageName: '', lastHeartbeat: 0 };
-    res.json({ ok: true });
-});
-
-// GET /api/rfid/page-context  — ESP32 polls this to know the active mode
-app.get('/api/rfid/page-context', (req, res) => {
-    const expired = (Date.now() - pageContext.lastHeartbeat) > PAGE_CONTEXT_EXPIRE_MS;
-    if (expired && pageContext.page !== 'none') {
-        console.log(`[PageContext] Heartbeat expired — resetting to "none"`);
-        pageContext = { page: 'none', pageName: '', lastHeartbeat: 0 };
-    }
-    res.json({
-        page: pageContext.page,
-        pageName: pageContext.pageName,
-        active: pageContext.page !== 'none'
-    });
-});
-// ─────────────────────────────────────────────────────────────────────────────
 
 // 3. Register RFID Card & Student Endpoint (Supports /api/rfid/register, /api/register)
 app.post(['/api/rfid/register', '/api/register'], async (req, res) => {

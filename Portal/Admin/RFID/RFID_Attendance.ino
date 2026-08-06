@@ -95,7 +95,6 @@ const char* SCAN_URL        = "http://192.168.0.197:3000/api/rfid/scan";
 const char* CARDREAD_URL    = "http://192.168.0.197:3000/api/rfid/latest-scan";
 const char* DETSCAN_URL     = "http://192.168.0.197:3000/api/student/search";
 const char* SYNC_URL        = "http://192.168.0.197:3000/api/rfid/sync";
-const char* PAGE_CONTEXT_URL = "http://192.168.0.197:3000/api/rfid/page-context";
 
 // Master Card UID (Change to your admin card UID)
 String MASTER_CARD_UID = "AA:BB:CC:DD";
@@ -121,8 +120,6 @@ bool webDetScanMode  = false;
 bool adminMode       = false;
 bool displayOn       = true;
 bool idleScreen      = false;   // true when showing idle/ready screen
-bool studentMgmtMode = false;   // true when a Student Management page is open
-String studentMgmtPage = "";    // e.g. "Edit Student", "View All Students"
 
 unsigned long lastPoll         = 0;
 unsigned long lastScanTime     = 0;
@@ -151,7 +148,6 @@ bool getStudentFromCache(String uid, String &cardIdOut, String &nameOut);
 void checkWebScanRequest();
 void checkWebReadRequest();
 void checkWebDetScanRequest();
-void checkPageContext();    // polls page-context — enables Student Mgmt mode
 
 void sendScanUID(String uid);
 void sendReadUID(String uid);
@@ -226,7 +222,6 @@ void loop() {
   // ── Poll backend every 1s ──────────────────────────────────────
   if (WiFi.status() == WL_CONNECTED && millis() - lastPoll > 1000) {
     lastPoll = millis();
-    checkPageContext();        // ← must run first so studentMgmtMode is current
     checkWebScanRequest();
     checkWebReadRequest();
     checkWebDetScanRequest();
@@ -320,24 +315,7 @@ void loop() {
     return;
   }
 
-  // ── Student Management Mode: redirect tap to web, no attendance ──
-  if (studentMgmtMode && !webScanMode && !webReadMode && !webDetScanMode) {
-    setRGB(128, 0, 255); // Purple
-    beepOK();
-    oledMsg("[ STUDENT MGMT ]", studentMgmtPage.length() ? studentMgmtPage : "Web page active",
-            "Sending to web:", uid);
-    // Forward the UID to the scan endpoint so the web page can receive it
-    if (WiFi.status() == WL_CONNECTED) sendScanUID(uid);
-    mfrc522.PICC_HaltA();
-    mfrc522.PCD_StopCrypto1();
-    delay(2000);
-    setRGB(0, 0, 0);
-    // Restore student mgmt screen (don't go back to attendance mode)
-    idleScreen = false;
-    oledWebMode("[STUDENT MGMT]", studentMgmtPage.length() ? studentMgmtPage : "Web page active",
-                "Tap card to load", "student on web");
-    return;
-  }
+
 
   // ── Standard Attendance Punch ──────────────────────────────────
   processCardScan(uid);
@@ -888,59 +866,7 @@ void checkWebReadRequest() {
   http.end();
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Page Context Polling — Student Management Mode Intelligence
-// Polls /api/rfid/page-context (GET) every second.
-// When the browser has a Student Management page open:
-//   - Sets studentMgmtMode = true
-//   - Shows a dedicated OLED screen (no attendance mode)
-// When the browser navigates away / context expires:
-//   - Clears studentMgmtMode and returns to attendance mode
-// ─────────────────────────────────────────────────────────────────
-void checkPageContext() {
-  // Don't override explicit web-scan / web-read modes
-  if (webScanMode || webReadMode || webDetScanMode) return;
 
-  HTTPClient http;
-  http.begin(PAGE_CONTEXT_URL);
-  http.setTimeout(800);
-  int code = http.GET();
-
-  if (code == 200) {
-    String resp = http.getString();
-    StaticJsonDocument<128> doc;
-    if (!deserializeJson(doc, resp)) {
-      bool active    = doc["active"].as<bool>();
-      String page    = doc["page"].as<String>();
-      String pgName  = doc["pageName"].as<String>();
-
-      if (active && page == "student_management") {
-        if (!studentMgmtMode || studentMgmtPage != pgName) {
-          // Mode just activated or page name changed
-          studentMgmtMode = true;
-          studentMgmtPage = pgName;
-          idleScreen      = false;
-          setRGB(128, 0, 255); // Purple — distinct from blue (web) and green (attendance)
-          Serial.println("[PageContext] Student Mgmt mode ON: " + pgName);
-          oledWebMode("[STUDENT MGMT]",
-                      pgName.length() ? pgName : "Student Management",
-                      "Attendance PAUSED.",
-                      "Tap card to search");
-        }
-      } else {
-        if (studentMgmtMode) {
-          // Mode just deactivated — return to attendance
-          studentMgmtMode = false;
-          studentMgmtPage = "";
-          setRGB(0, 0, 0);
-          Serial.println("[PageContext] Student Mgmt mode OFF \u2014 Attendance mode restored");
-          oledReady();
-        }
-      }
-    }
-  }
-  http.end();
-}
 
 void sendScanUID(String uid) {
   if (WiFi.status() != WL_CONNECTED) return;
