@@ -11,6 +11,9 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Add static file serving for the whole portal
+app.use(express.static('d:/Kapataksha-High-School/Portal/Admin'));
+
 // PostgreSQL Pool Connection
 const pool = new Pool({
     user: process.env.PGUSER || 'postgres',
@@ -322,9 +325,11 @@ app.get('/api/student/search', async (req, res) => {
                 p.nationality, 
                 p.nid_birth_cert, 
                 p.photo_url, 
-                p.updated_at
+                p.updated_at,
+                CASE WHEN u.user_id IS NOT NULL THEN true ELSE false END AS is_user
             FROM cards c
             LEFT JOIN PersonalData p ON c.student_id = p.student_id
+            LEFT JOIN Users u ON c.student_id = u.user_id
             WHERE UPPER(c.student_id) = $1 OR UPPER(c.uid) = $1;
         `;
         const result = await pool.query(searchQuery, [searchTerm]);
@@ -417,6 +422,30 @@ app.post('/api/teacher/personal-data', async (req, res) => {
     } catch (err) {
         console.error('Error saving teacher data:', err.message);
         res.status(500).json({ error: 'Server error saving teacher data.' });
+    }
+});
+
+
+// -------------------------------------------------------------------------
+// USER APIs
+// -------------------------------------------------------------------------
+app.post('/api/user/make-student-user', async (req, res) => {
+    const { student_id } = req.body;
+    if (!student_id) {
+        return res.status(400).json({ error: 'student_id is required' });
+    }
+    try {
+        const hashedPassword = await bcrypt.hash('student1212', 10);
+        const userQuery = `
+            INSERT INTO Users (user_id, username, password, role, account_status)
+            VALUES ($1, $2, $3, 'Student', 'Active')
+            ON CONFLICT (user_id) DO NOTHING
+        `;
+        await pool.query(userQuery, [student_id, ' ', hashedPassword]);
+        res.json({ success: true, message: 'Student successfully saved as a User.' });
+    } catch (err) {
+        console.error('Error creating user for student:', err.message);
+        res.status(500).json({ error: 'Server error creating user account.' });
     }
 });
 

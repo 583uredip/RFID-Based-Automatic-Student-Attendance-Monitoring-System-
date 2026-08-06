@@ -135,6 +135,10 @@
                             <i class="fa-solid fa-file-csv subitem-icon"></i>
                             <span>Import/Export Students</span>
                         </a>
+                        <a href="#" onclick="showDashboardSection('make-student-user-section'); return false;" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-shield subitem-icon"></i>
+                            <span>Make Student a User</span>
+                        </a>
                     </div>
                 </div>
 
@@ -505,6 +509,43 @@
                 <div class="action-buttons-box">
                     <button class="btn-cyan">Submit Identity Information</button>
                     <button class="btn-cyan">Covid-19 Vaccine Information</button>
+                </div>
+
+                <!-- Make Student a User Section -->
+                <div class="make-student-user-section" id="make-student-user-section" style="display: none;">
+                    
+                    <div class="rfid-card-section">
+                        <div class="rfid-card-header">
+                            <div class="rfid-title">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <span>Search Student Profile</span>
+                            </div>
+                            <div class="live-status-badge" id="live-user-scan-status">
+                                <span class="status-dot pulsing"></span>
+                                <span id="user-status-text">Tap card on ESP32 or enter Student ID...</span>
+                            </div>
+                        </div>
+
+                        <form onsubmit="searchStudentForUser(event)" class="search-form-flex">
+                            <div class="search-input-wrap">
+                                <i class="fa-solid fa-address-card search-icon"></i>
+                                <input type="text" id="search-student-user" placeholder="Enter Student ID (e.g. 26-00001) or Card UID..." required class="input-search">
+                            </div>
+                            <button type="submit" class="btn-primary-blue">
+                                <i class="fa-solid fa-magnifying-glass"></i> Search
+                            </button>
+                        </form>
+                    </div>
+
+                    <div id="student-user-result" style="display: none;" class="rfid-card-section">
+                        <h3>Student Details</h3>
+                        <p><strong>Student ID:</strong> <span id="su-student-id"></span></p>
+                        <p><strong>Name:</strong> <span id="su-student-name"></span></p>
+                        <p><strong>Card UID:</strong> <span id="su-card-uid"></span></p>
+                        <p><strong>User Status:</strong> <span id="su-user-status" style="font-weight: bold;"></span></p>
+                        <br>
+                        <button type="button" id="btn-make-student-user" class="btn-primary" onclick="makeStudentUser()">Confirm & Make User</button>
+                    </div>
                 </div>
 
             </main>

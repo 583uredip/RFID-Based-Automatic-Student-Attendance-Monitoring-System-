@@ -85,7 +85,8 @@ function startLiveScanPolling() {
             // Check if any admin page is currently waiting for a scan
             const isWaitingForScan = document.getElementById('rfid-uid-input') || 
                                      document.getElementById('search-query-input') || 
-                                     document.getElementById('scan-uid');
+                                     document.getElementById('scan-uid') ||
+                                     document.getElementById('search-student-user');
                                      
             const endpoint = isWaitingForScan ? `${API_BASE_URL}/latest-scan?active=true` : `${API_BASE_URL}/latest-scan`;
             const response = await fetch(endpoint);
@@ -95,7 +96,8 @@ function startLiveScanPolling() {
             
             // Check for RFID Register Page
             const uidInput = document.getElementById('rfid-uid-input');
-            if (uidInput && scanData && scanData.uid && scanData.uid !== lastScannedUid) {
+            const rfidSection = document.getElementById('rfid-section');
+            if (rfidSection && rfidSection.style.display !== 'none' && uidInput && scanData && scanData.uid && scanData.uid !== lastScannedUid) {
                 lastScannedUid = scanData.uid;
                 const statusText = document.getElementById('status-text');
                 const statusBadge = document.getElementById('live-scan-status');
@@ -121,7 +123,16 @@ function startLiveScanPolling() {
 
             // Check for Edit Student Page
             const searchInput = document.getElementById('search-query-input');
-            if (searchInput && scanData && scanData.uid && scanData.uid !== lastScannedUid) {
+            // Assuming Edit Student page is wrapped in an element we can check visibility for, but we'll just check if it's visible if we can.
+            // Actually, we'll just add the Make Student User check.
+            const makeUserSection = document.getElementById('make-student-user-section');
+            const makeUserSearchInput = document.getElementById('search-student-user');
+            
+            if (makeUserSection && makeUserSection.style.display === 'block' && makeUserSearchInput && scanData && scanData.uid && scanData.uid !== lastScannedUid) {
+                lastScannedUid = scanData.uid;
+                makeUserSearchInput.value = scanData.uid;
+                searchStudentForUser();
+            } else if (searchInput && scanData && scanData.uid && scanData.uid !== lastScannedUid) {
                 lastScannedUid = scanData.uid;
                 searchInput.value = scanData.uid;
                 fetchStudentData(scanData.uid);
@@ -1139,13 +1150,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const section = urlParams.get('section');
+    if (section) {
+        showDashboardSection(section);
+    }
 });
 function showDashboardSection(sectionId) {
     const rfidSection = document.getElementById('rfid-section');
     const teacherSection = document.getElementById('add-teacher-section');
+    const makeStudentUserSection = document.getElementById('make-student-user-section');
     
     if (rfidSection) rfidSection.style.display = 'none';
     if (teacherSection) teacherSection.style.display = 'none';
+    if (makeStudentUserSection) makeStudentUserSection.style.display = 'none';
 
     const target = document.getElementById(sectionId);
     if (target) {
@@ -1162,5 +1181,111 @@ function generateTeacherId() {
         // Generate a random 4-digit number (from 1000 to 9999)
         const uniquePart = Math.floor(1000 + Math.random() * 9000).toString();
         teacherIdInput.value = 'T-' + uniquePart;
+    }
+}
+
+// -------------------------------------------------------------------------
+// MAKE STUDENT A USER LOGIC
+// -------------------------------------------------------------------------
+
+let selectedStudentIdForUser = null;
+
+async function searchStudentForUser(event) {
+    if (event) event.preventDefault();
+    const searchInput = document.getElementById('search-student-user').value.trim();
+    if (!searchInput) {
+        alert('Please enter a Student ID or Card UID');
+        return;
+    }
+
+    const statusText = document.getElementById('user-status-text');
+    const statusBadge = document.getElementById('live-user-scan-status');
+
+    if (statusText) statusText.innerText = `Searching for "${searchInput}"...`;
+
+    try {
+        const response = await fetch(`${STUDENT_API_BASE_URL}/search?query=${encodeURIComponent(searchInput)}`);
+        
+        if (!response.ok) {
+            if (response.status === 404) {
+                alert('No student found matching this ID or Card UID.');
+                document.getElementById('student-user-result').style.display = 'none';
+                selectedStudentIdForUser = null;
+                if (statusText) statusText.innerText = 'Tap card on ESP32 or enter Student ID...';
+                if (statusBadge) statusBadge.className = 'live-status-badge';
+                return;
+            }
+            throw new Error('Error occurred while searching');
+        }
+        
+        const student = await response.json();
+        selectedStudentIdForUser = student.student_id;
+        
+        if (statusText) statusText.innerText = `Student Found: ${student.first_name || ''} ${student.last_name || ''} (${student.student_id})`;
+        if (statusBadge) statusBadge.className = 'live-status-badge success';
+        
+        document.getElementById('su-student-id').textContent = student.student_id;
+        document.getElementById('su-student-name').textContent = `${student.first_name || ''} ${student.last_name || ''}`.trim();
+        document.getElementById('su-card-uid').textContent = student.uid || 'N/A';
+        
+        const statusSpan = document.getElementById('su-user-status');
+        const makeUserBtn = document.getElementById('btn-make-student-user');
+        
+        if (student.is_user) {
+            statusSpan.textContent = "Already a User";
+            statusSpan.style.color = "green";
+            makeUserBtn.disabled = true;
+            makeUserBtn.style.opacity = '0.5';
+            makeUserBtn.style.cursor = 'not-allowed';
+            makeUserBtn.textContent = 'User Already Exists';
+        } else {
+            statusSpan.textContent = "Not a User";
+            statusSpan.style.color = "red";
+            makeUserBtn.disabled = false;
+            makeUserBtn.style.opacity = '1';
+            makeUserBtn.style.cursor = 'pointer';
+            makeUserBtn.textContent = 'Confirm & Make User';
+        }
+        
+        document.getElementById('student-user-result').style.display = 'block';
+
+    } catch (error) {
+        console.error('Error searching student:', error);
+        alert('Error searching for student.');
+        document.getElementById('student-user-result').style.display = 'none';
+        selectedStudentIdForUser = null;
+    }
+}
+
+async function makeStudentUser() {
+    if (!selectedStudentIdForUser) {
+        alert('Please search and select a student first.');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to create a user account for Student ID: ${selectedStudentIdForUser}?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch('http://localhost:3000/api/user/make-student-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ student_id: selectedStudentIdForUser })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            alert('Student successfully saved as a User!');
+            // Reset the form
+            document.getElementById('search-student-user').value = '';
+            document.getElementById('student-user-result').style.display = 'none';
+            selectedStudentIdForUser = null;
+        } else {
+            alert('Error: ' + (data.error || 'Failed to create user account.'));
+        }
+    } catch (error) {
+        console.error('Error creating user account:', error);
+        alert('Server error while creating user account.');
     }
 }
