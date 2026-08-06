@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- External CSS -->
     <link rel="stylesheet" href="AdminDashboard.css">
+    <link rel="stylesheet" href="css/teacher-list.css">
 </head>
 <body>
 
@@ -160,7 +161,7 @@
                             <i class="fa-solid fa-chalkboard subitem-icon"></i>
                             <span>Assign Classes</span>
                         </a>
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                        <a href="#" onclick="showDashboardSection('teacher-list-section'); return false;" class="sidebar-subitem">
                             <i class="fa-solid fa-address-book subitem-icon"></i>
                             <span>Teacher List</span>
                         </a>
@@ -506,9 +507,21 @@
                         </form>
                     </div>
                 </div>
-                <div class="action-buttons-box">
-                    <button class="btn-cyan">Submit Identity Information</button>
-                    <button class="btn-cyan">Covid-19 Vaccine Information</button>
+
+                <!-- Teacher List Section -->
+                <div class="teacher-list-section" id="teacher-list-section" style="display: none;">
+                    <div class="action-buttons-box mb-4">
+                        <h2 style="color: var(--primary-color);">Teacher Directory</h2>
+                    </div>
+                    
+                    <div class="row" id="admin-teacher-grid">
+                        <div class="col-12 text-center" id="admin-loading-indicator">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading teacher data...</p>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Make Student a User Section -->

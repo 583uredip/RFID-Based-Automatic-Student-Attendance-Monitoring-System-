@@ -1161,17 +1161,87 @@ function showDashboardSection(sectionId) {
     const rfidSection = document.getElementById('rfid-section');
     const teacherSection = document.getElementById('add-teacher-section');
     const makeStudentUserSection = document.getElementById('make-student-user-section');
+    const teacherListSection = document.getElementById('teacher-list-section');
     
     if (rfidSection) rfidSection.style.display = 'none';
     if (teacherSection) teacherSection.style.display = 'none';
     if (makeStudentUserSection) makeStudentUserSection.style.display = 'none';
+    if (teacherListSection) teacherListSection.style.display = 'none';
 
     const target = document.getElementById(sectionId);
     if (target) {
         target.style.display = 'block';
         if (sectionId === 'add-teacher-section') {
             generateTeacherId();
+        } else if (sectionId === 'teacher-list-section') {
+            loadTeacherList();
         }
+    }
+}
+
+async function loadTeacherList() {
+    const teacherGrid = document.getElementById('admin-teacher-grid');
+    if (!teacherGrid) return;
+    
+    teacherGrid.innerHTML = `
+        <div class="col-12 text-center" id="admin-loading-indicator">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading teacher data...</p>
+        </div>
+    `;
+
+    try {
+        const response = await fetch('http://localhost:3000/api/teacher/all');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const teachers = await response.json();
+        
+        teacherGrid.innerHTML = '';
+        if (teachers.length === 0) {
+            teacherGrid.innerHTML = '<div class="col-12 text-center"><p>No teachers found.</p></div>';
+            return;
+        }
+
+        teachers.forEach(teacher => {
+            const col = document.createElement('div');
+            col.className = 'col-md-4';
+            
+            const name = teacher.full_name || 'N/A';
+            const designation = teacher.designation || 'N/A';
+            const joinDate = teacher.joining_date || 'N/A';
+            const mobile = teacher.mobile_number || 'N/A';
+            const mail = teacher.email_address || 'N/A';
+            const address = teacher.current_address ? teacher.current_address.replace(/\\n/g, ', ') : 'N/A';
+            const photoUrl = teacher.photo_url || '../School/photos/default_user.png';
+
+            col.innerHTML = `
+                <div class="teacher-card">
+                    <div class="teacher-photo-container">
+                        <img src="${photoUrl}" alt="Photo of ${name}" class="teacher-photo">
+                    </div>
+                    <div class="teacher-info">
+                        <div class="teacher-name-box">
+                            <h5>Name: ${name}</h5>
+                        </div>
+                        <ul class="teacher-details-list">
+                            <li><strong>Designation:</strong> ${designation}</li>
+                            <li><strong>Join Date:</strong> ${joinDate}</li>
+                            <li><strong>Mobile:</strong> ${mobile}</li>
+                            <li><strong>Mail:</strong> ${mail}</li>
+                            <li><strong>Address:</strong> ${address}</li>
+                        </ul>
+                        <div class="teacher-action">
+                            <button class="btn-details">Details</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            teacherGrid.appendChild(col);
+        });
+    } catch (error) {
+        console.error('Error fetching teachers:', error);
+        teacherGrid.innerHTML = '<div class="col-12 text-center text-danger"><p>Failed to load teachers.</p></div>';
     }
 }
 

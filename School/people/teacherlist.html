@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KCHS | Teacher List</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Base styles for navbar and footer -->
+    <link rel="stylesheet" href="../css/navbar.css">
+    <link rel="stylesheet" href="../css/footer.css">
+    <!-- Specific styles for teacher grid -->
+    <link rel="stylesheet" href="../css/teacher.css">
+    <link rel="icon" href="../photos/KSHS.png" type="image/png">
+</head>
+<body style="font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif; background-color: #f4f6f9;">
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark custom-navbar">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="../index.html">
+                <img src="../photos/KSHS.png" alt="AHS Logo" class="logo">
+            </a>
+            <button class="navbar-toggler" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarMain"
+                aria-controls="navbarMain"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+                    <!-- About -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            About
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="../index.html#about-ahs">About KCHS</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="../about/RulesRegulation.html">Rules &amp; Regulation</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="../about/IntimidationPolicy.html">Intimidation Policy</a></li>
+                        </ul>
+                    </li>
+                    <!-- People -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            People
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="OSA.html">OSA</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="Founders.html">Founders</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="executivecommittee2025-26.html">Executive Committee</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="formercommittee.html">Former Committee</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="adviser.html">Adviser</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="teacherlist.html">Teachers &amp; Staff</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="students.html">Students</a></li>
+                        </ul>
+                    </li>
+                    <!-- Activities & News -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="../activiryandnews/ActivityAndNews.html">Activities &amp; News</a>
+                    </li>
+                    <!-- Events -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="../events/Events.html">Events</a>
+                    </li>
+                    <!-- Media -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            Media
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="../Media/Gallery.html">Gallery</a></li>
+                        </ul>
+                    </li>
+                    <!-- Contact -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html#contact">Contact</a>
+                    </li>
+                </ul>
+                <button class="btn btn-search ms-lg-2" type="button" aria-label="Search">Search</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        <div class="row" id="teacher-grid">
+            <!-- Loading indicator -->
+            <div class="col-12 text-center" id="loading-indicator">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading teacher data...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const teacherGrid = document.getElementById('teacher-grid');
+            const loadingIndicator = document.getElementById('loading-indicator');
+
+            try {
+                // Assuming the backend is running on localhost:3000
+                const response = await fetch('http://localhost:3000/api/teacher/all');
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
+                const teachers = await response.json();
+                
+                // Clear loading indicator
+                teacherGrid.innerHTML = '';
+                
+                if (teachers.length === 0) {
+                    teacherGrid.innerHTML = '<div class="col-12 text-center"><p>No teachers found.</p></div>';
+                    return;
+                }
+
+                teachers.forEach(teacher => {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-4';
+                    
+                    // Format missing data gracefully
+                    const name = teacher.full_name || 'N/A';
+                    const designation = teacher.designation || 'N/A';
+                    const joinDate = teacher.joining_date || 'N/A';
+                    const mobile = teacher.mobile_number || 'N/A';
+                    const mail = teacher.email_address || 'N/A';
+                    
+                    // Parse address. The screenshot shows "vill: ..., Post: ..., Upazila: ..., Zilla: ..."
+                    // If current_address is JSON or comma-separated string, we'll try to just show it raw for now
+                    const address = teacher.current_address ? teacher.current_address.replace(/\\n/g, ', ') : 'N/A';
+                    
+                    const photoUrl = teacher.photo_url || '../photos/default_user.png'; // Fallback photo
+
+                    col.innerHTML = `
+                        <div class="teacher-card">
+                            <div class="teacher-photo-container">
+                                <img src="${photoUrl}" alt="Photo of ${name}" class="teacher-photo">
+                            </div>
+                            <div class="teacher-info">
+                                <div class="teacher-name-box">
+                                    <h5>Name: ${name}</h5>
+                                </div>
+                                <ul class="teacher-details-list">
+                                    <li><strong>Designation:</strong> ${designation}</li>
+                                    <li><strong>Join Date:</strong> ${joinDate}</li>
+                                    <li><strong>Mobile:</strong> ${mobile}</li>
+                                    <li><strong>Mail:</strong> ${mail}</li>
+                                    <li><strong>Address:</strong> ${address}</li>
+                                </ul>
+                                <div class="teacher-action">
+                                    <button class="btn-details">Details</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    teacherGrid.appendChild(col);
+                });
+
+            } catch (error) {
+                console.error('Error fetching teachers:', error);
+                teacherGrid.innerHTML = '<div class="col-12 text-center text-danger"><p>Failed to load teachers. Ensure the backend server is running.</p></div>';
+            }
+        });
+    </script>
+</body>
+</html>

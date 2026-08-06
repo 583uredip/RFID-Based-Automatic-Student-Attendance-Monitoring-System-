@@ -424,6 +424,23 @@ app.post('/api/teacher/personal-data', async (req, res) => {
         res.status(500).json({ error: 'Server error saving teacher data.' });
     }
 });
+app.get('/api/teacher/all', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                teacher_id, full_name, designation, 
+                TO_CHAR(joining_date, 'YYYY-MM-DD') AS joining_date, 
+                mobile_number, email_address, current_address, photo_url
+            FROM TeacherPersonalData
+            ORDER BY joining_date ASC;
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error fetching all teachers:', err.message);
+        res.status(500).json({ error: 'Server error fetching teachers.' });
+    }
+});
 
 
 // -------------------------------------------------------------------------

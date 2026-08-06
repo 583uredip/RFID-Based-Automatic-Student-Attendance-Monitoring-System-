@@ -1,0 +1,87 @@
+.teacher-card {
+    background-color: #ffffff;
+    border: 1px solid #e0e9f1;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    margin-bottom: 30px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.teacher-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.teacher-photo-container {
+    background-color: #eef5fb;
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid #e0e9f1;
+}
+
+.teacher-photo {
+    width: 150px;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 2px solid #a3c2de;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.teacher-info {
+    padding: 0;
+}
+
+.teacher-name-box {
+    text-align: center;
+    padding: 15px 10px;
+    border-bottom: 1px solid #e0e9f1;
+}
+
+.teacher-name-box h5 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: bold;
+    color: #0b3d68;
+    text-transform: uppercase;
+}
+
+.teacher-details-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.teacher-details-list li {
+    padding: 12px 20px;
+    border-bottom: 1px solid #eef2f6;
+    font-size: 14px;
+    color: #444;
+}
+
+.teacher-details-list li strong {
+    color: #333;
+    font-weight: 600;
+}
+
+.teacher-action {
+    text-align: center;
+    padding: 20px;
+}
+
+.btn-details {
+    background-color: #1a9ba7;
+    color: white;
+    border: none;
+    padding: 8px 30px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.btn-details:hover {
+    background-color: #147b85;
+    color: white;
+}
