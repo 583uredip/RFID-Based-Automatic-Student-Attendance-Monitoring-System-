@@ -1,6 +1,11 @@
 // Server Base API URL
-const API_BASE_URL = 'http://localhost:3000/api/rfid';
-const STUDENT_API_BASE_URL = 'http://localhost:3000/api/student';
+function getApiHost() {
+    if (window.location.port === '3000') return window.location.origin;
+    const hostname = (window.location.hostname && window.location.hostname !== '') ? window.location.hostname : 'localhost';
+    return `http://${hostname}:3000`;
+}
+const API_BASE_URL = `${getApiHost()}/api/rfid`;
+const STUDENT_API_BASE_URL = `${getApiHost()}/api/student`;
 
 function toggleMenu(menuId) {
     const menu = document.getElementById(menuId);
@@ -51,6 +56,7 @@ function toggleHeaderNav() {
 
 // Global Variables
 let lastScannedUid = null;
+let lastScannedTimestamp = null;
 let pollInterval = null;
 let currentPhotoBase64 = null;
 
@@ -62,13 +68,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (document.getElementById('extended-cards-table-body')) {
         loadExtendedRegisteredCards();
     }
-    // Fetch initial latest scan to set lastScannedUid without auto-filling old scan
+    // Fetch initial latest scan to record timestamp without auto-filling old scan
     try {
         const response = await fetch(`${API_BASE_URL}/latest-scan`);
         if (response.ok) {
             const initialScan = await response.json();
             if (initialScan && initialScan.uid) {
-                lastScannedUid = initialScan.uid; // Ignore old cached scan on load
+                lastScannedUid = initialScan.uid;
+                lastScannedTimestamp = initialScan.timestamp || null;
             }
         }
     } catch (e) {}
@@ -94,11 +101,16 @@ function startLiveScanPolling() {
 
             const scanData = await response.json();
             
+            const isNewScan = scanData && scanData.uid && (
+                scanData.timestamp ? scanData.timestamp !== lastScannedTimestamp : scanData.uid !== lastScannedUid
+            );
+
             // Check for RFID Register Page
             const uidInput = document.getElementById('rfid-uid-input');
             const rfidSection = document.getElementById('rfid-section');
-            if (rfidSection && rfidSection.style.display !== 'none' && uidInput && scanData && scanData.uid && scanData.uid !== lastScannedUid) {
+            if (rfidSection && rfidSection.style.display !== 'none' && uidInput && isNewScan) {
                 lastScannedUid = scanData.uid;
+                lastScannedTimestamp = scanData.timestamp || null;
                 const statusText = document.getElementById('status-text');
                 const statusBadge = document.getElementById('live-scan-status');
                 const studentIdInput = document.getElementById('rfid-student-id-input');
@@ -123,17 +135,17 @@ function startLiveScanPolling() {
 
             // Check for Edit Student Page
             const searchInput = document.getElementById('search-query-input');
-            // Assuming Edit Student page is wrapped in an element we can check visibility for, but we'll just check if it's visible if we can.
-            // Actually, we'll just add the Make Student User check.
             const makeUserSection = document.getElementById('make-student-user-section');
             const makeUserSearchInput = document.getElementById('search-student-user');
             
-            if (makeUserSection && makeUserSection.style.display === 'block' && makeUserSearchInput && scanData && scanData.uid && scanData.uid !== lastScannedUid) {
+            if (makeUserSection && makeUserSection.style.display === 'block' && makeUserSearchInput && isNewScan) {
                 lastScannedUid = scanData.uid;
+                lastScannedTimestamp = scanData.timestamp || null;
                 makeUserSearchInput.value = scanData.uid;
                 searchStudentForUser();
-            } else if (searchInput && scanData && scanData.uid && scanData.uid !== lastScannedUid) {
+            } else if (searchInput && isNewScan) {
                 lastScannedUid = scanData.uid;
+                lastScannedTimestamp = scanData.timestamp || null;
                 searchInput.value = scanData.uid;
                 fetchStudentData(scanData.uid);
             }

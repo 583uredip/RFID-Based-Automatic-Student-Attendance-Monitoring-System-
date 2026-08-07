@@ -267,12 +267,18 @@
     <script src="../AdminDashboard.js"></script>
 
     <script>
+        function getApiBase() {
+            if (window.location.port === '3000') return window.location.origin;
+            const hostname = (window.location.hostname && window.location.hostname !== '') ? window.location.hostname : 'localhost';
+            return `http://${hostname}:3000`;
+        }
+
         async function fetchAllStudents() {
             const tableBody = document.getElementById('students-table-body');
             const countBadge = document.getElementById('students-count-badge');
             
             try {
-                const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:3000';
+                const apiBase = getApiBase();
                 const response = await fetch(`${apiBase}/api/student/all`);
                 if (!response.ok) throw new Error('Failed to fetch data');
                 

@@ -120,15 +120,19 @@ bool webDetScanMode  = false;
 bool adminMode       = false;
 bool displayOn       = true;
 bool idleScreen      = false;   // true when showing idle/ready screen
+bool isServerOnline  = false;   // true when Node.js server (npm start) is reachable
 
-unsigned long lastPoll         = 0;
-unsigned long lastScanTime     = 0;
-unsigned long lastActivityTime = 0;
-unsigned long relayOffTime     = 0;
-unsigned long lastClockUpdate  = 0;
-String        lastScannedUID   = "";
+unsigned long lastPoll            = 0;
+unsigned long lastScanTime        = 0;
+unsigned long lastActivityTime    = 0;
+unsigned long relayOffTime        = 0;
+unsigned long lastClockUpdate     = 0;
+unsigned long lastHealthCheck     = 0;
+const unsigned long HEALTH_CHECK_INTERVAL_MS = 5000; // Check server connection every 5s
+String        lastScannedUID      = "";
 
 // ── Function Declarations ────────────────────────────────────────
+void checkServerHealth();
 void setupPeripherals();
 void setupWiFi();
 void setupNTPAndRTC();
@@ -201,6 +205,7 @@ void setup() {
 
   resetDisplayTimeout();
   printHelp();
+  checkServerHealth();
   oledReady();
 }
 
@@ -219,13 +224,22 @@ void loop() {
     updateIdleClock();
   }
 
-  // ── Poll backend every 1s ──────────────────────────────────────
-  if (WiFi.status() == WL_CONNECTED && millis() - lastPoll > 1000) {
-    lastPoll = millis();
-    checkWebScanRequest();
-    checkWebReadRequest();
-    checkWebDetScanRequest();
-    syncOfflineQueue();
+  // ── Periodic Server Health Check & Backend Polling ─────────────
+  if (WiFi.status() == WL_CONNECTED) {
+    if (millis() - lastHealthCheck > HEALTH_CHECK_INTERVAL_MS) {
+      lastHealthCheck = millis();
+      checkServerHealth();
+    }
+
+    if (isServerOnline && (millis() - lastPoll > 1000)) {
+      lastPoll = millis();
+      checkWebScanRequest();
+      checkWebReadRequest();
+      checkWebDetScanRequest();
+      syncOfflineQueue();
+    }
+  } else {
+    isServerOnline = false;
   }
 
   // ── Serial Command Input ───────────────────────────────────────
@@ -470,10 +484,10 @@ void setupOTA() {
 void processCardScan(String uid) {
   oledMsg("  Card Scanned", uid, "Processing...", "");
 
-  if (WiFi.status() == WL_CONNECTED) {
+  if (WiFi.status() == WL_CONNECTED && isServerOnline) {
     sendAttendance(uid);
   } else {
-    // Offline Mode: Log to Flash Queue
+    // Offline / Standby Mode: Log to Flash Queue
     queueOffline(uid);
 
     // Look up offline student name from cache
@@ -481,7 +495,8 @@ void processCardScan(String uid) {
     if (getStudentFromCache(uid, cachedId, cachedName)) {
       oledAttendance(cachedName, cachedId, "OFFLINE");
     } else {
-      oledMsg("  Saved Offline", uid, "Queueing log...", "WiFi disconnected");
+      String reason = (WiFi.status() == WL_CONNECTED) ? "Server Down (Standby)" : "WiFi Disconnected";
+      oledMsg("  Saved Offline", uid, "Logged to Flash", reason.substring(0, 21));
     }
   }
 }
@@ -555,6 +570,18 @@ void sendAttendance(String uid) {
         beepFail();
         oledMsg("  Server Error", response.substring(0, 20), "", "");
       }
+    }
+  } else if (code <= 0) {
+    // Server is not reachable (npm start stopped mid-operation)
+    isServerOnline = false;
+    Serial.println("Server unreachable during scan! Fallback to Offline Queue...");
+    queueOffline(uid);
+
+    String cachedId = "", cachedName = "";
+    if (getStudentFromCache(uid, cachedId, cachedName)) {
+      oledAttendance(cachedName, cachedId, "OFFLINE");
+    } else {
+      oledMsg("  Saved Offline", uid, "Server Connection Lost", "Will sync when ready");
     }
   } else {
     setRGB(255, 165, 0); // Orange
@@ -786,6 +813,34 @@ void updateIdleClock() {
   display.setCursor(2, 2);
   display.print(getFormattedTime());
   display.display();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Server Health Check (Ping server to check if npm start is running)
+// ─────────────────────────────────────────────────────────────────
+void checkServerHealth() {
+  if (WiFi.status() != WL_CONNECTED) {
+    isServerOnline = false;
+    return;
+  }
+
+  HTTPClient http;
+  http.begin(String(CARDREAD_URL) + "?action=status");
+  http.setTimeout(1200); // 1.2 second timeout so loop never stutters
+  int code = http.GET();
+  http.end();
+
+  bool wasOnline = isServerOnline;
+  isServerOnline = (code > 0);
+
+  if (!isServerOnline && wasOnline) {
+    Serial.println(">>> Node Server went OFFLINE (npm start stopped). Entering Standby Mode <<<");
+    if (idleScreen) oledReady();
+  } else if (isServerOnline && !wasOnline) {
+    Serial.println(">>> Node Server came ONLINE (npm start running)! Exiting Standby Mode <<<");
+    if (idleScreen) oledReady();
+    syncOfflineQueue();
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1076,6 +1131,17 @@ void oledReady() {
     display.print("Tap card to log");
     display.setCursor(10, 52);
     display.print("WiFi disconnected");
+  } else if (!isServerOnline) {
+    int q = offlineQueueCount();
+    display.setTextSize(1);
+    display.setCursor(2, 16);
+    display.print("- SERVER STANDBY -");
+    display.setCursor(2, 28);
+    display.print("Queue: " + String(q) + " records");
+    display.setCursor(2, 40);
+    display.print("Tap card to log");
+    display.setCursor(2, 52);
+    display.print("Server down (npm)");
   } else {
     // ATTENDANCE MODE label
     display.setTextSize(1);
