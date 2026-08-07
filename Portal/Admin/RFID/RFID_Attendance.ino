@@ -1,21 +1,21 @@
 /*
  * ============================================================
- *  ESP32 RFID Attendance & Access Control System
+ *  ESP32 RFID Attendance & Access Control System (Optimized)
  *  Backend: Node.js (Express + PostgreSQL)
  *  Features:
- *    - RFID Card Punching (IN / OUT / Limit Check)
- *    - WiFiManager Captive Portal support (optional)
+ *    - RFID Card Punching (Check IN / Check OUT / 2x Daily Limit)
+ *    - 3rd Punch Warning: Displays "2x punch is done Try tomorrow"
+ *    - Anti-Passback Cooldown (5s double-tap protection)
+ *    - Non-blocking Architecture (Millis-driven, zero loop stutters)
  *    - Offline Queueing (LittleFS flash storage up to 350 scans)
  *    - Offline Student Cache (/students.json for offline name display)
- *    - Master Card Administration Mode (menu on OLED display)
- *    - Anti-Passback / Rapid Double-Tap Cooldown
+ *    - Master Card Administration Mode
  *    - Relay Door Unlock Access Control
- *    - RGB LED Status Indicator & Multi-Frequency Audio Feedback
- *    - Live OLED clock (seconds update) + ATTENDANCE MODE label
+ *    - RGB LED Status Indicator & Multi-Frequency Audio Tones
+ *    - Live OLED clock (seconds update) + Flicker-free Idle Screen
  *    - OLED Screen Saver / Sleep after 5 minutes of inactivity
- *    - Web command messages shown directly on OLED display
  *    - ArduinoOTA (Over-The-Air Wireless Firmware Updates)
- *    - Hardware DS3231 RTC fallback & auto-sync from NTP
+ *    - Hardware DS3231 RTC & auto-sync from NTP
  * ============================================================
  *
  * RC522 → ESP32:
@@ -30,14 +30,6 @@
  *   Buzzer → GPIO 16
  *   Relay  → GPIO 4  (Door Unlock)
  *   RGB LED: Red → GPIO 27, Green → GPIO 26, Blue → GPIO 25
- *
- * Serial Monitor Commands (115200 baud):
- *   WRITE,001,John  → write card + register in database
- *   READ            → read card blocks (show UID, ID, Name)
- *   DIAG            → check hardware (RC522, RTC, WiFi, Flash)
- *   MODE            → show current mode
- *   CLEAR           → clear offline queue
- *   WIFIRESET       → reset saved WiFi credentials
  * ============================================================
  */
 
@@ -53,15 +45,10 @@
 #include <time.h>
 
 // ── Feature Toggles ──────────────────────────────────────────────
-#define ENABLE_WIFIMANAGER 0  // Set 1 if WiFiManager library is installed
 #define ENABLE_RELAY        1  // Door unlock relay support
 #define ENABLE_RGB_LED      1  // Status RGB LED indicator
 #define ENABLE_RTC          1  // Hardware DS3231 RTC I2C module support
 #define ENABLE_OTA          1  // Over-The-Air firmware updates
-
-#if ENABLE_WIFIMANAGER
-  #include <WiFiManager.h>
-#endif
 
 #if ENABLE_OTA
   #include <ArduinoOTA.h>
@@ -84,87 +71,72 @@
 // Common Cathode RGB LED (set true for Common Anode)
 const bool COMMON_ANODE = false;
 
-// ── System Rules & Configuration ─────────────────────────────────
+// ── WiFi & Server Configuration ──────────────────────────────────
 const char* DEFAULT_WIFI_SSID = "5G";
 const char* DEFAULT_WIFI_PASS = "12345345";
 
 // Node.js Express Server API Endpoints (Port 3000)
-const char* SERVER_URL      = "http://192.168.0.197:3000/api/rfid/scan";
-const char* REGISTER_URL    = "http://192.168.0.197:3000/api/rfid/register";
-const char* SCAN_URL        = "http://192.168.0.197:3000/api/rfid/scan";
-const char* CARDREAD_URL    = "http://192.168.0.197:3000/api/rfid/latest-scan";
-const char* DETSCAN_URL     = "http://192.168.0.197:3000/api/student/search";
-const char* SYNC_URL        = "http://192.168.0.197:3000/api/rfid/sync";
+const char* SERVER_URL   = "http://192.168.0.197:3000/api/rfid/scan";
+const char* REGISTER_URL = "http://192.168.0.197:3000/api/rfid/register";
+const char* CARDREAD_URL = "http://192.168.0.197:3000/api/rfid/latest-scan";
+const char* SYNC_URL     = "http://192.168.0.197:3000/api/rfid/sync";
 
 // Master Card UID (Change to your admin card UID)
 String MASTER_CARD_UID = "AA:BB:CC:DD";
 
-// Timers & Intervals
-const unsigned long COOLDOWN_MS      = 5000;   // Anti-passback double-tap cooldown (5s)
-const unsigned long OLED_TIMEOUT_MS  = 300000; // Screen saver / sleep timeout (5 minutes)
-const unsigned long RELAY_UNLOCK_MS  = 3000;   // Relay unlock pulse duration (3s)
-const unsigned long CLOCK_UPDATE_MS  = 1000;   // Idle clock refresh interval (1s)
+// Timers & Intervals (ms)
+const unsigned long COOLDOWN_MS       = 5000;   // Double-tap cooldown (5s)
+const unsigned long OLED_TIMEOUT_MS   = 300000; // Screen saver (5 min)
+const unsigned long RELAY_UNLOCK_MS   = 3000;   // Relay unlock (3s)
+const unsigned long CLOCK_UPDATE_MS   = 1000;   // Idle clock refresh (1s)
+const unsigned long HEALTH_CHECK_MS   = 5000;   // Server ping check (5s)
+const unsigned long DISPLAY_RESET_MS  = 2500;   // Result screen reset delay (2.5s)
 
 // Storage Paths on Flash
 #define QUEUE_FILE    "/offline_queue.json"
 #define STUDENTS_FILE "/students.json"
 
-// ── Global Objects & State Variables ─────────────────────────────
+// ── Global Objects & Variables ───────────────────────────────────
 MFRC522             mfrc522(SS_PIN, RST_PIN);
 MFRC522::MIFARE_Key mifareKey;
 Adafruit_SSD1306    display(OLED_W, OLED_H, &Wire, -1);
 
-bool webScanMode     = false;
-bool webReadMode     = false;
-bool webDetScanMode  = false;
-bool adminMode       = false;
-bool displayOn       = true;
-bool idleScreen      = false;   // true when showing idle/ready screen
-bool isServerOnline  = false;   // true when Node.js server (npm start) is reachable
+bool displayOn        = true;
+bool idleScreen       = false;
+bool isServerOnline   = false;
 
-unsigned long lastPoll            = 0;
-unsigned long lastScanTime        = 0;
-unsigned long lastActivityTime    = 0;
-unsigned long relayOffTime        = 0;
-unsigned long lastClockUpdate     = 0;
-unsigned long lastHealthCheck     = 0;
-const unsigned long HEALTH_CHECK_INTERVAL_MS = 5000; // Check server connection every 5s
-String        lastScannedUID      = "";
+unsigned long lastScanTime     = 0;
+unsigned long lastActivityTime = 0;
+unsigned long relayOffTime     = 0;
+unsigned long lastClockUpdate  = 0;
+unsigned long lastHealthCheck  = 0;
+unsigned long displayResetTime = 0;
+String        lastScannedUID   = "";
 
 // ── Function Declarations ────────────────────────────────────────
-void checkServerHealth();
 void setupPeripherals();
 void setupWiFi();
 void setupNTPAndRTC();
 void setupOTA();
 
-void handleCommand(String raw);
+void checkServerHealth();
 void processCardScan(String uid);
 void handleMasterCard();
-
 void sendAttendance(String uid);
+
 void queueOffline(String uid);
 void syncOfflineQueue();
-
 void saveStudentCache(String uid, String cardId, String name);
 bool getStudentFromCache(String uid, String &cardIdOut, String &nameOut);
 
-void checkWebScanRequest();
-void checkWebReadRequest();
-void checkWebDetScanRequest();
-
-void sendScanUID(String uid);
-void sendReadUID(String uid);
-void sendDetScanUID(String uid);
-
-void registerToDB(String uid, String card_id, String name);
+void handleCommand(String raw);
 void doWrite(String wID, String wName);
+void registerToDB(String uid, String card_id, String name);
 void doRead();
 void doDiag();
 
 void triggerRelay();
-void checkRelayTimer();
-
+void checkTimers();
 void setRGB(uint8_t r, uint8_t g, uint8_t b);
 void playTone(int freq, int durationMs);
 void beepOK();
@@ -173,30 +145,25 @@ void beepWarning();
 void beepAdmin();
 
 void resetDisplayTimeout();
-void checkScreenSaver();
 void updateIdleClock();
-
 void oledReady();
-void oledWebMode(String title, String line1, String line2, String line3);
 void oledMsg(String l1, String l2, String l3, String l4);
 void oledAttendance(String name, String cardId, String action);
+void oledLimit(String name);
 void oledSuccess(String id, String name, String uid, String dbStatus);
 void oledRead(String uid, String id, String name);
-void drawStatusBar();
 
 String getUID();
 String getFormattedTime();
 String getFormattedDate();
 String buf2str(byte *buf);
-bool waitForCard(unsigned long ms);
-void writeFailed();
 void printHelp();
 int offlineQueueCount();
 
 // ── Setup ────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
-  delay(300);
+  delay(200);
 
   setupPeripherals();
   setupWiFi();
@@ -215,34 +182,19 @@ void loop() {
   ArduinoOTA.handle();
 #endif
 
-  checkRelayTimer();
-  checkScreenSaver();
+  checkTimers();
 
-  // ── Live clock update on idle screen (every second, no full redraw) ──
-  if (idleScreen && displayOn && (millis() - lastClockUpdate > CLOCK_UPDATE_MS)) {
-    lastClockUpdate = millis();
-    updateIdleClock();
-  }
-
-  // ── Periodic Server Health Check & Backend Polling ─────────────
+  // Periodic Server Health Check & Auto-Sync
   if (WiFi.status() == WL_CONNECTED) {
-    if (millis() - lastHealthCheck > HEALTH_CHECK_INTERVAL_MS) {
+    if (millis() - lastHealthCheck > HEALTH_CHECK_MS) {
       lastHealthCheck = millis();
       checkServerHealth();
-    }
-
-    if (isServerOnline && (millis() - lastPoll > 1000)) {
-      lastPoll = millis();
-      checkWebScanRequest();
-      checkWebReadRequest();
-      checkWebDetScanRequest();
-      syncOfflineQueue();
     }
   } else {
     isServerOnline = false;
   }
 
-  // ── Serial Command Input ───────────────────────────────────────
+  // Serial Command Processing
   if (Serial.available()) {
     String raw = Serial.readStringUntil('\n');
     raw.trim();
@@ -253,24 +205,22 @@ void loop() {
     }
   }
 
-  // ── RFID Card Detection ────────────────────────────────────────
+  // RFID Card Detection
   if (!mfrc522.PICC_IsNewCardPresent()) return;
   if (!mfrc522.PICC_ReadCardSerial())   return;
 
   resetDisplayTimeout();
   idleScreen = false;
   String uid = getUID();
-  Serial.println("Scanned UID: " + uid);
+  Serial.println("\n[RFID Tap] Scanned UID: " + uid);
 
-  // ── Anti-Passback / Rapid Double-Tap Cooldown ──────────────────
+  // Anti-Passback Cooldown (5s double-tap protection)
   if (uid == lastScannedUID && (millis() - lastScanTime < COOLDOWN_MS)) {
-    Serial.println("Cooldown active — ignoring scan for UID: " + uid);
+    Serial.println("[Cooldown] Ignoring duplicate scan for UID: " + uid);
     beepWarning();
     setRGB(255, 165, 0); // Orange
     oledMsg("[ COOLDOWN ]", "Please wait...", "Avoid double tap", "");
-    delay(1200);
-    setRGB(0, 0, 0);
-    oledReady();
+    displayResetTime = millis() + 1500;
     mfrc522.PICC_HaltA();
     mfrc522.PCD_StopCrypto1();
     return;
@@ -279,7 +229,7 @@ void loop() {
   lastScannedUID = uid;
   lastScanTime   = millis();
 
-  // ── Master Admin Card Scanned ──────────────────────────────────
+  // Master Admin Card Check
   if (uid == MASTER_CARD_UID) {
     handleMasterCard();
     mfrc522.PICC_HaltA();
@@ -287,58 +237,11 @@ void loop() {
     return;
   }
 
-  // ── Web Scan / Register Mode ───────────────────────────────────
-  if (webScanMode) {
-    webScanMode = false;
-    setRGB(0, 0, 255); // Blue
-    oledMsg("[ WEB SCAN ]", "Sending UID...", uid, "");
-    sendScanUID(uid);
-    mfrc522.PICC_HaltA();
-    mfrc522.PCD_StopCrypto1();
-    delay(2000);
-    setRGB(0, 0, 0);
-    oledReady();
-    return;
-  }
-
-  // ── Web Read Mode ──────────────────────────────────────────────
-  if (webReadMode) {
-    webReadMode = false;
-    setRGB(0, 0, 255); // Blue
-    oledMsg("[ WEB READ ]", "Fetching info...", uid, "");
-    sendReadUID(uid);
-    mfrc522.PICC_HaltA();
-    mfrc522.PCD_StopCrypto1();
-    delay(2000);
-    setRGB(0, 0, 0);
-    oledReady();
-    return;
-  }
-
-  // ── Student Details Scan Mode ──────────────────────────────────
-  if (webDetScanMode) {
-    webDetScanMode = false;
-    setRGB(0, 0, 255); // Blue
-    oledMsg("[ DET SCAN ]", "Sending UID...", uid, "");
-    sendDetScanUID(uid);
-    mfrc522.PICC_HaltA();
-    mfrc522.PCD_StopCrypto1();
-    delay(2000);
-    setRGB(0, 0, 0);
-    oledReady();
-    return;
-  }
-
-
-
-  // ── Standard Attendance Punch ──────────────────────────────────
+  // Process Standard Attendance Punch
   processCardScan(uid);
 
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
-  delay(1800);
-  setRGB(0, 0, 0);
-  oledReady();
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -360,23 +263,21 @@ void setupPeripherals() {
   setRGB(0, 0, 0);
 #endif
 
-  // Init Flash Filesystem
   if (!LittleFS.begin(true)) {
     Serial.println("LittleFS mount failed — offline storage disabled");
   } else {
     Serial.println("LittleFS storage ready");
   }
 
-  // SPI & RC522 Init
   SPI.begin(18, 19, 23, SS_PIN);
   mfrc522.PCD_Init();
   delay(50);
   for (byte i = 0; i < 6; i++) mifareKey.keyByte[i] = 0xFF;
 
-  // I2C & OLED Init
   Wire.begin(21, 22);
   if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
-    Serial.println("OLED init failed!"); while (1);
+    Serial.println("OLED init failed!");
+    while (1);
   }
 
   display.clearDisplay();
@@ -386,92 +287,64 @@ void setupPeripherals() {
   display.print("KAPATAKSHA H.S.");
   display.setCursor(10, 24);
   display.print("RFID ATTENDANCE");
-  display.setCursor(20, 40);
+  display.setCursor(20, 42);
   display.print("Initializing...");
   display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
   display.display();
 }
 
 // ─────────────────────────────────────────────────────────────────
-// WiFi Setup (with optional WiFiManager support)
+// WiFi Setup
 // ─────────────────────────────────────────────────────────────────
 void setupWiFi() {
-  setRGB(0, 0, 255); // Blue status
+  setRGB(0, 0, 255);
   oledMsg(" Connecting WiFi", DEFAULT_WIFI_SSID, "Please wait...", "");
 
-#if ENABLE_WIFIMANAGER
-  WiFiManager wm;
-  wm.setConfigPortalTimeout(180); // 3-minute AP timeout
-  bool res = wm.autoConnect("ESP32-Attendance-AP");
-  if (!res) {
-    Serial.println("WiFiManager AP Timeout — proceeding offline");
-  }
-#else
   WiFi.begin(DEFAULT_WIFI_SSID, DEFAULT_WIFI_PASS);
-  Serial.print("Connecting to WiFi");
+  Serial.print("Connecting WiFi");
   int tries = 0;
-  while (WiFi.status() != WL_CONNECTED && tries < 20) {
-    delay(500); Serial.print("."); tries++;
+  while (WiFi.status() != WL_CONNECTED && tries < 15) {
+    delay(400); Serial.print("."); tries++;
   }
-#endif
 
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\nWiFi Connected! IP: " + WiFi.localIP().toString());
     oledMsg("  WiFi Connected", WiFi.localIP().toString(), "", "");
-    setRGB(0, 255, 0); // Green
+    setRGB(0, 255, 0);
     beepOK();
   } else {
-    Serial.println("\nWiFi Failed — Running in Offline Mode");
+    Serial.println("\nWiFi Disconnected — Operating Offline");
     oledMsg("  WiFi Offline", "Operating offline", "Records queued", "");
-    setRGB(255, 165, 0); // Orange
+    setRGB(255, 165, 0);
     beepFail();
   }
-  delay(1200);
+  delay(1000);
   setRGB(0, 0, 0);
 }
 
 // ─────────────────────────────────────────────────────────────────
-// NTP & DS3231 Hardware RTC Setup
+// NTP & RTC Setup
 // ─────────────────────────────────────────────────────────────────
 void setupNTPAndRTC() {
   if (WiFi.status() == WL_CONNECTED) {
     configTime(6 * 3600, 0, "pool.ntp.org", "time.nist.gov"); // UTC+6 Asia/Dhaka
-    Serial.print("Syncing NTP Time");
-    struct tm timeinfo;
-    int ntpTries = 0;
-    while (!getLocalTime(&timeinfo) && ntpTries < 10) {
-      delay(400); Serial.print("."); ntpTries++;
-    }
-    if (getLocalTime(&timeinfo)) {
-      Serial.printf("\nNTP Time: %02d:%02d:%02d\n", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-    }
   }
 
 #if ENABLE_RTC
   Wire.beginTransmission(DS3231_ADDR);
   if (Wire.endTransmission() == 0) {
-    Serial.println("DS3231 RTC detected on I2C bus");
-  } else {
-    Serial.println("DS3231 RTC not found");
+    Serial.println("DS3231 RTC detected");
   }
 #endif
 }
 
 // ─────────────────────────────────────────────────────────────────
-// ArduinoOTA Wireless Firmware Updates Setup
+// ArduinoOTA Setup
 // ─────────────────────────────────────────────────────────────────
 void setupOTA() {
 #if ENABLE_OTA
   if (WiFi.status() == WL_CONNECTED) {
     ArduinoOTA.setHostname("ESP32-RFID-Attendance");
-    ArduinoOTA.onStart([]() { Serial.println("OTA Update Starting..."); });
-    ArduinoOTA.onEnd([]() { Serial.println("\nOTA Update Complete!"); });
-    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-    });
-    ArduinoOTA.onError([](ota_error_t error) {
-      Serial.printf("OTA Error[%u]: ", error);
-    });
     ArduinoOTA.begin();
     Serial.println("OTA Update Service Ready");
   }
@@ -487,34 +360,17 @@ void processCardScan(String uid) {
   if (WiFi.status() == WL_CONNECTED && isServerOnline) {
     sendAttendance(uid);
   } else {
-    // Offline / Standby Mode: Log to Flash Queue
+    // Offline Mode: Queue scan locally
     queueOffline(uid);
 
-    // Look up offline student name from cache
     String cachedId = "", cachedName = "";
     if (getStudentFromCache(uid, cachedId, cachedName)) {
       oledAttendance(cachedName, cachedId, "OFFLINE");
     } else {
-      String reason = (WiFi.status() == WL_CONNECTED) ? "Server Down (Standby)" : "WiFi Disconnected";
-      oledMsg("  Saved Offline", uid, "Logged to Flash", reason.substring(0, 21));
+      oledMsg("  Saved Offline", uid, "Logged to Flash", "Will sync on reconnect");
     }
+    displayResetTime = millis() + DISPLAY_RESET_MS;
   }
-}
-
-// ─────────────────────────────────────────────────────────────────
-// Master Admin Card Handler
-// ─────────────────────────────────────────────────────────────────
-void handleMasterCard() {
-  Serial.println(">>> MASTER CARD SCANNED <<<");
-  beepAdmin();
-  setRGB(0, 255, 255); // Cyan
-
-  triggerRelay(); // Auto unlock door for Master admin
-  oledMsg("[ MASTER ADMIN ]", "Door Unlocked!", "Queue: " + String(offlineQueueCount()), "1:Sync  2:Diag");
-
-  delay(2500);
-  setRGB(0, 0, 0);
-  oledReady();
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -524,19 +380,22 @@ void sendAttendance(String uid) {
   HTTPClient http;
   http.begin(SERVER_URL);
   http.addHeader("Content-Type", "application/json");
+  http.setTimeout(2500);
 
   String body = "{\"uid\":\"" + uid + "\"}";
-  Serial.println("POST Attendance: " + body);
+  Serial.println("[POST] " + String(SERVER_URL) + " -> " + body);
 
   int code = http.POST(body);
-  Serial.println("HTTP Response Code: " + String(code));
+  Serial.println("HTTP Code: " + String(code));
 
   if (code == 200 || code == 201) {
     String response = http.getString();
     Serial.println("Response: " + response);
 
     StaticJsonDocument<512> doc;
-    if (!deserializeJson(doc, response)) {
+    DeserializationError err = deserializeJson(doc, response);
+
+    if (!err) {
       String status = doc["status"].as<String>();
 
       if (status == "registered" || status == "success") {
@@ -544,60 +403,76 @@ void sendAttendance(String uid) {
         String action = doc.containsKey("action") ? doc["action"].as<String>() : "IN";
         String cardId = doc.containsKey("studentId") ? doc["studentId"].as<String>() : (doc.containsKey("card_id") ? doc["card_id"].as<String>() : "");
 
-        // Cache student in local Flash DB for offline use
         saveStudentCache(uid, cardId, name);
 
         setRGB(0, 255, 0); // Green
         beepOK();
         triggerRelay();
         oledAttendance(name, cardId, action);
+
+      } else if (status == "limit") {
+        // 3rd Punch Daily Limit Reached!
+        String name = doc.containsKey("name") ? doc["name"].as<String>() : "Student";
+        setRGB(255, 0, 0); // Red
+        beepFail();
+        oledLimit(name);
+
       } else if (status == "new") {
         String studentId = doc.containsKey("studentId") ? doc["studentId"].as<String>() : "";
         setRGB(255, 165, 0); // Orange
         beepOK();
         oledMsg("  New Card Tapped", uid, "ID: " + studentId, "Register on Web UI");
-      } else if (status == "limit") {
-        String name = doc["name"].as<String>();
-        setRGB(255, 0, 0); // Red
-        beepFail();
-        oledMsg("  Limit Reached", name, "Max 2x punches today", "Try tomorrow");
+
       } else if (status == "unknown") {
         setRGB(255, 0, 0); // Red
         beepFail();
         oledMsg("  Unknown Card", uid, "Not registered", "Use WRITE cmd");
+
       } else {
         setRGB(255, 0, 0); // Red
         beepFail();
-        oledMsg("  Server Error", response.substring(0, 20), "", "");
+        oledMsg("  Server Notice", response.substring(0, 20), "", "");
       }
     }
   } else if (code <= 0) {
-    // Server is not reachable (npm start stopped mid-operation)
     isServerOnline = false;
-    Serial.println("Server unreachable during scan! Fallback to Offline Queue...");
+    Serial.println("Server unreachable! Saving scan to offline queue...");
     queueOffline(uid);
 
     String cachedId = "", cachedName = "";
     if (getStudentFromCache(uid, cachedId, cachedName)) {
       oledAttendance(cachedName, cachedId, "OFFLINE");
     } else {
-      oledMsg("  Saved Offline", uid, "Server Connection Lost", "Will sync when ready");
+      oledMsg("  Saved Offline", uid, "Server Unreachable", "Queued in Flash");
     }
   } else {
-    setRGB(255, 165, 0); // Orange
+    setRGB(255, 165, 0);
     beepFail();
     oledMsg("  HTTP Error", "Code: " + String(code), "Check server", "");
   }
 
   http.end();
+  displayResetTime = millis() + DISPLAY_RESET_MS;
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Save / Lookup Student Cache in Flash (LittleFS)
+// Master Admin Card Handler
+// ─────────────────────────────────────────────────────────────────
+void handleMasterCard() {
+  Serial.println(">>> MASTER ADMIN CARD SCANNED <<<");
+  beepAdmin();
+  setRGB(0, 255, 255); // Cyan
+  triggerRelay();
+
+  oledMsg("[ MASTER ADMIN ]", "Door Unlocked!", "Queue: " + String(offlineQueueCount()) + " scans", "1:Sync  2:Diag");
+  displayResetTime = millis() + 3000;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Student Cache & Offline Queue Management (LittleFS)
 // ─────────────────────────────────────────────────────────────────
 void saveStudentCache(String uid, String cardId, String name) {
-  DynamicJsonDocument doc(8192);
-
+  DynamicJsonDocument doc(4096);
   if (LittleFS.exists(STUDENTS_FILE)) {
     File f = LittleFS.open(STUDENTS_FILE, "r");
     if (f) { deserializeJson(doc, f); f.close(); }
@@ -605,8 +480,8 @@ void saveStudentCache(String uid, String cardId, String name) {
 
   JsonObject students = doc.as<JsonObject>();
   JsonObject record   = students.createNestedObject(uid);
-  record["card_id"] = cardId;
-  record["name"]    = name;
+  record["card_id"]   = cardId;
+  record["name"]      = name;
 
   File f = LittleFS.open(STUDENTS_FILE, "w");
   if (f) { serializeJson(doc, f); f.close(); }
@@ -614,29 +489,24 @@ void saveStudentCache(String uid, String cardId, String name) {
 
 bool getStudentFromCache(String uid, String &cardIdOut, String &nameOut) {
   if (!LittleFS.exists(STUDENTS_FILE)) return false;
-
   File f = LittleFS.open(STUDENTS_FILE, "r");
   if (!f) return false;
 
-  DynamicJsonDocument doc(8192);
+  DynamicJsonDocument doc(4096);
   DeserializationError err = deserializeJson(doc, f);
   f.close();
 
   if (err || !doc.containsKey(uid)) return false;
-
   cardIdOut = doc[uid]["card_id"].as<String>();
   nameOut   = doc[uid]["name"].as<String>();
   return true;
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Offline Queue Management
-// ─────────────────────────────────────────────────────────────────
 int offlineQueueCount() {
   if (!LittleFS.exists(QUEUE_FILE)) return 0;
   File f = LittleFS.open(QUEUE_FILE, "r");
   if (!f) return 0;
-  DynamicJsonDocument doc(32768);
+  DynamicJsonDocument doc(16384);
   if (deserializeJson(doc, f)) { f.close(); return 0; }
   f.close();
   return doc["records"].size();
@@ -647,8 +517,7 @@ void queueOffline(String uid) {
   time(&now);
   if (now < 1000000) now = 1700000000 + (millis() / 1000);
 
-  DynamicJsonDocument doc(32768);
-
+  DynamicJsonDocument doc(16384);
   if (LittleFS.exists(QUEUE_FILE)) {
     File f = LittleFS.open(QUEUE_FILE, "r");
     if (f) { deserializeJson(doc, f); f.close(); }
@@ -658,9 +527,8 @@ void queueOffline(String uid) {
   JsonArray arr = doc["records"];
 
   if (arr.size() >= 350) {
-    setRGB(255, 0, 0); // Red
+    setRGB(255, 0, 0);
     beepFail();
-    Serial.println("Offline Queue Full (350 limit)");
     oledMsg("  Queue FULL!", uid, "Max 350 records", "Connect WiFi!");
     return;
   }
@@ -672,20 +540,17 @@ void queueOffline(String uid) {
   File f = LittleFS.open(QUEUE_FILE, "w");
   if (f) { serializeJson(doc, f); f.close(); }
 
-  int count = arr.size();
-  setRGB(255, 255, 0); // Yellow
+  setRGB(255, 255, 0);
   beepOK();
   triggerRelay();
-  Serial.println("Queued Offline: " + uid + " (" + String(count) + "/350)");
 }
 
 void syncOfflineQueue() {
   if (!LittleFS.exists(QUEUE_FILE)) return;
-
   File f = LittleFS.open(QUEUE_FILE, "r");
   if (!f) return;
 
-  DynamicJsonDocument doc(32768);
+  DynamicJsonDocument doc(16384);
   if (deserializeJson(doc, f)) { f.close(); return; }
   f.close();
 
@@ -699,6 +564,7 @@ void syncOfflineQueue() {
   HTTPClient http;
   http.begin(SYNC_URL);
   http.addHeader("Content-Type", "application/json");
+  http.setTimeout(5000);
 
   String body;
   serializeJson(doc, body);
@@ -706,9 +572,7 @@ void syncOfflineQueue() {
 
   if (code == 200 || code == 201) {
     String resp = http.getString();
-    Serial.println("Sync Response: " + resp);
-
-    DynamicJsonDocument res(256);
+    StaticJsonDocument<256> res;
     if (!deserializeJson(res, resp)) {
       int synced  = res["synced"]  | 0;
       int skipped = res["skipped"] | 0;
@@ -716,32 +580,78 @@ void syncOfflineQueue() {
       setRGB(0, 255, 0);
       beepOK();
       oledMsg("  Sync Complete!", "Synced: " + String(synced), "Skipped: " + String(skipped), "");
-      delay(2000);
-      setRGB(0, 0, 0);
-      oledReady();
+      displayResetTime = millis() + 2000;
     }
   }
   http.end();
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Relay & Peripherals Control
+// Server Health Check
 // ─────────────────────────────────────────────────────────────────
-void triggerRelay() {
-#if ENABLE_RELAY
-  digitalWrite(RELAY_PIN, HIGH);
-  relayOffTime = millis() + RELAY_UNLOCK_MS;
-  Serial.println("Relay UNLOCKED");
-#endif
+void checkServerHealth() {
+  if (WiFi.status() != WL_CONNECTED) {
+    isServerOnline = false;
+    return;
+  }
+
+  HTTPClient http;
+  http.begin(String(CARDREAD_URL) + "?action=status");
+  http.setTimeout(1000);
+  int code = http.GET();
+  http.end();
+
+  bool wasOnline = isServerOnline;
+  isServerOnline = (code > 0);
+
+  if (!isServerOnline && wasOnline) {
+    Serial.println(">>> Server went OFFLINE. Operating in Standby Mode <<<");
+    if (idleScreen) oledReady();
+  } else if (isServerOnline && !wasOnline) {
+    Serial.println(">>> Server came ONLINE! Syncing offline queue... <<<");
+    if (idleScreen) oledReady();
+    syncOfflineQueue();
+  }
 }
 
-void checkRelayTimer() {
+// ─────────────────────────────────────────────────────────────────
+// Timers & Peripherals Control
+// ─────────────────────────────────────────────────────────────────
+void checkTimers() {
+  // Turn off relay automatically after unlock timeout
 #if ENABLE_RELAY
   if (relayOffTime > 0 && millis() >= relayOffTime) {
     digitalWrite(RELAY_PIN, LOW);
     relayOffTime = 0;
-    Serial.println("Relay LOCKED");
   }
+#endif
+
+  // Auto-reset display to ready screen after result popup duration
+  if (displayResetTime > 0 && millis() >= displayResetTime) {
+    displayResetTime = 0;
+    setRGB(0, 0, 0);
+    oledReady();
+  }
+
+  // Live clock refresh on idle screen (every second)
+  if (idleScreen && displayOn && displayResetTime == 0 && (millis() - lastClockUpdate > CLOCK_UPDATE_MS)) {
+    lastClockUpdate = millis();
+    updateIdleClock();
+  }
+
+  // OLED Screen Saver sleep check (5 minutes inactivity)
+  if (displayOn && (millis() - lastActivityTime > OLED_TIMEOUT_MS)) {
+    displayOn  = false;
+    idleScreen = false;
+    display.ssd1306_command(SSD1306_DISPLAYOFF);
+    Serial.println("OLED Sleep activated");
+  }
+}
+
+void triggerRelay() {
+#if ENABLE_RELAY
+  digitalWrite(RELAY_PIN, HIGH);
+  relayOffTime = millis() + RELAY_UNLOCK_MS;
 #endif
 }
 
@@ -760,54 +670,59 @@ void playTone(int freq, int durationMs) {
   noTone(BUZZER_PIN);
 }
 
-void beepOK() {
-  playTone(1800, 100);
-  delay(60);
-  playTone(2400, 120);
-}
+void beepOK()      { playTone(1800, 100); delay(50); playTone(2400, 120); }
+void beepFail()    { playTone(400, 500); }
+void beepWarning() { playTone(1000, 120); delay(60); playTone(1000, 120); }
+void beepAdmin()   { playTone(1500, 80); delay(40); playTone(2000, 80); delay(40); playTone(2500, 120); }
 
-void beepFail() {
-  playTone(400, 500);
-}
-
-void beepWarning() {
-  playTone(1000, 150);
-  delay(80);
-  playTone(1000, 150);
-}
-
-void beepAdmin() {
-  playTone(1500, 100);
-  delay(50);
-  playTone(2000, 100);
-  delay(50);
-  playTone(2500, 150);
-}
-
-// ─────────────────────────────────────────────────────────────────
-// OLED Screen Saver & Sleep (5-minute inactivity timeout)
-// ─────────────────────────────────────────────────────────────────
 void resetDisplayTimeout() {
   lastActivityTime = millis();
   if (!displayOn) {
     displayOn = true;
     display.ssd1306_command(SSD1306_DISPLAYON);
-    Serial.println("Display woke up");
   }
 }
 
-void checkScreenSaver() {
-  if (displayOn && (millis() - lastActivityTime > OLED_TIMEOUT_MS)) {
-    displayOn  = false;
-    idleScreen = false;
-    display.ssd1306_command(SSD1306_DISPLAYOFF);
-    Serial.println("OLED Sleep activated (5-min timeout)");
-  }
+// ─────────────────────────────────────────────────────────────────
+// OLED Display Rendering Functions
+// ─────────────────────────────────────────────────────────────────
+void oledReady() {
+  idleScreen = true;
+  display.clearDisplay();
+
+  // Status Bar Header
+  display.fillRect(0, 0, OLED_W, 13, SSD1306_WHITE);
+  display.setTextColor(SSD1306_BLACK);
+  display.setTextSize(1);
+  display.setCursor(2, 2);
+  display.print(getFormattedTime());
+  display.setCursor(76, 2);
+  display.print(WiFi.status() == WL_CONNECTED ? (isServerOnline ? "ONLINE" : "STNDBY") : "OFFLN ");
+
+  display.setTextColor(SSD1306_WHITE);
+  display.drawLine(0, 14, OLED_W, 14, SSD1306_WHITE);
+
+  // School Title
+  display.setCursor(8, 17);
+  display.print("KAPATAKSHA H.S.");
+
+  // Big SCAN CARD Prompt
+  display.drawLine(0, 26, OLED_W, 26, SSD1306_WHITE);
+  display.setTextSize(2);
+  display.setCursor(12, 31);
+  display.print("SCAN");
+  display.setCursor(12, 48);
+  display.print("CARD");
+
+  display.fillTriangle(98, 34, 120, 46, 98, 58, SSD1306_WHITE);
+
+  display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
+  display.display();
+  lastClockUpdate = millis();
 }
 
-// Partial clock-only update while on the idle screen (no full redraw → no flicker)
 void updateIdleClock() {
-  display.fillRect(2, 2, 66, 9, SSD1306_WHITE); // clear time area in status bar
+  display.fillRect(2, 2, 66, 9, SSD1306_WHITE);
   display.setTextColor(SSD1306_BLACK);
   display.setTextSize(1);
   display.setCursor(2, 2);
@@ -815,193 +730,171 @@ void updateIdleClock() {
   display.display();
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Server Health Check (Ping server to check if npm start is running)
-// ─────────────────────────────────────────────────────────────────
-void checkServerHealth() {
-  if (WiFi.status() != WL_CONNECTED) {
-    isServerOnline = false;
-    return;
-  }
+void oledMsg(String l1, String l2, String l3, String l4) {
+  idleScreen = false;
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.fillRect(0, 0, OLED_W, 13, SSD1306_WHITE);
+  display.setTextColor(SSD1306_BLACK);
+  display.setCursor(2, 2);
+  display.print(l1.substring(0, 21));
+  display.setTextColor(SSD1306_WHITE);
+  if (l2.length()) { display.setCursor(2, 18); display.print(l2.substring(0, 21)); }
+  if (l3.length()) { display.setCursor(2, 32); display.print(l3.substring(0, 21)); }
+  if (l4.length()) { display.setCursor(2, 47); display.print(l4.substring(0, 21)); }
+  display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
+  display.display();
+}
 
-  HTTPClient http;
-  http.begin(String(CARDREAD_URL) + "?action=status");
-  http.setTimeout(1200); // 1.2 second timeout so loop never stutters
-  int code = http.GET();
-  http.end();
+void oledAttendance(String name, String cardId, String action) {
+  idleScreen = false;
+  display.clearDisplay();
 
-  bool wasOnline = isServerOnline;
-  isServerOnline = (code > 0);
+  display.fillRect(0, 0, OLED_W, 13, SSD1306_WHITE);
+  display.setTextColor(SSD1306_BLACK);
+  display.setTextSize(1);
+  String hdr = (action == "IN") ? "  CHECKED IN  " :
+               (action == "OUT") ? " CHECKED OUT  " : " OFFLINE LOG  ";
+  display.setCursor(2, 2);
+  display.print(hdr.substring(0, 21));
 
-  if (!isServerOnline && wasOnline) {
-    Serial.println(">>> Node Server went OFFLINE (npm start stopped). Entering Standby Mode <<<");
-    if (idleScreen) oledReady();
-  } else if (isServerOnline && !wasOnline) {
-    Serial.println(">>> Node Server came ONLINE (npm start running)! Exiting Standby Mode <<<");
-    if (idleScreen) oledReady();
-    syncOfflineQueue();
-  }
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(2);
+  String n = name.length() > 8 ? name.substring(0, 8) : name;
+  int nx = max(0, (int)((OLED_W - (int)n.length() * 12) / 2));
+  display.setCursor(nx, 17);
+  display.print(n);
+
+  display.drawLine(0, 36, OLED_W, 36, SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setCursor(4, 40);
+  display.print("ID: " + cardId);
+  display.setCursor(4, 52);
+  display.print(getFormattedTime());
+
+  display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
+  display.display();
+}
+
+void oledLimit(String name) {
+  idleScreen = false;
+  display.clearDisplay();
+
+  // Header Bar
+  display.fillRect(0, 0, OLED_W, 13, SSD1306_WHITE);
+  display.setTextColor(SSD1306_BLACK);
+  display.setTextSize(1);
+  display.setCursor(14, 2);
+  display.print("LIMIT REACHED");
+
+  display.setTextColor(SSD1306_WHITE);
+
+  // Student Name
+  display.setCursor(2, 18);
+  display.print("Name: " + name.substring(0, 14));
+
+  display.drawLine(0, 30, OLED_W, 30, SSD1306_WHITE);
+
+  // 3rd Punch Warning Lines
+  display.setCursor(2, 34);
+  display.print("2x punch is done");
+  display.setCursor(2, 48);
+  display.print("Try tomorrow");
+
+  display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
+  display.display();
+}
+
+void oledSuccess(String id, String name, String uid, String dbStatus) {
+  display.clearDisplay();
+  display.fillRect(0, 0, OLED_W, 14, SSD1306_WHITE);
+  display.setTextColor(SSD1306_BLACK);
+  display.setTextSize(1);
+  display.setCursor(20, 3);
+  display.print("  WRITE OK!");
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 17); display.print("ID:   "); display.println(id.substring(0, 10));
+  display.setCursor(0, 27); display.print("Name: "); display.println(name.substring(0, 10));
+  display.setCursor(0, 37); display.print("UID:  "); display.println(uid.substring(0, 14));
+  display.setCursor(0, 50); display.print(dbStatus.substring(0, 21));
+  display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
+  display.display();
+}
+
+void oledRead(String uid, String id, String name) {
+  display.clearDisplay();
+  display.fillRect(0, 0, OLED_W, 14, SSD1306_WHITE);
+  display.setTextColor(SSD1306_BLACK);
+  display.setTextSize(1);
+  display.setCursor(22, 3);
+  display.print("[ READ OK ]");
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 17); display.print("UID: "); display.println(uid.substring(0, 16));
+  display.drawLine(0, 28, OLED_W, 28, SSD1306_WHITE);
+  display.setCursor(0, 33); display.print("ID:   "); display.println(id.substring(0, 10));
+  display.setCursor(0, 45); display.print("Name: "); display.println(name.substring(0, 10));
+  display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
+  display.display();
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Web Scanning Requests Polling
+// Utility Helpers & Serial Command Processor
 // ─────────────────────────────────────────────────────────────────
-void checkWebScanRequest() {
-  HTTPClient http;
-  http.begin(String(SCAN_URL) + "?action=status");
-  http.setTimeout(800);
-  int code = http.GET();
-  if (code == 200) {
-    String resp = http.getString();
-    StaticJsonDocument<64> doc;
-    if (!deserializeJson(doc, resp)) {
-      bool waiting = doc["waiting"].as<bool>();
-      if (waiting && !webScanMode) {
-        webScanMode = true;
-        idleScreen  = false;
-        setRGB(0, 0, 255);
-        oledWebMode("[ WEB SCAN MODE ]", "Web portal ready.", "Tap RFID card to", "register student");
-      } else if (!waiting && webScanMode) {
-        webScanMode = false;
-        setRGB(0, 0, 0);
-        oledReady();
-      }
+void handleCommand(String raw) {
+  String upper = raw;
+  upper.toUpperCase();
+
+  if (upper.startsWith("WRITE,")) {
+    int firstComma  = raw.indexOf(',');
+    int secondComma = raw.indexOf(',', firstComma + 1);
+    if (firstComma > 0 && secondComma > firstComma) {
+      String wID   = raw.substring(firstComma + 1, secondComma);
+      String wName = raw.substring(secondComma + 1);
+      wID.trim(); wName.trim();
+      oledMsg("[ WRITE MODE ]", "Tap card to write", "ID: " + wID, "Name: " + wName);
+      if (waitForCard(10000)) doWrite(wID, wName);
+      else oledMsg(" WRITE TIMEOUT", "No card tapped", "", "");
     }
-  }
-  http.end();
-}
-
-void checkWebDetScanRequest() {
-  HTTPClient http;
-  http.begin(String(DETSCAN_URL) + "?action=status");
-  http.setTimeout(800);
-  int code = http.GET();
-  if (code == 200) {
-    String resp = http.getString();
-    StaticJsonDocument<64> doc;
-    if (!deserializeJson(doc, resp)) {
-      bool waiting = doc["waiting"].as<bool>();
-      if (waiting && !webDetScanMode) {
-        webDetScanMode = true;
-        idleScreen     = false;
-        setRGB(0, 0, 255);
-        oledWebMode("[ DETAIL SCAN ]", "Web portal ready.", "Tap RFID card to", "load student info");
-      } else if (!waiting && webDetScanMode) {
-        webDetScanMode = false;
-        setRGB(0, 0, 0);
-        oledReady();
-      }
-    }
-  }
-  http.end();
-}
-
-void checkWebReadRequest() {
-  HTTPClient http;
-  http.begin(String(CARDREAD_URL) + "?action=status");
-  http.setTimeout(800);
-  int code = http.GET();
-  if (code == 200) {
-    String resp = http.getString();
-    StaticJsonDocument<64> doc;
-    if (!deserializeJson(doc, resp)) {
-      bool waiting = doc["waiting"].as<bool>();
-      if (waiting && !webReadMode) {
-        webReadMode = true;
-        idleScreen  = false;
-        setRGB(0, 0, 255);
-        oledWebMode("[ READ CARD ]", "Web portal ready.", "Tap RFID card to", "view card info");
-      } else if (!waiting && webReadMode) {
-        webReadMode = false;
-        setRGB(0, 0, 0);
-        oledReady();
-      }
-    }
-  }
-  http.end();
-}
-
-
-
-void sendScanUID(String uid) {
-  if (WiFi.status() != WL_CONNECTED) return;
-  HTTPClient http;
-  http.begin(SCAN_URL);
-  http.addHeader("Content-Type", "application/json");
-  String body = "{\"uid\":\"" + uid + "\"}";
-  int code = http.POST(body);
-  if (code == 200) {
-    beepOK();
-    oledMsg("[ WEB SCAN OK ]", "UID sent!", uid, "Fill form on web");
+  } else if (upper == "READ") {
+    oledMsg("[ READ MODE ]", "Tap card to read", "", "");
+    if (waitForCard(10000)) doRead();
+    else oledMsg(" READ TIMEOUT", "No card tapped", "", "");
+  } else if (upper == "DIAG") {
+    doDiag();
+  } else if (upper == "CLEAR") {
+    LittleFS.remove(QUEUE_FILE);
+    Serial.println("Offline queue cleared");
+    oledMsg("  Queue Cleared", "Flash queue emptied", "", "");
   } else {
-    beepFail();
-    oledMsg("  Send FAILED", "HTTP: " + String(code), uid, "");
+    printHelp();
   }
-  http.end();
+  displayResetTime = millis() + 2500;
 }
 
-void sendReadUID(String uid) {
-  HTTPClient http;
-  http.begin(CARDREAD_URL);
-  http.addHeader("Content-Type", "application/json");
-  String body = "{\"uid\":\"" + uid + "\"}";
-  int code = http.POST(body);
-  if (code == 200) {
-    beepOK();
-    oledMsg("[ READ OK ]", "Check website", uid, "");
-  } else {
-    beepFail();
-    oledMsg("  Read FAILED", "HTTP: " + String(code), "", "");
-  }
-  http.end();
-}
-
-void sendDetScanUID(String uid) {
-  HTTPClient http;
-  http.begin(DETSCAN_URL);
-  http.addHeader("Content-Type", "application/json");
-  String body = "{\"uid\":\"" + uid + "\"}";
-  int code = http.POST(body);
-  if (code == 200) {
-    beepOK();
-    oledMsg("[ DET SCAN OK ]", "Check website", uid, "");
-  } else {
-    beepFail();
-    oledMsg("  Send FAILED", "HTTP: " + String(code), "", "");
-  }
-  http.end();
-}
-
-// ─────────────────────────────────────────────────────────────────
-// Card Registration & Writing
-// ─────────────────────────────────────────────────────────────────
 void doWrite(String wID, String wName) {
-  Serial.println("Writing card...");
   String uid = getUID();
-
   byte buf1[16] = {0}, buf2[16] = {0};
   memcpy(buf1, wID.c_str(),   min((int)wID.length(),   15));
   memcpy(buf2, wName.c_str(), min((int)wName.length(), 15));
 
   MFRC522::StatusCode s = mfrc522.PCD_Authenticate(
       MFRC522::PICC_CMD_MF_AUTH_KEY_A, 1, &mifareKey, &mfrc522.uid);
-  if (s != MFRC522::STATUS_OK) { writeFailed(); return; }
+  if (s != MFRC522::STATUS_OK) { setRGB(255, 0, 0); beepFail(); return; }
 
   s = mfrc522.MIFARE_Write(1, buf1, 16);
-  if (s != MFRC522::STATUS_OK) { mfrc522.PCD_StopCrypto1(); writeFailed(); return; }
+  if (s != MFRC522::STATUS_OK) { mfrc522.PCD_StopCrypto1(); setRGB(255, 0, 0); beepFail(); return; }
 
   s = mfrc522.MIFARE_Write(2, buf2, 16);
-  if (s != MFRC522::STATUS_OK) { mfrc522.PCD_StopCrypto1(); writeFailed(); return; }
+  if (s != MFRC522::STATUS_OK) { mfrc522.PCD_StopCrypto1(); setRGB(255, 0, 0); beepFail(); return; }
 
   mfrc522.PCD_StopCrypto1();
   saveStudentCache(uid, wID, wName);
 
   if (WiFi.status() == WL_CONNECTED) {
-    oledMsg("[ REGISTERING ]", "Saving to DB...", uid, "");
     registerToDB(uid, wID, wName);
   } else {
     beepOK();
-    oledSuccess(wID, wName, uid, "Saved to Local Cache");
+    oledSuccess(wID, wName, uid, "Saved to Cache");
   }
 }
 
@@ -1036,256 +929,20 @@ void doRead() {
   }
   mfrc522.PCD_StopCrypto1();
 
-  String idStr   = buf2str(buf1);
-  String nameStr = buf2str(buf2);
   beepOK();
-  oledRead(uid, idStr, nameStr);
-}
-
-// ─────────────────────────────────────────────────────────────────
-// System Diagnostics & Serial Command Handler
-// ─────────────────────────────────────────────────────────────────
-void handleCommand(String raw) {
-  String upper = raw;
-  upper.toUpperCase();
-
-  if (upper == "DIAG")       { doDiag(); oledReady(); return; }
-  if (upper == "MODE")       { Serial.println("Mode: ATTENDANCE (Active)"); return; }
-  if (upper == "CLEAR")      { LittleFS.remove(QUEUE_FILE); Serial.println("Offline queue cleared!"); return; }
-
-  if (upper == "READ") {
-    oledMsg("[ READ MODE ]", "Hold card to", "reader...", "");
-    if (waitForCard(15000)) doRead();
-    else oledMsg("  Timeout", "No card found", "", "");
-    mfrc522.PICC_HaltA(); mfrc522.PCD_StopCrypto1();
-    delay(1500); oledReady(); return;
-  }
-
-  if (upper.startsWith("WRITE,")) {
-    String payload = raw.substring(6);
-    int c = payload.indexOf(',');
-    if (c < 0) { Serial.println("Usage: WRITE,<ID>,<Name>"); return; }
-    String wID = payload.substring(0, c); String wName = payload.substring(c + 1);
-    wID.trim(); wName.trim();
-    oledMsg("[ WRITE MODE ]", "ID: " + wID, "Name: " + wName, "Hold card...");
-    if (waitForCard(15000)) doWrite(wID, wName);
-    else oledMsg("  Timeout", "No card found", "", "");
-    mfrc522.PICC_HaltA(); mfrc522.PCD_StopCrypto1();
-    delay(2000); oledReady(); return;
-  }
-
-  Serial.println("Unknown Command."); printHelp();
+  oledRead(uid, buf2str(buf1), buf2str(buf2));
 }
 
 void doDiag() {
-  Serial.println("=== SYSTEM DIAGNOSTICS ===");
-  byte ver = mfrc522.PCD_ReadRegister(MFRC522::VersionReg);
-  Serial.printf("RC522 Reg Version: 0x%02X\n", ver);
-  Serial.printf("WiFi Status: %s (IP: %s, RSSI: %d dBm)\n",
-                WiFi.status() == WL_CONNECTED ? "Connected" : "Offline",
-                WiFi.localIP().toString().c_str(), WiFi.RSSI());
-  Serial.printf("Offline Queue Count: %d / 350\n", offlineQueueCount());
-  Serial.println("==========================");
-  oledMsg("  DIAG OK", WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "WiFi Offline",
-          "Queue: " + String(offlineQueueCount()), "RC522 OK");
-  delay(2500);
+  Serial.println("\n--- HARDWARE DIAGNOSTICS ---");
+  Serial.printf("WiFi Status: %s\n", WiFi.status() == WL_CONNECTED ? "Connected" : "Disconnected");
+  Serial.printf("Server Status: %s\n", isServerOnline ? "Online" : "Offline");
+  Serial.printf("Offline Queue: %d scans\n", offlineQueueCount());
+  Serial.printf("Free Heap: %u bytes\n", ESP.getFreeHeap());
+  Serial.println("---------------------------\n");
+  oledMsg("  DIAGNOSTICS", "WiFi: " + String(WiFi.status() == WL_CONNECTED ? "OK" : "NO"), "Queue: " + String(offlineQueueCount()), "Heap: " + String(ESP.getFreeHeap()));
 }
 
-// ─────────────────────────────────────────────────────────────────
-// OLED Screen Display Views
-// ─────────────────────────────────────────────────────────────────
-
-// drawStatusBar — inverted top bar: live time (left) + WiFi (right)
-void drawStatusBar() {
-  display.fillRect(0, 0, OLED_W, 13, SSD1306_WHITE);
-  display.setTextColor(SSD1306_BLACK);
-  display.setTextSize(1);
-  display.setCursor(2, 2);
-  display.print(getFormattedTime());
-  display.setCursor(72, 2);
-  if (WiFi.status() == WL_CONNECTED) {
-    int rssi = WiFi.RSSI();
-    if      (rssi > -60) display.print("WiFi+++");
-    else if (rssi > -75) display.print("WiFi++ ");
-    else                 display.print("WiFi+  ");
-  } else {
-    display.print("OFFLINE");
-  }
-  display.setTextColor(SSD1306_WHITE);
-}
-
-// oledReady — main idle screen: live clock + ATTENDANCE MODE label
-void oledReady() {
-  idleScreen = true;
-  display.clearDisplay();
-  drawStatusBar();
-
-  if (WiFi.status() != WL_CONNECTED) {
-    int q = offlineQueueCount();
-    display.setTextSize(1);
-    display.setCursor(5, 16);
-    display.print("-- OFFLINE MODE --");
-    display.setCursor(5, 28);
-    display.print("Queue: " + String(q) + " records");
-    display.setCursor(10, 40);
-    display.print("Tap card to log");
-    display.setCursor(10, 52);
-    display.print("WiFi disconnected");
-  } else if (!isServerOnline) {
-    int q = offlineQueueCount();
-    display.setTextSize(1);
-    display.setCursor(2, 16);
-    display.print("- SERVER STANDBY -");
-    display.setCursor(2, 28);
-    display.print("Queue: " + String(q) + " records");
-    display.setCursor(2, 40);
-    display.print("Tap card to log");
-    display.setCursor(2, 52);
-    display.print("Server down (npm)");
-  } else {
-    // ATTENDANCE MODE label
-    display.setTextSize(1);
-    display.setCursor(14, 16);
-    display.print("ATTENDANCE MODE");
-    // Divider
-    display.drawLine(0, 26, OLED_W, 26, SSD1306_WHITE);
-    // Big SCAN CARD prompt
-    display.setTextSize(2);
-    display.setCursor(14, 31);
-    display.print("SCAN");
-    display.setCursor(14, 48);
-    display.print("CARD");
-    // Arrow triangle hint
-    display.fillTriangle(100, 34, 122, 46, 100, 58, SSD1306_WHITE);
-  }
-
-  display.display();
-  lastClockUpdate = millis();
-}
-
-// oledWebMode — shown when web portal is waiting for a card tap
-void oledWebMode(String title, String line1, String line2, String line3) {
-  idleScreen = false;
-  display.clearDisplay();
-
-  // Full-width inverted header
-  display.fillRect(0, 0, OLED_W, 13, SSD1306_WHITE);
-  display.setTextColor(SSD1306_BLACK);
-  display.setTextSize(1);
-  int tx = max(0, (int)((OLED_W - (int)title.length() * 6) / 2));
-  display.setCursor(tx, 2);
-  display.print(title.substring(0, 21));
-
-  display.setTextColor(SSD1306_WHITE);
-
-  // Thin accent line below header
-  display.fillRect(0, 14, OLED_W, 2, SSD1306_WHITE);
-
-  display.setCursor(2, 18);
-  display.print(line1.substring(0, 21));
-  display.setCursor(2, 30);
-  display.print(line2.substring(0, 21));
-  display.setCursor(2, 42);
-  display.print(line3.substring(0, 21));
-
-  // Current time at bottom
-  display.setCursor(2, 55);
-  display.print(getFormattedTime());
-  display.setCursor(80, 55);
-  display.print(WiFi.status() == WL_CONNECTED ? "Online" : "Offlin");
-
-  display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
-  display.display();
-}
-
-void oledMsg(String l1, String l2, String l3, String l4) {
-  idleScreen = false;
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.fillRect(0, 0, OLED_W, 13, SSD1306_WHITE);
-  display.setTextColor(SSD1306_BLACK);
-  display.setCursor(2, 2);
-  display.print(l1.substring(0, 21));
-  display.setTextColor(SSD1306_WHITE);
-  if (l2.length()) { display.setCursor(2, 17); display.print(l2.substring(0, 21)); }
-  if (l3.length()) { display.setCursor(2, 31); display.print(l3.substring(0, 21)); }
-  if (l4.length()) { display.setCursor(2, 47); display.print(l4.substring(0, 21)); }
-  display.display();
-}
-
-void oledAttendance(String name, String cardId, String action) {
-  idleScreen = false;
-  display.clearDisplay();
-
-  // Header bar
-  display.fillRect(0, 0, OLED_W, 13, SSD1306_WHITE);
-  display.setTextColor(SSD1306_BLACK);
-  display.setTextSize(1);
-  String hdr = (action == "IN") ? "  CHECKED IN  " :
-               (action == "OUT") ? " CHECKED OUT  " : " OFFLINE LOG  ";
-  display.setCursor(2, 2);
-  display.print(hdr.substring(0, 21));
-
-  display.setTextColor(SSD1306_WHITE);
-
-  // Name — large
-  display.setTextSize(2);
-  String n = name.length() > 8 ? name.substring(0, 8) : name;
-  int nx = max(0, (int)((OLED_W - (int)n.length() * 12) / 2));
-  display.setCursor(nx, 17);
-  display.print(n);
-
-  // Divider
-  display.drawLine(0, 36, OLED_W, 36, SSD1306_WHITE);
-
-  // ID + current time
-  display.setTextSize(1);
-  display.setCursor(4, 40);
-  display.print("ID: " + cardId);
-  display.setCursor(4, 52);
-  display.print(getFormattedTime());
-
-  display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
-  display.display();
-}
-
-void oledSuccess(String id, String name, String uid, String dbStatus) {
-  display.clearDisplay();
-  display.setTextColor(SSD1306_WHITE);
-  display.fillRect(0, 0, OLED_W, 14, SSD1306_WHITE);
-  display.setTextColor(SSD1306_BLACK);
-  display.setTextSize(1);
-  display.setCursor(20, 3);
-  display.print("  WRITE OK!");
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 17); display.print("ID:   "); display.println(id.substring(0, 10));
-  display.setCursor(0, 27); display.print("Name: "); display.println(name.substring(0, 10));
-  display.setCursor(0, 37); display.print("UID:  "); display.println(uid.substring(0, 14));
-  display.setCursor(0, 50); display.print(dbStatus.substring(0, 21));
-  display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
-  display.display();
-}
-
-void oledRead(String uid, String id, String name) {
-  display.clearDisplay();
-  display.setTextColor(SSD1306_WHITE);
-  display.fillRect(0, 0, OLED_W, 14, SSD1306_WHITE);
-  display.setTextColor(SSD1306_BLACK);
-  display.setTextSize(1);
-  display.setCursor(22, 3);
-  display.print("[ READ OK ]");
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 17); display.print("UID: "); display.println(uid.substring(0, 16));
-  display.drawLine(0, 28, OLED_W, 28, SSD1306_WHITE);
-  display.setCursor(0, 33); display.print("ID:   "); display.println(id.substring(0, 10));
-  display.setCursor(0, 45); display.print("Name: "); display.println(name.substring(0, 10));
-  display.drawRect(0, 0, OLED_W, OLED_H, SSD1306_WHITE);
-  display.display();
-}
-
-// ─────────────────────────────────────────────────────────────────
-// Utility Helpers
-// ─────────────────────────────────────────────────────────────────
 String getUID() {
   String uid = "";
   for (byte i = 0; i < mfrc522.uid.size; i++) {
@@ -1333,12 +990,6 @@ bool waitForCard(unsigned long ms) {
     delay(50);
   }
   return false;
-}
-
-void writeFailed() {
-  setRGB(255, 0, 0);
-  beepFail();
-  oledMsg("  WRITE FAILED", "See Serial log", "", "");
 }
 
 void printHelp() {

@@ -66,6 +66,15 @@ async function generateNextStudentId() {
     }
 }
 
+// Helper: Get Local Today Date String (YYYY-MM-DD)
+function getTodayDateString() {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // 1. ESP32 Card Tap Endpoint (Supports /api/rfid/scan, /api/attendance, /api/scan)
 app.post(['/api/rfid/scan', '/api/attendance', '/api/scan'], async (req, res) => {
     const { uid } = req.body;
@@ -91,51 +100,60 @@ app.post(['/api/rfid/scan', '/api/attendance', '/api/scan'], async (req, res) =>
             };
 
             // ---- ATTENDANCE LOGIC ----
-            // Skip attendance if web UI is actively polling for registration
-            const isWebWaiting = (Date.now() - lastWebPollTime) < 3000;
+            try {
+                const todayStr = getTodayDateString();
+                const attQuery = await pool.query('SELECT * FROM Attendance WHERE student_id = $1 AND date = $2', [card.student_id, todayStr]);
+                
+                let checkType = null;
+                if (attQuery.rows.length === 0) {
+                    await pool.query('INSERT INTO Attendance (student_id, date, time_in) VALUES ($1, $2, CURRENT_TIMESTAMP)', [card.student_id, todayStr]);
+                    checkType = 'IN';
+                } else if (!attQuery.rows[0].time_out) {
+                    await pool.query('UPDATE Attendance SET time_out = CURRENT_TIMESTAMP WHERE student_id = $1 AND date = $2', [card.student_id, todayStr]);
+                    checkType = 'OUT';
+                } else {
+                    // 3rd punch onwards: Student has already checked IN (1st) and OUT (2nd) today (max 2 punches)
+                    console.log(`[3rd Punch Blocked] Daily limit reached for ${card.name} (${card.student_id}) on ${todayStr}.`);
+                    
+                    latestScan.status = 'limit';
+                    latestScan.action = 'LIMIT';
 
-            if (!isWebWaiting) {
-                try {
-                    const attQuery = await pool.query('SELECT * FROM Attendance WHERE student_id = $1 AND date = CURRENT_DATE', [card.student_id]);
-                    
-                    let checkType = null;
-                    if (attQuery.rows.length === 0) {
-                        await pool.query('INSERT INTO Attendance (student_id, date, time_in) VALUES ($1, CURRENT_DATE, CURRENT_TIMESTAMP)', [card.student_id]);
-                        checkType = 'IN';
-                    } else {
-                        await pool.query('UPDATE Attendance SET time_out = CURRENT_TIMESTAMP WHERE student_id = $1 AND date = CURRENT_DATE', [card.student_id]);
-                        checkType = 'OUT';
-                    }
-                    
-                    // Fetch student details for email
-                    const studentInfoQuery = await pool.query(`
-                        SELECT c.name, a.class_name, a.roll_number, a.section, p.fathers_email, p.mothers_email
-                        FROM cards c
-                        LEFT JOIN StudentAcademicInformation a ON c.student_id = a.student_id
-                        LEFT JOIN StudentContactInformation p ON c.student_id = p.student_id
-                        WHERE c.student_id = $1
-                    `, [card.student_id]);
-                    
-                    if (studentInfoQuery.rows.length > 0) {
-                        sendAttendanceEmail(studentInfoQuery.rows[0], checkType);
-                    }
-                } catch (attErr) {
-                    console.error('Error auto-logging attendance:', attErr.message);
+                    return res.json({
+                        status: 'limit',
+                        message: '2x punch is done try tomorrow',
+                        uid: cleanUid,
+                        studentId: card.student_id,
+                        card_id: card.student_id,
+                        name: card.name
+                    });
                 }
-            } else {
-                console.log(`Scan skipped for Attendance: Attendance Mode is OFF. (Card: ${card.student_id})`);
-            }
-            // --------------------------
+                
+                // Fetch student details for email
+                const studentInfoQuery = await pool.query(`
+                    SELECT c.name, a.class_name, a.roll_number, a.section, p.fathers_email, p.mothers_email
+                    FROM cards c
+                    LEFT JOIN StudentAcademicInformation a ON c.student_id = a.student_id
+                    LEFT JOIN StudentContactInformation p ON c.student_id = p.student_id
+                    WHERE c.student_id = $1
+                `, [card.student_id]);
+                
+                if (studentInfoQuery.rows.length > 0) {
+                    sendAttendanceEmail(studentInfoQuery.rows[0], checkType);
+                }
 
-            return res.json({
-                status: 'registered',
-                message: 'Card already registered and attendance logged',
-                uid: cleanUid,
-                studentId: card.student_id,
-                card_id: card.student_id,
-                name: card.name,
-                action: 'IN'
-            });
+                return res.json({
+                    status: 'registered',
+                    message: `Card checked ${checkType} successfully`,
+                    uid: cleanUid,
+                    studentId: card.student_id,
+                    card_id: card.student_id,
+                    name: card.name,
+                    action: checkType
+                });
+            } catch (attErr) {
+                console.error('Error auto-logging attendance:', attErr.message);
+                return res.status(500).json({ error: 'Database error logging attendance' });
+            }
         } else {
             // New Unregistered Card Scanned
             const nextStudentId = await generateNextStudentId();
@@ -998,17 +1016,25 @@ app.post('/api/attendance/scan', async (req, res) => {
         const student_id = cardQuery.rows[0].student_id;
         
         // Check if there is an attendance record for today
-        const attQuery = await pool.query('SELECT * FROM Attendance WHERE student_id = $1 AND date = CURRENT_DATE', [student_id]);
+        const todayStr = getTodayDateString();
+        const attQuery = await pool.query('SELECT * FROM Attendance WHERE student_id = $1 AND date = $2', [student_id, todayStr]);
         
         let checkType = null;
         if (attQuery.rows.length === 0) {
             // First scan of the day - In
-            await pool.query('INSERT INTO Attendance (student_id, date, time_in) VALUES ($1, CURRENT_DATE, CURRENT_TIMESTAMP)', [student_id]);
+            await pool.query('INSERT INTO Attendance (student_id, date, time_in) VALUES ($1, $2, CURRENT_TIMESTAMP)', [student_id, todayStr]);
             checkType = 'IN';
-        } else {
-            // Second (or later) scan of the day - Out
-            await pool.query('UPDATE Attendance SET time_out = CURRENT_TIMESTAMP WHERE student_id = $1 AND date = CURRENT_DATE', [student_id]);
+        } else if (!attQuery.rows[0].time_out) {
+            // Second scan of the day - Out
+            await pool.query('UPDATE Attendance SET time_out = CURRENT_TIMESTAMP WHERE student_id = $1 AND date = $2', [student_id, todayStr]);
             checkType = 'OUT';
+        } else {
+            // 3rd punch onwards: Student has already checked IN and OUT today (max 2 punches)
+            return res.json({
+                status: 'limit',
+                message: '2x punch is done try tomorrow',
+                student_id
+            });
         }
 
         // Fetch student details for email
