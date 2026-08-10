@@ -38,8 +38,45 @@ pool.connect((err, client, release) => {
     } else {
         console.log('Successfully connected to PostgreSQL Database "StudentData"!');
         release();
+        initClassTables();
     }
 });
+
+async function initClassTables() {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS classes (
+                id VARCHAR(50) PRIMARY KEY,
+                class_name VARCHAR(50) NOT NULL,
+                section VARCHAR(20) NOT NULL,
+                subject VARCHAR(100) NOT NULL,
+                room_number VARCHAR(50) NOT NULL,
+                start_time TIME NOT NULL,
+                end_time TIME NOT NULL,
+                shift VARCHAR(20),
+                academic_year VARCHAR(20),
+                capacity INTEGER,
+                class_type VARCHAR(50) DEFAULT 'Regular',
+                days TEXT[] NOT NULL,
+                assigned_teacher_id VARCHAR(50),
+                assigned_teacher_name VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS class_assignments (
+                id SERIAL PRIMARY KEY,
+                teacher_id VARCHAR(50) NOT NULL,
+                class_id VARCHAR(50) NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+                teacher_name VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(teacher_id, class_id)
+            );
+        `);
+        console.log('Class management tables (classes, class_assignments) ready.');
+    } catch (err) {
+        console.error('Error initializing class management tables:', err.message);
+    }
+}
 
 // Global System State
 let lastWebPollTime = 0; // Tracks when a web UI was last waiting for a scan
@@ -191,8 +228,8 @@ app.get(['/api/scan', '/api/card-read', '/api/details-scan'], (req, res) => {
     res.json({ waiting: false });
 });
 
-// POST /api/rfid/sync — Offline Queue Batch Sync Endpoint
-app.post('/api/rfid/sync', async (req, res) => {
+// POST /api/rfid/sync & /api/sync — Offline Queue Batch Sync Endpoint
+app.post(['/api/rfid/sync', '/api/sync'], async (req, res) => {
     const { records } = req.body;
     if (!Array.isArray(records) || records.length === 0) {
         return res.json({ synced: 0, skipped: 0, message: 'No records to sync' });
@@ -202,7 +239,7 @@ app.post('/api/rfid/sync', async (req, res) => {
     let skipped = 0;
 
     for (const item of records) {
-        if (!item.uid) { skipped++; continue; }
+        if (!item || !item.uid) { skipped++; continue; }
         const cleanUid = item.uid.toUpperCase().trim();
         const tapTime = item.timestamp ? new Date(item.timestamp * 1000) : new Date();
         const tapDateStr = tapTime.toISOString().split('T')[0];
@@ -242,7 +279,7 @@ app.post('/api/rfid/sync', async (req, res) => {
     }
 
     console.log(`[Offline Sync] Batch completed: ${synced} synced, ${skipped} skipped.`);
-    res.json({ synced, skipped, message: `Synced ${synced} records successfully.` });
+    return res.json({ status: 'success', synced, skipped, message: `Synced ${synced} records successfully.` });
 });
 
 // ── Page Context Endpoints ────────────────────────────────────────────────────
@@ -302,41 +339,7 @@ app.post(['/api/rfid/register', '/api/register'], async (req, res) => {
     }
 });
 
-// 4. Offline Queue Batch Sync Endpoint (Supports /api/rfid/sync, /api/sync)
-app.post(['/api/rfid/sync', '/api/sync'], async (req, res) => {
-    const { records } = req.body;
-    if (!Array.isArray(records)) {
-        return res.status(400).json({ error: 'Records array is required' });
-    }
 
-    let synced = 0;
-    let skipped = 0;
-
-    for (const record of records) {
-        if (!record || !record.uid) {
-            skipped++;
-            continue;
-        }
-        const cleanUid = record.uid.toUpperCase().trim();
-        try {
-            const check = await pool.query('SELECT * FROM cards WHERE uid = $1', [cleanUid]);
-            if (check.rows.length > 0) {
-                synced++;
-            } else {
-                skipped++;
-            }
-        } catch (err) {
-            skipped++;
-        }
-    }
-
-    return res.json({
-        status: 'success',
-        message: 'Offline queue synced',
-        synced,
-        skipped
-    });
-});
 
 // 5. Fetch All Registered Cards List
 app.get('/api/rfid/cards', async (req, res) => {
@@ -516,17 +519,214 @@ app.get('/api/teacher/all', async (req, res) => {
     try {
         const query = `
             SELECT 
-                teacher_id, full_name, designation, 
-                TO_CHAR(joining_date, 'YYYY-MM-DD') AS joining_date, 
-                mobile_number, email_address, current_address, photo_url
+                teacher_id, full_name, first_name, last_name, gender,
+                TO_CHAR(date_of_birth, 'YYYY-MM-DD') AS date_of_birth,
+                blood_group, religion, nationality, nid_number, photo_url,
+                mobile_number, email_address, current_address, permanent_address, emergency_contact,
+                department, designation, 
+                TO_CHAR(joining_date, 'YYYY-MM-DD') AS joining_date,
+                employment_type, qualification, years_of_experience, specialization
             FROM TeacherPersonalData
-            ORDER BY joining_date ASC;
+            ORDER BY created_at DESC;
         `;
         const result = await pool.query(query);
         res.json(result.rows);
     } catch (err) {
         console.error('Error fetching all teachers:', err.message);
         res.status(500).json({ error: 'Server error fetching teachers.' });
+    }
+});
+
+// GET /api/teacher/:id - Fetch single teacher data
+app.get('/api/teacher/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const query = `
+            SELECT 
+                teacher_id, full_name, first_name, last_name, gender,
+                TO_CHAR(date_of_birth, 'YYYY-MM-DD') AS date_of_birth,
+                blood_group, religion, nationality, nid_number, photo_url,
+                mobile_number, email_address, current_address, permanent_address, emergency_contact,
+                department, designation, 
+                TO_CHAR(joining_date, 'YYYY-MM-DD') AS joining_date,
+                employment_type, qualification, years_of_experience, specialization
+            FROM TeacherPersonalData
+            WHERE teacher_id = $1;
+        `;
+        const result = await pool.query(query, [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Teacher not found.' });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Error fetching teacher by id:', err.message);
+        res.status(500).json({ error: 'Server error fetching teacher.' });
+    }
+});
+
+// DELETE /api/teacher/:id - Delete teacher, user account, and class assignments
+app.delete('/api/teacher/:id', async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const { id } = req.params;
+        await client.query('BEGIN');
+
+        // 1. Remove teacher assignments from class_assignments
+        await client.query('DELETE FROM class_assignments WHERE teacher_id = $1;', [id]);
+
+        // 2. Clear assigned teacher in classes table
+        await client.query('UPDATE classes SET assigned_teacher_id = NULL, assigned_teacher_name = NULL WHERE assigned_teacher_id = $1;', [id]);
+
+        // 3. Remove user account from Users table
+        await client.query('DELETE FROM Users WHERE user_id = $1;', [id]);
+
+        // 4. Remove teacher personal data from TeacherPersonalData
+        const result = await client.query('DELETE FROM TeacherPersonalData WHERE teacher_id = $1 RETURNING teacher_id;', [id]);
+
+        if (result.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Teacher not found.' });
+        }
+
+        await client.query('COMMIT');
+        return res.status(200).json({ status: 'success', message: 'Teacher, user account, and class assignments deleted successfully.' });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Error deleting teacher:', err.message);
+        return res.status(500).json({ error: 'Failed to delete teacher from database.' });
+    } finally {
+        client.release();
+    }
+});
+
+// -------------------------------------------------------------------------
+// RFID CARD MANAGEMENT APIs
+// -------------------------------------------------------------------------
+
+async function initCardsTable() {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS cards (
+                id SERIAL PRIMARY KEY,
+                uid VARCHAR(50) UNIQUE NOT NULL,
+                student_id VARCHAR(20) UNIQUE NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+    } catch (err) {
+        console.error('Error initializing cards table:', err.message);
+    }
+}
+initCardsTable();
+
+// GET /api/cards/all - Fetch all registered RFID cards
+app.get('/api/cards/all', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                c.id, 
+                c.uid, 
+                c.student_id, 
+                c.name, 
+                TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI') AS created_at,
+                a.class_name, 
+                a.roll_number, 
+                a.section, 
+                a.shift, 
+                a.academic_year
+            FROM cards c
+            LEFT JOIN StudentAcademicInformation a ON c.student_id = a.student_id
+            ORDER BY c.id DESC;
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error fetching cards:', err.message);
+        res.status(500).json({ error: 'Server error fetching RFID cards.' });
+    }
+});
+
+// GET /api/cards/search/:query - Search card by student_id or uid or name
+app.get('/api/cards/search/:query', async (req, res) => {
+    try {
+        const { query: searchQuery } = req.params;
+        const query = `
+            SELECT c.id, c.uid, c.student_id, c.name, TO_CHAR(c.created_at, 'YYYY-MM-DD') AS created_at
+            FROM cards c
+            WHERE LOWER(c.student_id) = LOWER($1) OR LOWER(c.uid) = LOWER($1) OR LOWER(c.name) LIKE LOWER($2);
+        `;
+        const result = await pool.query(query, [searchQuery, `%${searchQuery}%`]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'No card found matching query.' });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Error searching card:', err.message);
+        res.status(500).json({ error: 'Server error searching RFID card.' });
+    }
+});
+
+// POST /api/cards/register - Register a new RFID card
+app.post('/api/cards/register', async (req, res) => {
+    try {
+        const { uid, student_id, name } = req.body;
+        if (!uid || !student_id || !name) {
+            return res.status(400).json({ error: 'Missing required fields: uid, student_id, name.' });
+        }
+
+        const query = `
+            INSERT INTO cards (uid, student_id, name)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (uid) DO UPDATE SET student_id = EXCLUDED.student_id, name = EXCLUDED.name
+            RETURNING id, uid, student_id, name, TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') AS created_at;
+        `;
+        const result = await pool.query(query, [uid.trim(), student_id.trim(), name.trim()]);
+        res.json({ status: 'success', card: result.rows[0] });
+    } catch (err) {
+        console.error('Error registering card:', err.message);
+        res.status(500).json({ error: 'Failed to register RFID card.' });
+    }
+});
+
+// POST /api/cards/replace - Replace a lost card UID for a student
+app.post('/api/cards/replace', async (req, res) => {
+    try {
+        const { student_id, new_uid } = req.body;
+        if (!student_id || !new_uid) {
+            return res.status(400).json({ error: 'Missing student_id or new_uid.' });
+        }
+
+        const query = `
+            UPDATE cards
+            SET uid = $1, created_at = CURRENT_TIMESTAMP
+            WHERE LOWER(student_id) = LOWER($2)
+            RETURNING id, uid, student_id, name, TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') AS created_at;
+        `;
+        const result = await pool.query(query, [new_uid.trim(), student_id.trim()]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Student ID not found in registered cards.' });
+        }
+        res.json({ status: 'success', card: result.rows[0] });
+    } catch (err) {
+        console.error('Error replacing card:', err.message);
+        res.status(500).json({ error: 'Failed to replace RFID card.' });
+    }
+});
+
+// DELETE /api/cards/:studentId - Delete / Revoke an RFID card
+app.delete('/api/cards/:studentId', async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const query = `DELETE FROM cards WHERE LOWER(student_id) = LOWER($1) RETURNING *;`;
+        const result = await pool.query(query, [studentId]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Card record not found.' });
+        }
+        res.json({ status: 'success', message: 'RFID card revoked successfully.' });
+    } catch (err) {
+        console.error('Error deleting card:', err.message);
+        res.status(500).json({ error: 'Failed to delete RFID card.' });
     }
 });
 
@@ -1341,6 +1541,111 @@ app.post('/api/attendance/notify-bunk', express.json(), async (req, res) => {
     }
 });
 
+// 22b. Dashboard Analytics & Visual Charts Data Endpoint
+app.get(['/api/analytics/dashboard', '/api/rfid/analytics/dashboard'], async (req, res) => {
+    try {
+        const days = parseInt(req.query.days) || 7;
+        const boundedDays = Math.min(Math.max(days, 1), 60);
+
+        // 1. Overall Attendance Trends (last N days)
+        const trendsQuery = `
+            WITH date_series AS (
+                SELECT (CURRENT_DATE - (i || ' days')::interval)::date AS date
+                FROM generate_series(0, $1 - 1) i
+            )
+            SELECT 
+                ds.date::text AS date,
+                TO_CHAR(ds.date, 'Mon DD') AS date_label,
+                COUNT(DISTINCT a.student_id) AS present_count
+            FROM date_series ds
+            LEFT JOIN Attendance a ON a.date = ds.date
+            GROUP BY ds.date
+            ORDER BY ds.date ASC
+        `;
+        const trendsResult = await pool.query(trendsQuery, [boundedDays]);
+
+        // 2. Gender Distribution (Overall & Present Today)
+        const genderOverallQuery = `
+            SELECT 
+                CASE 
+                    WHEN LOWER(TRIM(gender)) IN ('male', 'm') THEN 'Male'
+                    WHEN LOWER(TRIM(gender)) IN ('female', 'f') THEN 'Female'
+                    ELSE 'Other/Unspecified'
+                END AS gender,
+                COUNT(DISTINCT student_id) AS count
+            FROM PersonalData
+            GROUP BY 1
+        `;
+        const genderOverallRes = await pool.query(genderOverallQuery);
+
+        const genderPresentTodayQuery = `
+            SELECT 
+                CASE 
+                    WHEN LOWER(TRIM(p.gender)) IN ('male', 'm') THEN 'Male'
+                    WHEN LOWER(TRIM(p.gender)) IN ('female', 'f') THEN 'Female'
+                    ELSE 'Other/Unspecified'
+                END AS gender,
+                COUNT(DISTINCT a.student_id) AS count
+            FROM Attendance a
+            JOIN PersonalData p ON a.student_id = p.student_id
+            WHERE a.date = CURRENT_DATE
+            GROUP BY 1
+        `;
+        const genderPresentRes = await pool.query(genderPresentTodayQuery);
+
+        // 3. Class-wise Attendance Rates Today (Class 3 to 12)
+        const classWiseQuery = `
+            SELECT 
+                s.class_name,
+                COUNT(DISTINCT s.student_id) AS total_students,
+                COUNT(DISTINCT a.student_id) AS present_students,
+                CASE 
+                    WHEN COUNT(DISTINCT s.student_id) > 0 
+                    THEN ROUND((COUNT(DISTINCT a.student_id)::numeric / COUNT(DISTINCT s.student_id)::numeric) * 100, 1)
+                    ELSE 0 
+                END AS attendance_rate
+            FROM StudentAcademicInformation s
+            LEFT JOIN Attendance a ON s.student_id = a.student_id AND a.date = CURRENT_DATE
+            WHERE s.class_name IS NOT NULL AND TRIM(s.class_name) != ''
+            GROUP BY s.class_name
+            ORDER BY 
+                CASE 
+                    WHEN s.class_name ~ '^[0-9]+$' THEN s.class_name::integer
+                    ELSE 999 
+                END, s.class_name ASC
+        `;
+        const classWiseRes = await pool.query(classWiseQuery);
+
+        // 4. Summary KPIs
+        const totalStudentsRes = await pool.query('SELECT COUNT(*) FROM cards');
+        const presentTodayRes = await pool.query('SELECT COUNT(DISTINCT student_id) FROM Attendance WHERE date = CURRENT_DATE');
+        const totalTeachersRes = await pool.query('SELECT COUNT(*) FROM TeacherPersonalData');
+
+        const totalStudents = parseInt(totalStudentsRes.rows[0]?.count || 0);
+        const presentToday = parseInt(presentTodayRes.rows[0]?.count || 0);
+        const totalTeachers = parseInt(totalTeachersRes.rows[0]?.count || 0);
+        const overallRate = totalStudents > 0 ? parseFloat(((presentToday / totalStudents) * 100).toFixed(1)) : 0;
+
+        res.status(200).json({
+            summary: {
+                totalStudents,
+                presentToday,
+                attendanceRate: overallRate,
+                totalTeachers
+            },
+            trends: trendsResult.rows,
+            genderDistribution: {
+                overall: genderOverallRes.rows,
+                todayPresent: genderPresentRes.rows
+            },
+            classWise: classWiseRes.rows
+        });
+    } catch (err) {
+        console.error('Error fetching dashboard analytics:', err.message);
+        res.status(500).json({ error: 'Database error fetching dashboard analytics' });
+    }
+});
+
 // -------------------------------------------------------------------------
 // Replace RFID Card Endpoint
 // -------------------------------------------------------------------------
@@ -1418,9 +1723,365 @@ app.post('/api/rfid/replace', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+// =========================================================================
+// CLASS MANAGEMENT ENDPOINTS
+// =========================================================================
+
+function cleanTimeForPg(timeStr) {
+    if (!timeStr) return '00:00';
+    let t = timeStr.trim().toUpperCase();
+    if (t.includes('AM') || t.includes('PM')) {
+        const isPM = t.includes('PM');
+        t = t.replace('AM', '').replace('PM', '').trim();
+        let [h, m] = t.split(':');
+        let hr = parseInt(h);
+        if (isPM && hr < 12) hr += 12;
+        if (!isPM && hr === 12) hr = 0;
+        return `${String(hr).padStart(2, '0')}:${m || '00'}`;
+    }
+    return t;
+}
+
+// GET /api/classes - Get all classes
+app.get('/api/classes', async (req, res) => {
+    try {
+        const query = `
+            SELECT id, class_name, section, subject, room_number,
+                   TO_CHAR(start_time, 'HH24:MI') as start_time,
+                   TO_CHAR(end_time, 'HH24:MI') as end_time,
+                   shift, academic_year, capacity, class_type, days,
+                   COALESCE(assigned_teacher_id, '') as assigned_teacher_id,
+                   COALESCE(assigned_teacher_name, '') as assigned_teacher_name,
+                   created_at, updated_at
+            FROM classes
+            ORDER BY created_at DESC;
+        `;
+        const result = await pool.query(query);
+        return res.status(200).json({ status: 'success', classes: result.rows });
+    } catch (err) {
+        console.error('Error fetching classes:', err.message);
+        return res.status(500).json({ error: 'Failed to fetch classes from database.' });
+    }
+});
+
+// POST /api/classes - Add a new class
+app.post('/api/classes', async (req, res) => {
+    try {
+        const {
+            id, class_name, section, subject, room_number,
+            start_time, end_time, shift, academic_year, capacity,
+            class_type, days, assigned_teacher_id, assigned_teacher_name
+        } = req.body;
+
+        const classId = id || ('CLS-' + Date.now().toString(36).toUpperCase());
+        const cap = capacity ? parseInt(capacity) : null;
+        const daysArr = Array.isArray(days) ? days : [];
+        const sTime = cleanTimeForPg(start_time);
+        const eTime = cleanTimeForPg(end_time);
+        const teacherId = (assigned_teacher_id && assigned_teacher_id.trim()) ? assigned_teacher_id.trim() : null;
+        const teacherName = (assigned_teacher_name && assigned_teacher_name.trim()) ? assigned_teacher_name.trim() : null;
+
+        const query = `
+            INSERT INTO classes (
+                id, class_name, section, subject, room_number,
+                start_time, end_time, shift, academic_year, capacity,
+                class_type, days, assigned_teacher_id, assigned_teacher_name
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            RETURNING id, class_name, section, subject, room_number,
+                      TO_CHAR(start_time, 'HH24:MI') as start_time,
+                      TO_CHAR(end_time, 'HH24:MI') as end_time,
+                      shift, academic_year, capacity, class_type, days,
+                      COALESCE(assigned_teacher_id, '') as assigned_teacher_id,
+                      COALESCE(assigned_teacher_name, '') as assigned_teacher_name;
+        `;
+        const result = await pool.query(query, [
+            classId, class_name, section, subject, room_number,
+            sTime, eTime, shift || 'Morning', academic_year || '2026-2027', cap,
+            class_type || 'Regular', daysArr, teacherId, teacherName
+        ]);
+
+        return res.status(201).json({ status: 'success', class: result.rows[0] });
+    } catch (err) {
+        console.error('Error saving class:', err.message);
+        return res.status(500).json({ error: 'Failed to save class to database.' });
+    }
+});
+
+// GET /api/classes/assignments - Get all teacher assignments
+app.get('/api/classes/assignments', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT teacher_id, class_id, teacher_name FROM class_assignments ORDER BY id DESC;');
+        return res.status(200).json({ status: 'success', assignments: result.rows });
+    } catch (err) {
+        console.error('Error fetching assignments:', err.message);
+        return res.status(500).json({ error: 'Failed to fetch assignments.' });
+    }
+});
+
+// POST /api/classes/assign - Assign teacher to a class
+app.post('/api/classes/assign', async (req, res) => {
+    try {
+        const { teacher_id, class_id, teacher_name } = req.body;
+        const effectiveTeacherId = teacher_id || teacher_name || 'UNASSIGNED';
+        if (!class_id) {
+            return res.status(400).json({ error: 'class_id is required.' });
+        }
+
+        await pool.query(`
+            INSERT INTO class_assignments (teacher_id, class_id, teacher_name)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (teacher_id, class_id) DO NOTHING;
+        `, [effectiveTeacherId, class_id, teacher_name || effectiveTeacherId]);
+
+        await pool.query(`
+            UPDATE classes
+            SET assigned_teacher_id = $1, assigned_teacher_name = $2, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $3;
+        `, [effectiveTeacherId, teacher_name || effectiveTeacherId, class_id]);
+
+        return res.status(200).json({ status: 'success', message: 'Teacher assigned successfully.' });
+    } catch (err) {
+        console.error('Error assigning teacher:', err.message);
+        return res.status(500).json({ error: 'Failed to assign teacher.' });
+    }
+});
+
+// DELETE /api/classes/assignments - Remove teacher assignment
+app.delete('/api/classes/assignments', async (req, res) => {
+    try {
+        const { teacher_id, class_id } = req.query;
+        if (!teacher_id && !class_id) {
+            return res.status(400).json({ error: 'teacher_id or class_id is required.' });
+        }
+
+        if (class_id && teacher_id) {
+            await pool.query('DELETE FROM class_assignments WHERE class_id = $1 AND teacher_id = $2;', [class_id, teacher_id]);
+        } else if (class_id) {
+            await pool.query('DELETE FROM class_assignments WHERE class_id = $1;', [class_id]);
+        } else if (teacher_id) {
+            await pool.query('DELETE FROM class_assignments WHERE teacher_id = $1;', [teacher_id]);
+        }
+
+        if (class_id) {
+            await pool.query('UPDATE classes SET assigned_teacher_id = \'\', assigned_teacher_name = \'\' WHERE id = $1;', [class_id]);
+        }
+
+        return res.status(200).json({ status: 'success', message: 'Assignment removed.' });
+    } catch (err) {
+        console.error('Error removing assignment:', err.message);
+        return res.status(500).json({ error: 'Failed to remove assignment.' });
+    }
+});
+
+// PUT /api/classes/:id - Update an existing class
+app.put('/api/classes/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            class_name, section, subject, room_number,
+            start_time, end_time, shift, academic_year, capacity,
+            class_type, days, assigned_teacher_id, assigned_teacher_name
+        } = req.body;
+
+        const cap = capacity ? parseInt(capacity) : null;
+        const daysArr = Array.isArray(days) ? days : [];
+        const sTime = cleanTimeForPg(start_time);
+        const eTime = cleanTimeForPg(end_time);
+        const teacherId = (assigned_teacher_id && assigned_teacher_id.trim()) ? assigned_teacher_id.trim() : null;
+        const teacherName = (assigned_teacher_name && assigned_teacher_name.trim()) ? assigned_teacher_name.trim() : null;
+
+        const query = `
+            UPDATE classes
+            SET class_name = $1, section = $2, subject = $3, room_number = $4,
+                start_time = $5, end_time = $6, shift = $7, academic_year = $8,
+                capacity = $9, class_type = $10, days = $11,
+                assigned_teacher_id = $12,
+                assigned_teacher_name = $13,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $14
+            RETURNING id, class_name, section, subject, room_number,
+                      TO_CHAR(start_time, 'HH24:MI') as start_time,
+                      TO_CHAR(end_time, 'HH24:MI') as end_time,
+                      shift, academic_year, capacity, class_type, days,
+                      COALESCE(assigned_teacher_id, '') as assigned_teacher_id,
+                      COALESCE(assigned_teacher_name, '') as assigned_teacher_name;
+        `;
+        const result = await pool.query(query, [
+            class_name, section, subject, room_number,
+            sTime, eTime, shift, academic_year, cap,
+            class_type, daysArr, teacherId, teacherName, id
+        ]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Class not found.' });
+        }
+
+        return res.status(200).json({ status: 'success', class: result.rows[0] });
+    } catch (err) {
+        console.error('Error updating class:', err.message);
+        return res.status(500).json({ error: 'Failed to update class.' });
+    }
+});
+
+// DELETE /api/classes/:id - Delete a class
+app.delete('/api/classes/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query('DELETE FROM class_assignments WHERE class_id = $1;', [id]);
+        const result = await pool.query('DELETE FROM classes WHERE id = $1 RETURNING id;', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Class not found.' });
+        }
+        return res.status(200).json({ status: 'success', message: 'Class deleted successfully.' });
+    } catch (err) {
+        console.error('Error deleting class:', err.message);
+        return res.status(500).json({ error: 'Failed to delete class.' });
+    }
+});
+
+// =========================================================================
+// RECENT ACTIVITIES ENDPOINT
+// Combines: new students, teachers, RFID cards, classes — sorted by date
+// =========================================================================
+app.get('/api/recent-activities', async (req, res) => {
+    try {
+        const activities = [];
+
+        // 1. Recently added students (PersonalData table — when profile was filled)
+        const studentsRes = await pool.query(`
+            SELECT p.student_id, p.first_name, p.last_name, p.updated_at AS event_time,
+                   a.class_name, a.section
+            FROM PersonalData p
+            LEFT JOIN StudentAcademicInformation a ON p.student_id = a.student_id
+            ORDER BY p.updated_at DESC
+            LIMIT 10
+        `);
+        studentsRes.rows.forEach(r => {
+            const classInfo = r.class_name ? ` · Class ${r.class_name}${r.section ? '-' + r.section : ''}` : '';
+            activities.push({
+                type: 'student_added',
+                icon: 'graduation-cap',
+                color: '#3b82f6',
+                bg: '#eff6ff',
+                label: `New student added: ${r.first_name} ${r.last_name} (${r.student_id})${classInfo}`,
+                time: r.event_time
+            });
+        });
+
+        // 2. Recently added teachers
+        const teachersRes = await pool.query(`
+            SELECT teacher_id, full_name, designation, department, created_at AS event_time
+            FROM TeacherPersonalData
+            ORDER BY created_at DESC
+            LIMIT 10
+        `);
+        teachersRes.rows.forEach(r => {
+            const role = r.designation || 'Teacher';
+            activities.push({
+                type: 'teacher_added',
+                icon: 'chalkboard-user',
+                color: '#7c3aed',
+                bg: '#f5f3ff',
+                label: `Teacher ${r.teacher_id} · ${r.full_name} added (${role})`,
+                time: r.event_time
+            });
+        });
+
+        // 3. Recently registered RFID cards
+        const cardsRes = await pool.query(`
+            SELECT uid, student_id, name, created_at AS event_time
+            FROM cards
+            ORDER BY created_at DESC
+            LIMIT 10
+        `);
+        cardsRes.rows.forEach(r => {
+            activities.push({
+                type: 'rfid_registered',
+                icon: 'id-card',
+                color: '#0891b2',
+                bg: '#ecfeff',
+                label: `RFID card registered for ${r.student_id} · ${r.name}`,
+                time: r.event_time
+            });
+        });
+
+        // 4. Recently created classes
+        const classesRes = await pool.query(`
+            SELECT id, class_name, section, subject, days, assigned_teacher_name, created_at AS event_time
+            FROM classes
+            ORDER BY created_at DESC
+            LIMIT 10
+        `);
+        classesRes.rows.forEach(r => {
+            const daysStr = Array.isArray(r.days) ? r.days.join('/') : (r.days || '');
+            const teacherInfo = r.assigned_teacher_name ? ` · ${r.assigned_teacher_name}` : '';
+            activities.push({
+                type: 'class_created',
+                icon: 'school',
+                color: '#059669',
+                bg: '#ecfdf5',
+                label: `Class ${r.class_name}-${r.section} ${r.subject} created (${daysStr})${teacherInfo}`,
+                time: r.event_time
+            });
+        });
+
+        // 5. Recently created class assignments (teacher → class)
+        const assignRes = await pool.query(`
+            SELECT ca.teacher_name, c.class_name, c.section, c.subject, ca.created_at AS event_time
+            FROM class_assignments ca
+            JOIN classes c ON ca.class_id = c.id
+            ORDER BY ca.created_at DESC
+            LIMIT 10
+        `);
+        assignRes.rows.forEach(r => {
+            activities.push({
+                type: 'teacher_assigned',
+                icon: 'link',
+                color: '#d97706',
+                bg: '#fffbeb',
+                label: `${r.teacher_name} assigned to Class ${r.class_name}-${r.section} · ${r.subject}`,
+                time: r.event_time
+            });
+        });
+
+        // Sort all by event_time DESC and return top 25
+        activities.sort((a, b) => new Date(b.time) - new Date(a.time));
+        res.json(activities.slice(0, 25));
+    } catch (err) {
+        console.error('Error fetching recent activities:', err.message);
+        res.status(500).json({ error: 'Failed to fetch recent activities' });
+    }
+});
+
+const server = app.listen(PORT, () => {
     console.log(`====================================================`);
     console.log(`RFID Admin Node.js Server listening on port ${PORT}`);
-    console.log(`PostgreSQL Database: StudentData (Tables: cards, PersonalData, StudentAcademicInformation)`);
+    console.log(`PostgreSQL Database: StudentData (Tables: cards, PersonalData, StudentAcademicInformation, classes, class_assignments)`);
     console.log(`====================================================`);
 });
+
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.log(`[Port Handler] Port ${PORT} is in use. Releasing port ${PORT}...`);
+        try {
+            const { execSync } = require('child_process');
+            if (process.platform === 'win32') {
+                execSync(`powershell -Command "Stop-Process -Id (Get-NetTCPConnection -LocalPort ${PORT} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess) -Force -ErrorAction SilentlyContinue"`);
+            } else {
+                execSync(`fuser -k ${PORT}/tcp || true`);
+            }
+            setTimeout(() => {
+                server.close();
+                app.listen(PORT, () => {
+                    console.log(`====================================================`);
+                    console.log(`RFID Admin Node.js Server restarted & listening on port ${PORT}`);
+                    console.log(`====================================================`);
+                });
+            }, 1000);
+        } catch (e) {
+            console.error(`Failed to release port ${PORT}:`, e.message);
+        }
+    }
+});
+

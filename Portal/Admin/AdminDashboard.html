@@ -10,6 +10,8 @@
     <!-- External CSS -->
     <link rel="stylesheet" href="AdminDashboard.css">
     <link rel="stylesheet" href="css/teacher-list.css">
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -27,7 +29,7 @@
                 </button>
 
                 <!-- Clickable logo linking to Admin Dashboard Homepage -->
-                <a href="AdminDashboard.html" class="header-brand-link" title="Admin Dashboard Home">
+                <a href="AdminDashboard.html?section=dashboard-analytics-section" onclick="goToAnalyticsDashboard(event)" class="header-brand-link" title="Admin Dashboard Home">
                     <img src="../Photos/KSHS.png" alt="KSHS Emblem" class="logo-img">
                     <div class="brand-divider"></div>
                     <div class="brand-text">
@@ -37,24 +39,7 @@
                 </a>
             </div>
 
-            <nav class="header-nav" id="header-nav-menu">
-                <a class="nav-item active" href="AdminDashboard.html" title="Portal Home">
-                    <i class="fa-solid fa-house"></i>
-                    <span>Home</span>
-                </a>
-                <a class="nav-item" href="#courses">
-                    <i class="fa-solid fa-list-check"></i>
-                    <span>Courses & Results</span>
-                </a>
-                <a class="nav-item" href="#registration">
-                    <i class="fa-solid fa-bolt"></i>
-                    <span>Registration</span>
-                </a>
-                <a class="nav-item" href="#gradereport">
-                    <i class="fa-solid fa-certificate"></i>
-                    <span>Grade Report</span>
-                </a>
-            </nav>
+
 
             <div class="header-right">
                 <!-- Only Logout Button -->
@@ -79,19 +64,11 @@
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
                     <div id="menu-dashboard" class="sidebar-menu-content">
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-users subitem-icon"></i>
-                            <span>Total Students</span>
+                        <a href="#" onclick="showDashboardSection('dashboard-analytics-section'); return false;" class="sidebar-subitem">
+                            <i class="fa-solid fa-chart-line subitem-icon"></i>
+                            <span>Admin Analytics</span>
                         </a>
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-chalkboard-user subitem-icon"></i>
-                            <span>Total Teachers</span>
-                        </a>
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
-                            <i class="fa-solid fa-calendar-check subitem-icon"></i>
-                            <span>Today's Attendance</span>
-                        </a>
-                        <a href="AdminDashboard.html" class="sidebar-subitem">
+                        <a href="#" onclick="showDashboardSection('recent-activities-section'); return false;" class="sidebar-subitem">
                             <i class="fa-solid fa-clock-rotate-left subitem-icon"></i>
                             <span>Recent Activities</span>
                         </a>
@@ -153,9 +130,13 @@
                         <i class="fa-solid fa-caret-down caret-icon"></i>
                     </button>
                     <div id="menu-teacher" class="sidebar-menu-content">
-                        <a href="#" onclick="showDashboardSection('add-teacher-section'); return false;" class="sidebar-subitem">
+                        <a href="#" onclick="showDashboardSection('add-teacher-section', false); return false;" class="sidebar-subitem">
                             <i class="fa-solid fa-user-plus subitem-icon"></i>
                             <span>Add Teacher</span>
+                        </a>
+                        <a href="#" onclick="showDashboardSection('add-teacher-section', true); return false;" class="sidebar-subitem">
+                            <i class="fa-solid fa-user-pen subitem-icon"></i>
+                            <span>Edit Teacher</span>
                         </a>
                         <a href="#" onclick="showDashboardSection('class-management-section'); return false;" class="sidebar-subitem">
                             <i class="fa-solid fa-chalkboard subitem-icon"></i>
@@ -215,11 +196,11 @@
                             <i class="fa-solid fa-id-badge subitem-icon"></i>
                             <span>Register RFID Card</span>
                         </a>
-                        <a href="RFID Management/ReplaceCard.html" class="sidebar-subitem">
+                        <a href="#" onclick="showDashboardSection('rfid-replace-section'); return false;" class="sidebar-subitem">
                             <i class="fa-solid fa-arrows-rotate subitem-icon"></i>
                             <span>Replace Lost Card</span>
                         </a>
-                        <a href="RFID Management/ViewRegisteredCards.html" class="sidebar-subitem">
+                        <a href="#" onclick="showDashboardSection('rfid-view-section'); return false;" class="sidebar-subitem">
                             <i class="fa-solid fa-address-card subitem-icon"></i>
                             <span>View Registered Cards</span>
                         </a>
@@ -255,6 +236,215 @@
 
             <!-- Right Content Area -->
             <main class="content-area">
+
+                <!-- Dashboard Analytics & Visual Charts Section -->
+                <div class="dashboard-analytics-section" id="dashboard-analytics-section">
+                    <div class="analytics-header">
+                        <div class="analytics-title">
+                            <i class="fa-solid fa-chart-line header-chart-icon"></i>
+                            <div>
+                                <h2>Admin Analytics Dashboard</h2>
+                                <p class="analytics-subtitle">Real-time attendance trends, demographic distribution, and class performance</p>
+                            </div>
+                        </div>
+                        <div class="analytics-controls">
+                            <div class="filter-group">
+                                <label for="analytics-days-select"><i class="fa-solid fa-calendar"></i> Trend Window:</label>
+                                <select id="analytics-days-select" onchange="changeAnalyticsDays(this.value)" class="analytics-select">
+                                    <option value="7" selected>Last 7 Days</option>
+                                    <option value="14">Last 14 Days</option>
+                                    <option value="30">Last 30 Days</option>
+                                </select>
+                            </div>
+                            <button type="button" class="btn-refresh-analytics" onclick="refreshAnalyticsDashboard()" title="Refresh Chart Data">
+                                <i class="fa-solid fa-rotate"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Summary KPI Cards Grid -->
+                    <div class="analytics-kpi-grid">
+                        <div class="kpi-card kpi-blue">
+                            <div class="kpi-icon"><i class="fa-solid fa-user-graduate"></i></div>
+                            <div class="kpi-details">
+                                <span class="kpi-label">Total Students</span>
+                                <h3 class="kpi-value" id="kpi-total-students">--</h3>
+                                <span class="kpi-subtext"><i class="fa-solid fa-id-card"></i> Registered Students</span>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card kpi-emerald">
+                            <div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div>
+                            <div class="kpi-details">
+                                <span class="kpi-label">Present Today</span>
+                                <h3 class="kpi-value" id="kpi-present-today">--</h3>
+                                <span class="kpi-subtext" id="kpi-rate-badge"><i class="fa-solid fa-percent"></i> Live Attendance Rate</span>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card kpi-amber">
+                            <div class="kpi-icon"><i class="fa-solid fa-chart-pie"></i></div>
+                            <div class="kpi-details">
+                                <span class="kpi-label">Overall Rate Today</span>
+                                <h3 class="kpi-value" id="kpi-attendance-rate">--%</h3>
+                                <span class="kpi-subtext"><i class="fa-solid fa-users"></i> Campus Presence</span>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card kpi-purple">
+                            <div class="kpi-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+                            <div class="kpi-details">
+                                <span class="kpi-label">Total Teachers</span>
+                                <h3 class="kpi-value" id="kpi-total-teachers">--</h3>
+                                <span class="kpi-subtext"><i class="fa-solid fa-user-tie"></i> Faculty Members</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visual Charts Grid -->
+                    <div class="charts-grid">
+                        <!-- Chart 1: Overall Attendance Trends -->
+                        <div class="chart-card chart-full-width">
+                            <div class="chart-card-header">
+                                <div class="chart-card-title">
+                                    <i class="fa-solid fa-chart-line chart-icon trends-color"></i>
+                                    <div>
+                                        <h3>Overall Attendance Trends</h3>
+                                        <span class="chart-subtitle">Daily student attendance counts over selected timeframe</span>
+                                    </div>
+                                </div>
+                                <span class="chart-tag" id="trends-period-tag">Last 7 Days</span>
+                            </div>
+                            <div class="chart-canvas-container">
+                                <canvas id="attendanceTrendsChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Chart 2: Male/Female Distribution -->
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <div class="chart-card-title">
+                                    <i class="fa-solid fa-venus-mars chart-icon gender-color"></i>
+                                    <div>
+                                        <h3>Gender Distribution</h3>
+                                        <span class="chart-subtitle">Male vs Female student demographics</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chart-canvas-container chart-canvas-compact">
+                                <canvas id="genderDistributionChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Chart 3: Class-Wise Attendance Rates -->
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <div class="chart-card-title">
+                                    <i class="fa-solid fa-chart-column chart-icon class-color"></i>
+                                    <div>
+                                        <h3>Class-Wise Attendance Rates (%)</h3>
+                                        <span class="chart-subtitle">Attendance performance across classes (Class 3 - 12)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chart-canvas-container">
+                                <canvas id="classWiseAttendanceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- =========================================================== -->
+                <!-- RECENT ACTIVITIES SECTION                                    -->
+                <!-- =========================================================== -->
+                <div class="rfid-card-section" id="recent-activities-section" style="display:none;">
+
+                    <!-- Section Header -->
+                    <div class="rfid-card-header">
+                        <div class="rfid-title">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                            <span>Recent Activities</span>
+                        </div>
+                        <button class="btn-sm-refresh" onclick="loadRecentActivities()" title="Refresh">
+                            <i class="fa-solid fa-rotate"></i> Refresh
+                        </button>
+                    </div>
+
+                    <!-- Filter Pills -->
+                    <div id="ra-filter-bar" style="display:flex; gap:8px; flex-wrap:wrap; margin:18px 0 20px;">
+                        <button class="ra-filter-btn ra-active" data-type="all" onclick="filterActivities('all', this)">All</button>
+                        <button class="ra-filter-btn" data-type="student_added" onclick="filterActivities('student_added', this)">🎓 Students</button>
+                        <button class="ra-filter-btn" data-type="teacher_added" onclick="filterActivities('teacher_added', this)">👨‍🏫 Teachers</button>
+                        <button class="ra-filter-btn" data-type="rfid_registered" onclick="filterActivities('rfid_registered', this)">🪪 RFID Cards</button>
+                        <button class="ra-filter-btn" data-type="class_created" onclick="filterActivities('class_created', this)">🏫 Classes</button>
+                        <button class="ra-filter-btn" data-type="teacher_assigned" onclick="filterActivities('teacher_assigned', this)">📌 Assignments</button>
+                    </div>
+
+                    <!-- Activity Feed Timeline -->
+                    <div id="ra-feed-container">
+                        <div id="ra-loading" style="text-align:center; padding:40px; color:#64748b;">
+                            <i class="fa-solid fa-spinner fa-spin" style="font-size:1.5rem; margin-bottom:10px; display:block;"></i>
+                            Loading recent activities...
+                        </div>
+                        <div id="ra-empty" style="display:none; text-align:center; padding:60px 20px; color:#94a3b8;">
+                            <i class="fa-solid fa-inbox" style="font-size:2.5rem; margin-bottom:14px; display:block;"></i>
+                            <p style="font-size:1rem; font-weight:600; margin:0;">No activities found</p>
+                            <p style="font-size:0.85rem; margin-top:6px;">Activities will appear here as you add students, teachers, classes, and RFID cards.</p>
+                        </div>
+                        <div id="ra-timeline" style="display:none;"></div>
+                    </div>
+
+                    <style>
+                        .ra-filter-btn {
+                            padding: 6px 14px;
+                            border-radius: 20px;
+                            border: 1px solid #e2e8f0;
+                            background: #f8fafc;
+                            color: #475569;
+                            font-size: 0.82rem;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.18s ease;
+                        }
+                        .ra-filter-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+                        .ra-filter-btn.ra-active { background: #1e293b; color: #fff; border-color: #1e293b; }
+                        .ra-timeline-item {
+                            display: flex;
+                            align-items: flex-start;
+                            gap: 14px;
+                            padding: 14px 0;
+                            border-bottom: 1px solid #f1f5f9;
+                            animation: ra-slide-in 0.25s ease;
+                        }
+                        .ra-timeline-item:last-child { border-bottom: none; }
+                        @keyframes ra-slide-in {
+                            from { opacity: 0; transform: translateY(6px); }
+                            to   { opacity: 1; transform: translateY(0); }
+                        }
+                        .ra-icon-wrap {
+                            width: 42px;
+                            height: 42px;
+                            border-radius: 10px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            flex-shrink: 0;
+                            font-size: 1rem;
+                        }
+                        .ra-label { font-size: 0.93rem; color: #1e293b; font-weight: 500; line-height: 1.4; }
+                        .ra-time  { font-size: 0.78rem; color: #94a3b8; margin-top: 3px; }
+                        .ra-badge {
+                            display: inline-block;
+                            padding: 2px 8px;
+                            border-radius: 10px;
+                            font-size: 0.72rem;
+                            font-weight: 700;
+                            margin-right: 6px;
+                            text-transform: uppercase;
+                            letter-spacing: 0.4px;
+                        }
+                    </style>
+                </div>
 
                 <!-- RFID Card Registration Section -->
                 <div class="rfid-card-section" id="rfid-section">
@@ -334,12 +524,134 @@
                     </div>
                 </div>
 
+                <!-- Replace Lost RFID Card Section -->
+                <div class="rfid-card-section" id="rfid-replace-section" style="display: none;">
+                    <div class="rfid-card-header">
+                        <div class="rfid-title">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                            <span>Replace Lost RFID Card</span>
+                        </div>
+                        <div class="live-status-badge">
+                            <span class="status-dot pulsing"></span>
+                            <span>Tap new physical RFID card on scanner...</span>
+                        </div>
+                    </div>
+
+                    <!-- Search Student Form -->
+                    <form onsubmit="searchStudentForReplace(event)" class="rfid-form" style="margin-bottom: 1.5rem; background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 250px;">
+                                <label for="replace-search-student-id" style="font-weight: 600; display: block; margin-bottom: 5px;">
+                                    <i class="fa-solid fa-magnifying-glass"></i> Search Student ID or Card UID:
+                                </label>
+                                <input type="text" id="replace-search-student-id" placeholder="e.g. 26-10001 or Card UID" required style="width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px;">
+                            </div>
+                            <button type="submit" class="btn-save-teacher" style="height: 40px; padding: 0 16px;">
+                                <i class="fa-solid fa-search"></i> Find Card Record
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Replacement Form -->
+                    <form id="rfid-replace-form" onsubmit="handleRfidReplace(event)" class="rfid-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="replace-student-id-display"><i class="fa-solid fa-hashtag"></i> Student ID</label>
+                                <input type="text" id="replace-student-id-display" readonly placeholder="Auto-filled after search" class="input-readonly">
+                            </div>
+                            <div class="form-group">
+                                <label for="replace-student-name-input"><i class="fa-solid fa-user"></i> Student Name</label>
+                                <input type="text" id="replace-student-name-input" readonly placeholder="Auto-filled after search" class="input-readonly">
+                            </div>
+                            <div class="form-group">
+                                <label for="replace-old-uid-input"><i class="fa-solid fa-microchip"></i> Old Card UID</label>
+                                <input type="text" id="replace-old-uid-input" readonly placeholder="Auto-filled after search" class="input-readonly">
+                            </div>
+                            <div class="form-group">
+                                <label for="replace-new-uid-input"><i class="fa-solid fa-key"></i> New Card UID (Scan/Simulate)</label>
+                                <input type="text" id="replace-new-uid-input" placeholder="Tap new card..." readonly class="input-readonly" required>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn-clear-form" onclick="simulateCardTap('replace-new-uid-input')">
+                                <i class="fa-solid fa-bolt"></i> Simulate New Card Tap
+                            </button>
+                            <button type="submit" class="btn-save-teacher" id="btn-replace-rfid">
+                                <i class="fa-solid fa-arrows-rotate"></i> Replace RFID Card
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- View Registered Cards Section -->
+                <div class="rfid-card-section" id="rfid-view-section" style="display: none;">
+                    <div class="rfid-card-header">
+                        <div class="rfid-title">
+                            <i class="fa-solid fa-address-card"></i>
+                            <span>View All Registered RFID Cards</span>
+                        </div>
+                        <button class="btn-clear-form" onclick="loadExtendedCards()"><i class="fa-solid fa-rotate"></i> Refresh List</button>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <input type="text" id="search-registered-cards" onkeyup="filterRegisteredCards()" placeholder="🔍 Live Search by Student ID, Name, Card UID, Class..." style="width: 100%; padding: 0.65rem 1rem; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem;">
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Card UID</th>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Class</th>
+                                    <th>Section</th>
+                                    <th>Shift</th>
+                                    <th>Date Registered</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="extended-cards-table-body">
+                                <tr>
+                                    <td colspan="9" class="text-center">Loading registered card data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- Add Teacher Section (Hidden by Default) -->
                 <div class="add-teacher-section" id="add-teacher-section" style="display: none;">
                     <div class="rfid-card-header">
-                        <div class="rfid-title">
+                        <div class="rfid-title" id="teacher-form-title">
                             <i class="fa-solid fa-user-plus"></i>
                             <span>Add New Teacher</span>
+                        </div>
+                    </div>
+
+                    <div id="edit-teacher-selector-box" style="display: none; margin: 0 0 1.5rem 0; background: #e0f2fe; padding: 1rem 1.2rem; border-radius: 8px; border: 1px solid #7dd3fc;">
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+                            <div style="flex: 1; min-width: 220px;">
+                                <label for="search-teacher-by-id-input" style="font-weight: 600; color: #0369a1; display: block; margin-bottom: 0.4rem;">
+                                    <i class="fa-solid fa-magnifying-glass"></i> Search by Teacher ID:
+                                </label>
+                                <div style="display: flex; gap: 6px;">
+                                    <input type="text" id="search-teacher-by-id-input" placeholder="e.g. T-1001" onkeypress="if(event.key==='Enter'){event.preventDefault(); searchAndEditTeacherById();}" style="flex: 1; padding: 0.55rem 0.8rem; border-radius: 6px; border: 1px solid #38bdf8; font-size: 0.95rem;">
+                                    <button type="button" onclick="searchAndEditTeacherById()" style="background: #0284c7; color: white; border: none; padding: 0.55rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                                        <i class="fa-solid fa-magnifying-glass"></i> Search
+                                    </button>
+                                </div>
+                            </div>
+                            <div style="flex: 1; min-width: 220px;">
+                                <label for="select-teacher-to-edit" style="font-weight: 600; color: #0369a1; display: block; margin-bottom: 0.4rem;">
+                                    <i class="fa-solid fa-user-pen"></i> Or Select from List:
+                                </label>
+                                <select id="select-teacher-to-edit" onchange="editTeacher(this.value)" style="width: 100%; padding: 0.55rem 0.8rem; border-radius: 6px; border: 1px solid #38bdf8; font-size: 0.95rem;">
+                                    <option value="" disabled selected>Loading teachers...</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -524,9 +836,17 @@
                             </div>
 
                             <div class="form-actions">
-                                <button type="button" class="btn-secondary" onclick="document.getElementById('add-teacher-form').reset(); document.getElementById('photo-preview').innerHTML = '<i class=\'fa-solid fa-camera\'></i><span>Teacher Photo</span>'; generateTeacherId();">Clear Form</button>
-                                <button type="submit" class="btn-primary" id="submit-btn">
-                                    <i class="fa-solid fa-save"></i> Save Teacher Data
+                                <button type="button" class="btn-clear-form" id="btn-clear-teacher" onclick="resetTeacherForm();">
+                                    <i class="fa-solid fa-rotate-left"></i> Clear Form
+                                </button>
+                                <button type="button" class="btn-cancel-edit" id="btn-cancel-edit-teacher" onclick="resetTeacherForm();" style="display: none;">
+                                    <i class="fa-solid fa-xmark"></i> Cancel Edit
+                                </button>
+                                <button type="button" class="btn-delete-teacher" id="btn-delete-current-teacher" onclick="deleteCurrentTeacher();" style="display: none;">
+                                    <i class="fa-solid fa-trash-can"></i> Delete Teacher
+                                </button>
+                                <button type="submit" class="btn-save-teacher" id="submit-btn">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Teacher Data
                                 </button>
                             </div>
                         </form>
@@ -535,8 +855,12 @@
 
                 <!-- Teacher List Section -->
                 <div class="teacher-list-section" id="teacher-list-section" style="display: none;">
-                    <div class="action-buttons-box mb-4">
-                        <h2 style="color: var(--primary-color);">Teacher Directory</h2>
+                    <div class="action-buttons-box mb-4" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <h2 style="color: var(--primary-color); margin: 0;">Teacher Directory</h2>
+                        <div class="search-box-wrap" style="position: relative; min-width: 280px; flex: 1; max-width: 400px;">
+                            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
+                            <input type="text" id="search-teacher-input" onkeyup="filterTeacherDirectory()" placeholder="Search by Teacher ID (e.g. T-1001), Name..." style="width: 100%; padding: 0.6rem 0.8rem 0.6rem 2.4rem; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.95rem; outline: none;">
+                        </div>
                     </div>
                     
                     <div class="row" id="admin-teacher-grid">
@@ -634,13 +958,16 @@
                                         <label for="cm-class-name"><i class="fa-solid fa-graduation-cap"></i> Class Name <span class="required-star">*</span></label>
                                         <select id="cm-class-name" required>
                                             <option value="" disabled selected>Select Class</option>
-                                            <option>Class 6</option>
-                                            <option>Class 7</option>
-                                            <option>Class 8</option>
-                                            <option>Class 9</option>
-                                            <option>Class 10</option>
-                                            <option>Class 11</option>
-                                            <option>Class 12</option>
+                                            <option value="3">Class 3</option>
+                                            <option value="4">Class 4</option>
+                                            <option value="5">Class 5</option>
+                                            <option value="6">Class 6</option>
+                                            <option value="7">Class 7</option>
+                                            <option value="8">Class 8</option>
+                                            <option value="9">Class 9</option>
+                                            <option value="10">Class 10</option>
+                                            <option value="11">Class 11</option>
+                                            <option value="12">Class 12</option>
                                         </select>
                                     </div>
 
@@ -648,10 +975,14 @@
                                         <label for="cm-section"><i class="fa-solid fa-layer-group"></i> Section <span class="required-star">*</span></label>
                                         <select id="cm-section" required>
                                             <option value="" disabled selected>Select Section</option>
-                                            <option value="A">Section A</option>
-                                            <option value="B">Section B</option>
-                                            <option value="C">Section C</option>
-                                            <option value="D">Section D</option>
+                                            <option value="A">A</option>
+                                            <option value="B">B</option>
+                                            <option value="C">C</option>
+                                            <option value="D">D</option>
+                                            <option value="E">E</option>
+                                            <option value="F">F</option>
+                                            <option value="G">G</option>
+                                            <option value="H">H</option>
                                         </select>
                                     </div>
 

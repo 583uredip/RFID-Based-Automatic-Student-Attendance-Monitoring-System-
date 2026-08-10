@@ -130,9 +130,7 @@ body {
 }
 
 .header-nav {
-    display: flex;
-    align-items: center;
-    gap: 24px;
+    display: none !important;
 }
 
 .nav-item {
@@ -184,9 +182,11 @@ body {
 /* Layout Grid */
 .main-layout {
     display: grid;
-    grid-template-columns: 240px 1fr;
+    grid-template-columns: 240px minmax(0, 1fr);
     gap: 18px;
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Sidebar Styling */
@@ -195,6 +195,7 @@ body {
     flex-direction: column;
     gap: 6px;
     transition: all 0.3s ease;
+    flex-shrink: 0;
 }
 
 .menu-group {
@@ -205,7 +206,7 @@ body {
     background-color: #004b99;
     color: #ffffff;
     border: 1px solid #003c7d;
-    border-radius: 4px 4px 0 0;
+    border-radius: 4px;
     padding: 10px 14px;
     font-size: 15px;
     font-weight: 500;
@@ -213,9 +214,13 @@ body {
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, border-radius 0.25s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     width: 100%;
+}
+
+.sidebar-btn.active {
+    border-radius: 4px 4px 0 0;
 }
 
 .sidebar-btn:hover {
@@ -239,7 +244,7 @@ body {
     color: #ffffff;
     flex-shrink: 0;
     margin-left: 6px;
-    transition: transform 0.3s ease;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-btn.active .caret-icon {
@@ -257,7 +262,7 @@ body {
     margin-top: 0;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     overflow: hidden;
-    transition: max-height 0.35s ease, opacity 0.3s ease, border-color 0.3s ease;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease;
 }
 
 .sidebar-menu-content.active {
@@ -291,8 +296,14 @@ body {
     flex-shrink: 0;
 }
 
-.sidebar-subitem:hover {
+.sidebar-subitem:hover,
+.sidebar-subitem.active {
     background-color: #f8fafc;
+    color: #004b99;
+    font-weight: 600;
+}
+
+.sidebar-subitem.active .subitem-icon {
     color: #004b99;
 }
 
@@ -302,6 +313,9 @@ body {
     flex-direction: column;
     gap: 16px;
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Announcement / Info Box (Green) */
@@ -597,6 +611,10 @@ body {
     padding: 20px 24px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     margin-bottom: 16px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .rfid-card-header {
@@ -767,6 +785,11 @@ body {
     border: 1px solid #e2e8f0;
     border-radius: 6px;
     padding: 16px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
 }
 
 .table-header {
@@ -800,12 +823,19 @@ body {
     width: 100%;
     border-collapse: collapse;
     font-size: 13.5px;
+    max-width: 100%;
 }
 
 .data-table th, .data-table td {
-    padding: 10px 12px;
+    padding: 10px 14px;
     text-align: left;
     border-bottom: 1px solid #f1f5f9;
+    white-space: nowrap;
+}
+
+.data-table th:last-child, .data-table td:last-child {
+    padding-right: 18px;
+    text-align: center;
 }
 
 .data-table th {
@@ -1821,3 +1851,757 @@ input:focus, select:focus {
         width: 100%;
     }
 }
+
+/* ==========================================================================
+   ENHANCED ACTION BUTTONS & TEACHER CARDS STYLING
+   ========================================================================== */
+
+.form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #e2e8f0;
+    flex-wrap: wrap;
+}
+
+.btn-clear-form,
+.btn-cancel-edit,
+.btn-delete-teacher,
+.btn-save-teacher {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 42px;
+    padding: 0 20px;
+    font-size: 0.925rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+    border: none;
+    line-height: 1;
+}
+
+/* Clear Form Button */
+.btn-clear-form {
+    background: #f8fafc;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+.btn-clear-form:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Cancel Edit Button */
+.btn-cancel-edit {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(71, 85, 105, 0.2);
+}
+.btn-cancel-edit:hover {
+    background: linear-gradient(135deg, #475569 0%, #334155 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(71, 85, 105, 0.35);
+}
+
+/* Delete Teacher Button */
+.btn-delete-teacher {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+}
+.btn-delete-teacher:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+}
+
+/* Save / Update Teacher Button */
+.btn-save-teacher {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+.btn-save-teacher:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
+}
+
+/* Active pressed state for all buttons */
+.btn-clear-form:active,
+.btn-cancel-edit:active,
+.btn-delete-teacher:active,
+.btn-save-teacher:active {
+    transform: translateY(0);
+}
+
+/* =========================================================================
+   DASHBOARD ANALYTICS & VISUAL CHARTS STYLING
+   ========================================================================= */
+.dashboard-analytics-section {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    margin-bottom: 24px;
+}
+
+.analytics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.analytics-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.header-chart-icon {
+    font-size: 28px;
+    color: #0284c7;
+    background: #e0f2fe;
+    padding: 12px;
+    border-radius: 10px;
+}
+
+.analytics-title h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.analytics-subtitle {
+    font-size: 0.88rem;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.analytics-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.analytics-select {
+    padding: 8px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #0f172a;
+    background-color: #ffffff;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.analytics-select:focus {
+    border-color: #0284c7;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.btn-refresh-analytics {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-refresh-analytics:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+/* KPI Summary Cards */
+.analytics-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.kpi-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 20px;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.kpi-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.kpi-blue .kpi-icon { background: #e0f2fe; color: #0284c7; }
+.kpi-emerald .kpi-icon { background: #d1fae5; color: #10b981; }
+.kpi-amber .kpi-icon { background: #fef3c7; color: #f59e0b; }
+.kpi-purple .kpi-icon { background: #f3e8ff; color: #9333ea; }
+
+.kpi-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.kpi-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kpi-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 2px 0;
+    line-height: 1.2;
+}
+
+.kpi-subtext {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Charts Grid */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.chart-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-full-width {
+    grid-column: 1 / -1;
+}
+
+.chart-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.chart-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chart-icon {
+    font-size: 18px;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.trends-color { background: #e0f2fe; color: #0284c7; }
+.gender-color { background: #fce7f3; color: #ec4899; }
+.class-color { background: #d1fae5; color: #10b981; }
+
+.chart-card-title h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.chart-subtitle {
+    font-size: 0.8rem;
+    color: #64748b;
+    display: block;
+}
+
+.chart-tag {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+.chart-canvas-container {
+    position: relative;
+    width: 100%;
+    height: 280px;
+}
+
+.chart-canvas-compact {
+    height: 260px;
+}
+
+@media (max-width: 992px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+    .chart-full-width {
+        grid-column: auto;
+    }
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ========================================================================
+   COMPREHENSIVE DESKTOP & MOBILE RESPONSIVE OPTIMIZATIONS
+   ======================================================================== */
+
+/* --- Desktop High Resolution (1200px+) --- */
+@media (min-width: 1200px) {
+    .main-layout {
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+    .charts-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+    }
+    .chart-full-width {
+        grid-column: 1 / -1;
+    }
+}
+
+/* --- Tablets, Laptops & Medium Restored Windows (768px - 1199px) --- */
+@media (min-width: 768px) and (max-width: 1199px) {
+    .main-layout {
+        grid-template-columns: 210px minmax(0, 1fr);
+        gap: 14px;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .sidebar {
+        width: 210px;
+        flex-shrink: 0;
+    }
+
+    .content-area {
+        padding: 0;
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .rfid-card-section,
+    .details-container,
+    .info-box,
+    .table-container {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        padding: 16px 18px;
+    }
+
+    .form-grid,
+    .cm-form-grid,
+    .rfid-form .form-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+    }
+
+    .search-form-flex,
+    .rfid-card-header,
+    .filter-controls,
+    .date-filter-container,
+    .header {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .charts-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .table-responsive,
+    .cards-table-container,
+    .teacher-table-container,
+    .cm-table-responsive {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        box-sizing: border-box;
+    }
+}
+
+/* --- Mobile Phones (< 768px) --- */
+@media (max-width: 767px) {
+    /* Global & Container Reset */
+    body {
+        padding: 6px;
+        overflow-x: hidden;
+    }
+
+    .main-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .content-area {
+        padding: 10px 4px;
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Top Navigation Header */
+    .header {
+        padding: 10px 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .header-left {
+        gap: 10px;
+    }
+
+    .brand-title {
+        font-size: 17px;
+    }
+
+    .brand-subtitle {
+        font-size: 9.5px;
+        letter-spacing: 1px;
+    }
+
+    .brand-divider {
+        height: 26px;
+        margin: 0 4px;
+    }
+
+    .logo-img {
+        height: 34px;
+        width: 34px;
+    }
+
+    .header-right {
+        gap: 8px;
+    }
+
+    .logout-btn, .header-link {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+
+    /* Slide-out Sidebar Drawer Overlay */
+    .sidebar-overlay {
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+    }
+
+    .sidebar {
+        width: 270px;
+        max-width: 85vw;
+    }
+
+    /* Analytics Dashboard & KPI Cards */
+    .dashboard-analytics-container {
+        padding: 12px 10px;
+        gap: 16px;
+    }
+
+    .analytics-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .analytics-title h2 {
+        font-size: 1.25rem;
+    }
+
+    .analytics-timeframe-badge {
+        align-self: flex-start;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .kpi-card {
+        padding: 14px 16px;
+    }
+
+    .kpi-value {
+        font-size: 1.5rem;
+    }
+
+    /* Charts Grid & Canvas Height for Mobile */
+    .charts-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .chart-card {
+        padding: 14px;
+        border-radius: 10px;
+    }
+
+    .chart-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .chart-canvas-container {
+        height: 220px;
+    }
+
+    .chart-canvas-compact {
+        height: 200px;
+    }
+
+    /* Forms & Inputs Responsiveness */
+    .form-grid, .cm-form-grid, .rfid-form, .filter-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+
+    .cm-span-2 {
+        grid-column: span 1 !important;
+    }
+
+    .form-group input, 
+    .form-group select, 
+    .form-group textarea,
+    .cm-input,
+    .cm-select {
+        height: 44px;
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+
+    /* Table Wrappers & Touch Scrolling */
+    .table-responsive,
+    .cards-table-container,
+    .teacher-table-container,
+    .cm-table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+        margin-bottom: 12px;
+    }
+
+    table {
+        min-width: 580px;
+    }
+
+    th, td {
+        padding: 8px 10px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    /* Modals & Dialogs on Mobile */
+    .modal-dialog {
+        width: 95% !important;
+        max-width: 95vw !important;
+        margin: 15px auto !important;
+    }
+
+    .modal-content {
+        padding: 16px !important;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-footer {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .modal-footer button {
+        width: 100%;
+    }
+}
+
+/* --- Ultra Small Phones (< 480px) --- */
+@media (max-width: 480px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+    .kpi-card-icon {
+        width: 42px;
+        height: 42px;
+        font-size: 18px;
+    }
+    .chart-canvas-container {
+        height: 190px;
+    }
+    .brand-subtitle {
+        display: none;
+    }
+}
+
+/* Smooth Touch Scrollbar Styling */
+.table-responsive::-webkit-scrollbar,
+.cards-table-container::-webkit-scrollbar,
+.cm-table-responsive::-webkit-scrollbar,
+.table-container::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb,
+.cards-table-container::-webkit-scrollbar-thumb,
+.cm-table-responsive::-webkit-scrollbar-thumb,
+.table-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+/* ========================================================================
+   ULTRA PERFORMANCE & VISUAL OPTIMIZATIONS
+   ======================================================================== */
+
+/* 1. Global Custom Modern Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+    transition: background 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* 2. GPU Accelerated Smooth Table Row Hovering */
+.data-table tbody tr,
+.students-table tbody tr {
+    transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.data-table tbody tr:hover,
+.students-table tbody tr:hover {
+    background-color: #f8fafc !important;
+}
+
+/* 3. Smooth Button Press Animation */
+.btn-primary-blue,
+.btn-secondary,
+.sidebar-btn,
+.logout-btn,
+.btn-sm-refresh,
+.btn-delete-sm {
+    will-change: transform;
+}
+.btn-primary-blue:active,
+.btn-secondary:active,
+.sidebar-btn:active,
+.logout-btn:active,
+.btn-delete-sm:active {
+    transform: scale(0.98);
+}
+
+/* 4. Active Sidebar Glow Effect */
+.sidebar-subitem.active {
+    border-left: 3.5px solid #0056b3;
+    padding-left: 14.5px;
+    background-color: #eff6ff;
+}
+
+/* 5. Smooth Fade-In Animation for Dashboard Cards & Sections */
+.rfid-card-section,
+.table-container,
+.details-container,
+.kpi-card,
+.chart-card {
+    animation: fadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0.85;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+

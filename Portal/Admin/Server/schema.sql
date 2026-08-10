@@ -159,3 +159,45 @@ CREATE TABLE IF NOT EXISTS Users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_users_user_id ON Users(user_id);
+
+-- -------------------------------------------------------------------------
+-- Step 10: Create "classes" Table
+-- Stores Class Management details
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS classes (
+    id VARCHAR(50) PRIMARY KEY,
+    class_name VARCHAR(50) NOT NULL,
+    section VARCHAR(20) NOT NULL,
+    subject VARCHAR(100) NOT NULL,
+    room_number VARCHAR(50) NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    shift VARCHAR(20),
+    academic_year VARCHAR(20),
+    capacity INTEGER,
+    class_type VARCHAR(50) DEFAULT 'Regular',
+    days TEXT[] NOT NULL,
+    assigned_teacher_id VARCHAR(50) REFERENCES TeacherPersonalData(teacher_id) ON DELETE SET NULL,
+    assigned_teacher_name VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_classes_id ON classes(id);
+
+-- -------------------------------------------------------------------------
+-- Step 11: Create "class_assignments" Table
+-- Stores Teacher Class Assignments
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS class_assignments (
+    id SERIAL PRIMARY KEY,
+    teacher_id VARCHAR(50) NOT NULL REFERENCES TeacherPersonalData(teacher_id) ON DELETE CASCADE,
+    class_id VARCHAR(50) NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    teacher_name VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(teacher_id, class_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_assignments_teacher_id ON class_assignments(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_class_id ON class_assignments(class_id);
+

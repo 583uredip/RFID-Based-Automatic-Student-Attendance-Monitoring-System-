@@ -15,20 +15,29 @@ function toggleMenu(menuId) {
     allMenus.forEach(m => {
         if (m.id !== menuId) {
             m.classList.remove('active');
+            m.style.maxHeight = null;
         }
     });
 
     allBtns.forEach(btn => {
-        if (!btn.getAttribute('onclick').includes(menuId)) {
+        const onclickAttr = btn.getAttribute('onclick') || '';
+        if (!onclickAttr.includes(menuId)) {
             btn.classList.remove('active');
         }
     });
 
     if (menu) {
+        const isExpanding = !menu.classList.contains('active');
         menu.classList.toggle('active');
         const btn = document.querySelector(`button[onclick*="${menuId}"]`);
         if (btn) {
             btn.classList.toggle('active');
+        }
+
+        if (isExpanding) {
+            menu.style.maxHeight = menu.scrollHeight + "px";
+        } else {
+            menu.style.maxHeight = null;
         }
     }
 }
@@ -54,6 +63,95 @@ function toggleHeaderNav() {
     }
 }
 
+// Automatically expand parent menu and highlight active sidebar subitem based on current page/section
+function initActiveSidebar(overrideSectionId = null) {
+    const currentPath = window.location.pathname.toLowerCase();
+    const currentFilename = currentPath.split('/').pop() || 'admindashboard.html';
+    const isMainAdminDashboard = currentFilename === 'admindashboard.html' || currentFilename === '' || currentFilename === 'index.html';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeSection = overrideSectionId || urlParams.get('section') || localStorage.getItem('kshs_active_section') || 'dashboard-analytics-section';
+
+    const subitems = document.querySelectorAll('.sidebar-subitem');
+    let matchedSubitem = null;
+
+    subitems.forEach(item => {
+        item.classList.remove('active');
+        const href = item.getAttribute('href') || '';
+        const onclick = item.getAttribute('onclick') || '';
+
+        if (isMainAdminDashboard) {
+            // On AdminDashboard.html, match subitems by activeSection parameter
+            if (onclick.includes('showDashboardSection')) {
+                const match = onclick.match(/showDashboardSection\(['"]([^'"]+)['"]\)/);
+                if (match && match[1] === activeSection) {
+                    matchedSubitem = item;
+                }
+            } else if (href.includes(`section=${activeSection}`)) {
+                matchedSubitem = item;
+            }
+        } else {
+            // On standalone sub-pages (e.g. EditStudent.html, LiveAttendance.html, RegisterCard.html)
+            if (href && href !== '#' && !href.startsWith('javascript:')) {
+                const hrefClean = href.split('?')[0].split('#')[0].toLowerCase();
+                const hrefFilename = hrefClean.split('/').pop();
+
+                if (hrefFilename && currentFilename && hrefFilename === currentFilename) {
+                    matchedSubitem = item;
+                }
+            } else if (onclick.includes('showDashboardSection')) {
+                const match = onclick.match(/showDashboardSection\(['"]([^'"]+)['"]\)/);
+                if (match && match[1] === activeSection) {
+                    matchedSubitem = item;
+                }
+            }
+        }
+    });
+
+    let activeMenu = null;
+
+    if (matchedSubitem) {
+        matchedSubitem.classList.add('active');
+        activeMenu = matchedSubitem.closest('.sidebar-menu-content');
+    } else {
+        activeMenu = document.querySelector('.sidebar-menu-content.active');
+    }
+
+    if (activeMenu) {
+        // Deactivate other non-matching sidebar menus
+        document.querySelectorAll('.sidebar-menu-content').forEach(m => {
+            if (m !== activeMenu) {
+                m.classList.remove('active');
+                m.style.maxHeight = null;
+            }
+        });
+        document.querySelectorAll('.sidebar-btn').forEach(btn => {
+            const onclickAttr = btn.getAttribute('onclick') || '';
+            if (!onclickAttr.includes(activeMenu.id)) {
+                btn.classList.remove('active');
+            }
+        });
+
+        const prevTransition = activeMenu.style.transition;
+        activeMenu.style.transition = 'none';
+
+        activeMenu.classList.add('active');
+        activeMenu.style.maxHeight = activeMenu.scrollHeight + 'px';
+
+        const menuId = activeMenu.id;
+        const parentBtn = document.querySelector(`button[onclick*="${menuId}"]`);
+        if (parentBtn) {
+            parentBtn.classList.add('active');
+        }
+
+        void activeMenu.offsetHeight;
+
+        setTimeout(() => {
+            activeMenu.style.transition = prevTransition;
+        }, 50);
+    }
+}
+
 // Global Variables
 let lastScannedUid = null;
 let lastScannedTimestamp = null;
@@ -62,11 +160,16 @@ let currentPhotoBase64 = null;
 
 // Initialize Page Features on Document Load
 document.addEventListener('DOMContentLoaded', async () => {
+    initActiveSidebar();
+
     if (document.getElementById('cards-table-body')) {
         loadRegisteredCards();
     }
     if (document.getElementById('extended-cards-table-body')) {
         loadExtendedRegisteredCards();
+    }
+    if (document.getElementById('kpi-present-today') || document.getElementById('kpi-total-students')) {
+        loadAnalyticsDashboard();
     }
     // Fetch initial latest scan to record timestamp without auto-filling old scan
     try {
@@ -1137,7 +1240,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             try {
-                const response = await fetch('http://localhost:3000/api/teacher/personal-data', {
+                const response = await fetch(`${CM_API_BASE}/teacher/personal-data`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -1147,9 +1250,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.ok) {
                     alert('Success: Teacher Personal Data saved successfully!');
-                    form.reset();
-                    photoPreview.innerHTML = '<i class="fa-solid fa-camera"></i><span>Teacher Photo</span>';
-                    currentPhotoBase64 = null;
+                    resetTeacherForm();
                 } else {
                     alert('Error: ' + (data.error || 'Failed to save teacher data'));
                 }
@@ -1158,43 +1259,506 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Server connection error. Make sure the Node.js backend is running!');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-solid fa-save"></i> Save Teacher Data';
+                const isEditing = document.getElementById('teacher-id')?.readOnly;
+                submitBtn.innerHTML = isEditing
+                    ? '<i class="fa-solid fa-floppy-disk"></i> Update Teacher Data'
+                    : '<i class="fa-solid fa-save"></i> Save Teacher Data';
             }
         });
-    }
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const section = urlParams.get('section');
-    if (section) {
-        showDashboardSection(section);
+        document.querySelectorAll('.header-brand-link').forEach(link => {
+            link.addEventListener('click', goToAnalyticsDashboard);
+        });
+
+        // Restore active section and tab across page refreshes (only on main AdminDashboard.html)
+        const isMainAdminDashboard = window.location.pathname.endsWith('AdminDashboard.html') || window.location.pathname.endsWith('/') || !window.location.pathname.includes('.html');
+        
+        if (isMainAdminDashboard) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sectionFromUrl = urlParams.get('section');
+            const isEditFromUrl  = urlParams.get('mode') === 'edit';
+            const tabFromUrl     = urlParams.get('tab');
+
+            const savedSection   = localStorage.getItem('kshs_active_section');
+            const savedEditMode  = localStorage.getItem('kshs_active_edit_mode') === 'true';
+            const savedCmTab     = localStorage.getItem('kshs_active_cm_tab');
+
+            const targetSection  = sectionFromUrl || savedSection || 'dashboard-analytics-section';
+            const targetEditMode = sectionFromUrl ? isEditFromUrl : savedEditMode;
+            const targetCmTab    = tabFromUrl || savedCmTab || 'add-class';
+
+            showDashboardSection(targetSection, targetEditMode);
+            if (targetSection === 'class-management-section' && targetCmTab) {
+                switchClassTab(targetCmTab);
+            }
+        }
+
+        // Auto-trigger RFID page load if on standalone RFID pages
+        if (document.getElementById('cards-table-body')) loadRegisteredCards();
+        if (document.getElementById('extended-cards-table-body')) loadExtendedCards();
+        if (document.getElementById('rfid-student-id-input')) generateStudentIdForRfid();
     }
 });
-function showDashboardSection(sectionId) {
+
+function goToAnalyticsDashboard(event) {
+    if (event) event.preventDefault();
+    try {
+        localStorage.setItem('kshs_active_section', 'dashboard-analytics-section');
+        localStorage.setItem('kshs_active_edit_mode', 'false');
+    } catch (e) {
+        console.warn(e);
+    }
+
+    const isSubfolder = !window.location.pathname.endsWith('AdminDashboard.html') && window.location.pathname.includes('.html');
+    const targetUrl = (isSubfolder ? '../' : '') + 'AdminDashboard.html?section=dashboard-analytics-section';
+
+    if (window.location.pathname.endsWith('AdminDashboard.html')) {
+        showDashboardSection('dashboard-analytics-section', false);
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', 'AdminDashboard.html?section=dashboard-analytics-section');
+        }
+        window.location.reload();
+    } else {
+        window.location.href = targetUrl;
+    }
+}
+
+let _allTeachersCache = [];
+
+async function populateTeacherSelectDropdown(selectedTeacherId = '') {
+    const select = document.getElementById('select-teacher-to-edit');
+    if (!select) return;
+
+    select.innerHTML = '<option value="" disabled selected>Loading teachers...</option>';
+    try {
+        const res = await fetch(`${CM_API_BASE}/teacher/all`);
+        if (!res.ok) throw new Error('Server error');
+        _allTeachersCache = await res.json();
+
+        if (_allTeachersCache.length === 0) {
+            select.innerHTML = '<option value="" disabled selected>No teachers found</option>';
+            return;
+        }
+
+        select.innerHTML = '<option value="" disabled ' + (selectedTeacherId ? '' : 'selected') + '>Select a teacher to edit...</option>' +
+            _allTeachersCache.map(t => `<option value="${t.teacher_id}" ${t.teacher_id === selectedTeacherId ? 'selected' : ''}>${t.full_name || t.teacher_id} (${t.teacher_id} — ${t.designation || 'Teacher'})</option>`).join('');
+    } catch {
+        select.innerHTML = '<option value="" disabled selected>Error loading teachers</option>';
+    }
+}
+
+async function enableTeacherEditMode() {
+    const box = document.getElementById('edit-teacher-selector-box');
+    if (box) box.style.display = 'block';
+
+    const formTitle = document.getElementById('teacher-form-title');
+    if (formTitle) formTitle.innerHTML = '<i class="fa-solid fa-user-pen"></i> <span>Edit Teacher Data</span>';
+
+    const cancelBtn = document.getElementById('btn-cancel-edit-teacher');
+    if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+
+    const delBtn = document.getElementById('btn-delete-current-teacher');
+    if (delBtn) delBtn.style.display = 'inline-flex';
+
+    const submitBtn = document.getElementById('submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Teacher Data';
+
+    await populateTeacherSelectDropdown();
+}
+
+async function editTeacher(teacherId) {
+    if (!teacherId) return;
+
+    showDashboardSection('add-teacher-section', true);
+
+    try {
+        let teacher = null;
+        try {
+            const res = await fetch(`${CM_API_BASE}/teacher/${teacherId}`);
+            if (res.ok) teacher = await res.json();
+        } catch (e) {
+            console.warn('Individual teacher fetch failed, using cache:', e);
+        }
+
+        if (!teacher) {
+            teacher = _allTeachersCache.find(t => t.teacher_id === teacherId);
+        }
+
+        if (!teacher) {
+            alert('Could not find teacher data.');
+            return;
+        }
+
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            let v = val != null ? String(val).trim() : '';
+            if (el.type === 'date' && v.includes('T')) {
+                v = v.split('T')[0];
+            }
+            if (el.tagName === 'SELECT') {
+                el.value = v;
+                if (!el.value && v) {
+                    const opt = [...el.options].find(o => o.value.toLowerCase() === v.toLowerCase());
+                    if (opt) el.value = opt.value;
+                }
+            } else {
+                el.value = v;
+            }
+        };
+
+        setVal('teacher-id', teacher.teacher_id);
+        const tIdInput = document.getElementById('teacher-id');
+        if (tIdInput) tIdInput.readOnly = true;
+
+        setVal('first-name', teacher.first_name || (teacher.full_name ? teacher.full_name.split(' ')[0] : ''));
+        setVal('last-name', teacher.last_name || (teacher.full_name ? teacher.full_name.split(' ').slice(1).join(' ') : ''));
+        setVal('gender', teacher.gender);
+        setVal('dob', teacher.date_of_birth);
+        setVal('blood-group', teacher.blood_group);
+        setVal('religion', teacher.religion);
+        setVal('nationality', teacher.nationality || 'Bangladeshi');
+        setVal('nid', teacher.nid_number);
+        setVal('mobile-number', teacher.mobile_number);
+        setVal('email-address', teacher.email_address);
+        setVal('current-address', teacher.current_address);
+        setVal('permanent-address', teacher.permanent_address);
+        setVal('emergency-contact', teacher.emergency_contact);
+        setVal('department', teacher.department);
+        setVal('designation', teacher.designation);
+        setVal('joining-date', teacher.joining_date);
+        setVal('employment-type', teacher.employment_type);
+        setVal('qualification', teacher.qualification);
+        setVal('years-of-experience', teacher.years_of_experience);
+        setVal('specialization', teacher.specialization);
+
+        if (teacher.photo_url) {
+            currentPhotoBase64 = teacher.photo_url;
+            const preview = document.getElementById('photo-preview');
+            if (preview) preview.innerHTML = `<img src="${teacher.photo_url}" alt="Teacher Photo">`;
+        }
+
+        await populateTeacherSelectDropdown(teacherId);
+    } catch (err) {
+        console.error('Error editing teacher:', err);
+    }
+}
+
+function resetTeacherForm() {
+    const form = document.getElementById('add-teacher-form');
+    if (form) form.reset();
+
+    const tId = document.getElementById('teacher-id');
+    if (tId) {
+        tId.readOnly = false;
+        tId.value = '';
+    }
+
+    const preview = document.getElementById('photo-preview');
+    if (preview) preview.innerHTML = '<i class="fa-solid fa-camera"></i><span>Teacher Photo</span>';
+    currentPhotoBase64 = null;
+
+    const box = document.getElementById('edit-teacher-selector-box');
+    if (box) box.style.display = 'none';
+
+    const formTitle = document.getElementById('teacher-form-title');
+    if (formTitle) formTitle.innerHTML = '<i class="fa-solid fa-user-plus"></i> <span>Add New Teacher</span>';
+
+    const cancelBtn = document.getElementById('btn-cancel-edit-teacher');
+    if (cancelBtn) cancelBtn.style.display = 'none';
+
+    const delBtn = document.getElementById('btn-delete-current-teacher');
+    if (delBtn) delBtn.style.display = 'none';
+
+    const submitBtn = document.getElementById('submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fa-solid fa-save"></i> Save Teacher Data';
+
+    generateTeacherId();
+}
+
+function filterTeacherDirectory() {
+    const query = (document.getElementById('search-teacher-input')?.value || '').trim().toLowerCase();
+    const teacherCards = document.querySelectorAll('#admin-teacher-grid .col-md-4');
+
+    teacherCards.forEach(col => {
+        const text = col.innerText.toLowerCase();
+        if (!query || text.includes(query)) {
+            col.style.display = 'block';
+        } else {
+            col.style.display = 'none';
+        }
+    });
+}
+
+async function searchAndEditTeacherById() {
+    const idInput = document.getElementById('search-teacher-by-id-input');
+    const queryId = (idInput?.value || '').trim();
+    if (!queryId) {
+        alert('Please enter a Teacher ID (e.g. T-1001).');
+        return;
+    }
+
+    let found = _allTeachersCache.find(t => (t.teacher_id || '').toLowerCase() === queryId.toLowerCase());
+    if (!found) {
+        try {
+            const res = await fetch(`${CM_API_BASE}/teacher/${queryId}`);
+            if (res.ok) found = await res.json();
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    if (found) {
+        await editTeacher(found.teacher_id);
+    } else {
+        alert(`Teacher with ID "${queryId}" was not found.`);
+    }
+}
+
+async function deleteTeacher(teacherId, teacherName = '') {
+    if (!teacherId) return;
+
+    const displayName = teacherName ? `"${teacherName}" (${teacherId})` : `teacher "${teacherId}"`;
+    const confirmMsg = `Are you sure you want to delete ${displayName}?\n\n` +
+        `This action will permanently delete:\n` +
+        `• Teacher Personal Data (from TeacherPersonalData)\n` +
+        `• Teacher User Account (from Users table)\n` +
+        `• Class Assignments (from class_assignments & classes tables)`;
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const res = await fetch(`${CM_API_BASE}/teacher/${teacherId}`, { method: 'DELETE' });
+        const data = await res.json();
+
+        if (res.ok) {
+            alert('Success: ' + (data.message || 'Teacher deleted successfully.'));
+            resetTeacherForm();
+            await loadTeacherList();
+            await cmFetchClasses();
+            await cmFetchAssignments();
+            if (typeof loadClassList === 'function') loadClassList();
+            if (typeof loadClassSelectForAssign === 'function') loadClassSelectForAssign();
+            if (typeof loadAssignmentsTable === 'function') loadAssignmentsTable();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to delete teacher.'));
+        }
+    } catch (err) {
+        console.error('Delete teacher error:', err);
+        alert('Server error while deleting teacher.');
+    }
+}
+
+function deleteCurrentTeacher() {
+    const teacherId = document.getElementById('teacher-id')?.value;
+    const firstName = document.getElementById('first-name')?.value || '';
+    const lastName  = document.getElementById('last-name')?.value || '';
+    const fullName  = `${firstName} ${lastName}`.trim();
+    if (teacherId) {
+        deleteTeacher(teacherId, fullName);
+    }
+}
+
+function showDashboardSection(sectionId, isEditMode = false) {
+    const isMainAdminDashboard = window.location.pathname.endsWith('AdminDashboard.html') || window.location.pathname.endsWith('/') || !window.location.pathname.includes('.html');
+    const target = document.getElementById(sectionId);
+
+    // On standalone sub-pages (e.g. RegisterCard.html), if the requested section does not exist on this page, redirect to AdminDashboard.html
+    if (!target) {
+        if (!isMainAdminDashboard) {
+            window.location.href = `../AdminDashboard.html?section=${sectionId}${isEditMode ? '&mode=edit' : ''}`;
+        }
+        return;
+    }
+
+    const dashboardAnalyticsSection = document.getElementById('dashboard-analytics-section');
     const rfidSection = document.getElementById('rfid-section');
+    const rfidReplaceSection = document.getElementById('rfid-replace-section');
+    const rfidViewSection = document.getElementById('rfid-view-section');
     const teacherSection = document.getElementById('add-teacher-section');
     const makeStudentUserSection = document.getElementById('make-student-user-section');
     const teacherListSection = document.getElementById('teacher-list-section');
     const classManagementSection = document.getElementById('class-management-section');
+    const recentActivitiesSection = document.getElementById('recent-activities-section');
     
+    if (dashboardAnalyticsSection) dashboardAnalyticsSection.style.display = 'none';
     if (rfidSection) rfidSection.style.display = 'none';
+    if (rfidReplaceSection) rfidReplaceSection.style.display = 'none';
+    if (rfidViewSection) rfidViewSection.style.display = 'none';
     if (teacherSection) teacherSection.style.display = 'none';
     if (makeStudentUserSection) makeStudentUserSection.style.display = 'none';
     if (teacherListSection) teacherListSection.style.display = 'none';
     if (classManagementSection) classManagementSection.style.display = 'none';
+    if (recentActivitiesSection) recentActivitiesSection.style.display = 'none';
 
-    const target = document.getElementById(sectionId);
-    if (target) {
-        target.style.display = 'block';
-        if (sectionId === 'add-teacher-section') {
-            generateTeacherId();
+    target.style.display = 'block';
+
+    // Persist active section state to localStorage and URL params FIRST
+    try {
+        localStorage.setItem('kshs_active_section', sectionId);
+        localStorage.setItem('kshs_active_edit_mode', isEditMode ? 'true' : 'false');
+
+        if (window.history && window.history.replaceState) {
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('section', sectionId);
+            if (isEditMode) {
+                currentUrl.searchParams.set('mode', 'edit');
+            } else {
+                currentUrl.searchParams.delete('mode');
+            }
+            window.history.replaceState(null, '', currentUrl.toString());
+        }
+    } catch (e) {
+        console.warn('Could not persist section state:', e);
+    }
+
+    // Update sidebar active highlights for the target sectionId
+    if (typeof initActiveSidebar === 'function') {
+        initActiveSidebar(sectionId);
+    }
+
+    if (sectionId === 'dashboard-analytics-section') {
+        loadAnalyticsDashboard();
+    }
+
+        if (sectionId === 'rfid-section') {
+            generateStudentIdForRfid();
+            loadRegisteredCards();
+        } else if (sectionId === 'rfid-replace-section') {
+            loadRegisteredCards();
+        } else if (sectionId === 'rfid-view-section') {
+            loadExtendedCards();
+        } else if (sectionId === 'add-teacher-section') {
+            if (isEditMode) {
+                enableTeacherEditMode();
+            } else {
+                resetTeacherForm();
+            }
         } else if (sectionId === 'teacher-list-section') {
             loadTeacherList();
         } else if (sectionId === 'class-management-section') {
-            // Default: show Add Class tab
-            switchClassTab('add-class');
+            const savedCmTab = localStorage.getItem('kshs_active_cm_tab') || 'add-class';
+            switchClassTab(savedCmTab);
             loadTeachersForAssign();
+        } else if (sectionId === 'recent-activities-section') {
+            loadRecentActivities();
         }
+}
+
+// =========================================================================
+// RECENT ACTIVITIES FEED
+// =========================================================================
+
+let _raAllActivities = [];
+
+async function loadRecentActivities() {
+    const loading  = document.getElementById('ra-loading');
+    const empty    = document.getElementById('ra-empty');
+    const timeline = document.getElementById('ra-timeline');
+    if (!loading || !timeline) return;
+
+    loading.style.display  = 'block';
+    empty.style.display    = 'none';
+    timeline.style.display = 'none';
+
+    try {
+        const res = await fetch(`${getApiHost()}/api/recent-activities`);
+        if (!res.ok) throw new Error('Server error');
+        _raAllActivities = await res.json();
+
+        // Reset filter to 'all'
+        document.querySelectorAll('.ra-filter-btn').forEach(b => b.classList.remove('ra-active'));
+        const allBtn = document.querySelector('.ra-filter-btn[data-type="all"]');
+        if (allBtn) allBtn.classList.add('ra-active');
+
+        renderActivityTimeline(_raAllActivities);
+    } catch (err) {
+        loading.style.display = 'none';
+        empty.style.display   = 'block';
+        empty.querySelector('p').textContent = 'Could not load activities. Is the server running?';
     }
+}
+
+function filterActivities(type, btn) {
+    // Update active button
+    document.querySelectorAll('.ra-filter-btn').forEach(b => b.classList.remove('ra-active'));
+    if (btn) btn.classList.add('ra-active');
+
+    const filtered = type === 'all'
+        ? _raAllActivities
+        : _raAllActivities.filter(a => a.type === type);
+
+    renderActivityTimeline(filtered);
+}
+
+function renderActivityTimeline(items) {
+    const loading  = document.getElementById('ra-loading');
+    const empty    = document.getElementById('ra-empty');
+    const timeline = document.getElementById('ra-timeline');
+    if (!timeline) return;
+
+    loading.style.display = 'none';
+
+    if (!items || items.length === 0) {
+        timeline.style.display = 'none';
+        empty.style.display    = 'block';
+        return;
+    }
+
+    empty.style.display    = 'none';
+    timeline.style.display = 'block';
+
+    // Badge labels
+    const typeLabels = {
+        student_added:    { text: 'Student Added',  emoji: '🎓' },
+        teacher_added:    { text: 'Teacher Added',  emoji: '👨‍🏫' },
+        rfid_registered:  { text: 'RFID Card',      emoji: '🪪' },
+        class_created:    { text: 'Class Created',  emoji: '🏫' },
+        teacher_assigned: { text: 'Assignment',     emoji: '📌' }
+    };
+
+    timeline.innerHTML = items.map(item => {
+        const meta   = typeLabels[item.type] || { text: item.type, emoji: '📋' };
+        const timeStr = formatActivityTime(item.time);
+        return `
+        <div class="ra-timeline-item">
+            <div class="ra-icon-wrap" style="background:${item.bg}; color:${item.color};">
+                <i class="fa-solid fa-${item.icon}"></i>
+            </div>
+            <div style="flex:1; min-width:0;">
+                <div class="ra-label">
+                    <span class="ra-badge" style="background:${item.bg}; color:${item.color};">${meta.emoji} ${meta.text}</span>
+                    ${escapeHtml(item.label)}
+                </div>
+                <div class="ra-time"><i class="fa-regular fa-clock" style="margin-right:4px;"></i>${timeStr}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function formatActivityTime(isoString) {
+    if (!isoString) return 'Unknown time';
+    const date = new Date(isoString);
+    const now  = new Date();
+    const diffMs   = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHrs  = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHrs / 24);
+
+    if (diffMins < 1)   return 'Just now';
+    if (diffMins < 60)  return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHrs  < 24)  return `${diffHrs} hour${diffHrs > 1 ? 's' : ''} ago`;
+    if (diffDays === 1) return 'Yesterday · ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    if (diffDays < 7)   return `${diffDays} days ago · ` + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }
 
 async function loadTeacherList() {
@@ -1211,9 +1775,10 @@ async function loadTeacherList() {
     `;
 
     try {
-        const response = await fetch('http://localhost:3000/api/teacher/all');
+        const response = await fetch(`${CM_API_BASE}/teacher/all`);
         if (!response.ok) throw new Error('Network response was not ok');
         const teachers = await response.json();
+        _allTeachersCache = teachers;
         
         teacherGrid.innerHTML = '';
         if (teachers.length === 0) {
@@ -1243,14 +1808,21 @@ async function loadTeacherList() {
                             <h5>Name: ${name}</h5>
                         </div>
                         <ul class="teacher-details-list">
+                            <li><strong>ID:</strong> ${teacher.teacher_id}</li>
                             <li><strong>Designation:</strong> ${designation}</li>
                             <li><strong>Join Date:</strong> ${joinDate}</li>
                             <li><strong>Mobile:</strong> ${mobile}</li>
                             <li><strong>Mail:</strong> ${mail}</li>
                             <li><strong>Address:</strong> ${address}</li>
                         </ul>
-                        <div class="teacher-action">
+                        <div class="teacher-action" style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;">
                             <button class="btn-details">Details</button>
+                            <button class="btn-edit-sm" onclick="editTeacher('${teacher.teacher_id}')" style="background:#3b82f6; color:#fff; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+                                <i class="fa-solid fa-pen-to-square"></i> Edit
+                            </button>
+                            <button class="btn-delete-sm" onclick="deleteTeacher('${teacher.teacher_id}', '${(teacher.full_name || '').replace(/'/g, "\\'")}')" style="background:#ef4444; color:#fff; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+                                <i class="fa-solid fa-trash-can"></i> Delete
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1383,26 +1955,55 @@ async function makeStudentUser() {
 // CLASS MANAGEMENT MODULE
 // =========================================================================
 
-// --- localStorage keys ---
+// --- Cache & API Helpers ---
 const CM_CLASSES_KEY = 'kshs_classes';
 const CM_ASSIGNMENTS_KEY = 'kshs_teacher_assignments';
 
-// ---- Helpers ----
+const CM_API_BASE = (window.location.protocol.startsWith('http') && window.location.port === '3000')
+    ? '/api'
+    : 'http://localhost:3000/api';
+
+let _cmClassesCache = [];
+let _cmAssignmentsCache = [];
+
+async function cmFetchClasses() {
+    try {
+        const res = await fetch(`${CM_API_BASE}/classes`);
+        if (!res.ok) throw new Error('Server response error');
+        const data = await res.json();
+        _cmClassesCache = data.classes || [];
+    } catch (err) {
+        console.warn('Falling back to empty classes cache:', err.message);
+        _cmClassesCache = [];
+    }
+    return _cmClassesCache;
+}
+
 function cmGetClasses() {
-    try { return JSON.parse(localStorage.getItem(CM_CLASSES_KEY)) || []; } catch { return []; }
+    return _cmClassesCache;
 }
-function cmSaveClasses(arr) {
-    localStorage.setItem(CM_CLASSES_KEY, JSON.stringify(arr));
+
+async function cmFetchAssignments() {
+    try {
+        const res = await fetch(`${CM_API_BASE}/classes/assignments`);
+        if (!res.ok) throw new Error('Server response error');
+        const data = await res.json();
+        _cmAssignmentsCache = data.assignments || [];
+    } catch (err) {
+        console.warn('Falling back to empty assignments cache:', err.message);
+        _cmAssignmentsCache = [];
+    }
+    return _cmAssignmentsCache;
 }
+
 function cmGetAssignments() {
-    try { return JSON.parse(localStorage.getItem(CM_ASSIGNMENTS_KEY)) || []; } catch { return []; }
+    return _cmAssignmentsCache;
 }
-function cmSaveAssignments(arr) {
-    localStorage.setItem(CM_ASSIGNMENTS_KEY, JSON.stringify(arr));
-}
+
 function cmGenerateId() {
     return 'CLS-' + Date.now().toString(36).toUpperCase();
 }
+
 function cmFormatTime(t) {
     if (!t) return '';
     const [h, m] = t.split(':');
@@ -1410,9 +2011,14 @@ function cmFormatTime(t) {
     return `${hr % 12 || 12}:${m} ${hr < 12 ? 'AM' : 'PM'}`;
 }
 
+// Initial pre-fetch on load
+document.addEventListener('DOMContentLoaded', () => {
+    cmFetchClasses();
+    cmFetchAssignments();
+});
+
 // ---- Tab Switching ----
-function switchClassTab(tab) {
-    // tab: 'add-class' | 'edit-class' | 'assign-teacher'
+async function switchClassTab(tab) {
     const tabMap = {
         'add-class':       { panel: 'panel-add-class',       btn: 'tab-btn-add-class' },
         'edit-class':      { panel: 'panel-edit-class',      btn: 'tab-btn-edit-class' },
@@ -1431,12 +2037,72 @@ function switchClassTab(tab) {
     if (panel) panel.style.display = 'block';
     if (btn)   btn.classList.add('active');
 
-    if (tab === 'edit-class')      loadClassList();
-    if (tab === 'assign-teacher') { loadTeachersForAssign(); loadClassSelectForAssign(); loadAssignmentsTable(); }
+    // Persist active class tab
+    try {
+        localStorage.setItem('kshs_active_cm_tab', tab);
+        if (window.history && window.history.replaceState) {
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('tab', tab);
+            window.history.replaceState(null, '', currentUrl.toString());
+        }
+    } catch (e) {
+        console.warn('Could not persist tab state:', e);
+    }
+
+    if (tab === 'edit-class')      await loadClassList();
+    if (tab === 'assign-teacher') { loadTeachersForAssign(); await loadClassSelectForAssign(); await loadAssignmentsTable(); }
+}
+
+function cmCheckClassConflicts(newCls, editId = null) {
+    const classes = cmGetClasses();
+
+    for (const existing of classes) {
+        if (editId && existing.id === editId) continue;
+
+        // Check Shift overlap (same shift)
+        const sameShift = !existing.shift || !newCls.shift ||
+            existing.shift.toLowerCase() === newCls.shift.toLowerCase();
+
+        if (!sameShift) continue;
+
+        // Check Day overlap
+        const overlappingDays = (existing.days || []).filter(d => (newCls.days || []).includes(d));
+        if (overlappingDays.length === 0) continue;
+
+        // Check Time overlap: new starts before existing ends AND new ends after existing starts
+        const timeOverlap = newCls.start_time < existing.end_time && newCls.end_time > existing.start_time;
+        if (!timeOverlap) continue;
+
+        const daysText = overlappingDays.join(', ');
+        const timeText = `${cmFormatTime(existing.start_time)} – ${cmFormatTime(existing.end_time)}`;
+        const existClsName = formatClassName(existing.class_name);
+        const existSecName = formatSectionName(existing.section);
+
+        // 1. Room Conflict
+        if ((existing.room_number || '').trim().toLowerCase() === (newCls.room_number || '').trim().toLowerCase()) {
+            return `⚠ Room Conflict! Room ${newCls.room_number} is already booked for ${existClsName} ${existSecName} (${existing.subject}) during ${timeText} on ${daysText} (${existing.shift} shift).`;
+        }
+
+        // 2. Class & Section Schedule Conflict
+        const sameClass = formatClassName(existing.class_name) === formatClassName(newCls.class_name);
+        const sameSection = formatSectionName(existing.section) === formatSectionName(newCls.section);
+
+        if (sameClass && sameSection) {
+            return `⚠ Class & Section Conflict! ${formatClassName(newCls.class_name)} ${formatSectionName(newCls.section)} already has a class (${existing.subject}) scheduled during ${timeText} on ${daysText} (${existing.shift} shift).`;
+        }
+
+        // 3. Teacher Schedule Conflict (if teacher assigned)
+        if (newCls.assigned_teacher_id && existing.assigned_teacher_id &&
+            newCls.assigned_teacher_id === existing.assigned_teacher_id) {
+            return `⚠ Teacher Conflict! Assigned teacher "${existing.assigned_teacher_name}" is already teaching ${existClsName} ${existSecName} during ${timeText} on ${daysText}.`;
+        }
+    }
+
+    return null;
 }
 
 // ---- Add / Edit / Delete Class ----
-function handleSaveClass(event) {
+async function handleSaveClass(event) {
     event.preventDefault();
 
     const days = [...document.querySelectorAll('input[name="class-day"]:checked')].map(c => c.value);
@@ -1473,23 +2139,39 @@ function handleSaveClass(event) {
     };
 
     if (editId) {
-        // Preserve teacher assignment when editing
         const existing = classes.find(c => c.id === editId);
         if (existing) {
             classData.assigned_teacher_id   = existing.assigned_teacher_id   || '';
             classData.assigned_teacher_name = existing.assigned_teacher_name || '';
         }
-        const idx = classes.findIndex(c => c.id === editId);
-        if (idx !== -1) classes[idx] = classData;
-    } else {
-        classes.push(classData);
     }
 
-    cmSaveClasses(classes);
-    showCmToast(editId ? 'Class updated successfully!' : 'Class added successfully!', 'success');
-    resetClassForm();
-    // Refresh assign dropdowns if open
-    loadClassSelectForAssign();
+    // Check conflicts (Room, Class & Section, Time, Days, Shift, Teacher)
+    const conflictError = cmCheckClassConflicts(classData, editId);
+    if (conflictError) {
+        showCmToast(conflictError, 'error');
+        return;
+    }
+
+    try {
+        const url = editId ? `${CM_API_BASE}/classes/${editId}` : `${CM_API_BASE}/classes`;
+        const method = editId ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(classData)
+        });
+
+        if (!res.ok) throw new Error('Database save failed');
+
+        await cmFetchClasses();
+        showCmToast(editId ? 'Class updated successfully!' : 'Class added successfully!', 'success');
+        resetClassForm();
+        loadClassSelectForAssign();
+    } catch (err) {
+        showCmToast('Failed to save class to database.', 'error');
+        console.error(err);
+    }
 }
 
 function editClass(classId) {
@@ -1497,7 +2179,6 @@ function editClass(classId) {
     const cls = classes.find(c => c.id === classId);
     if (!cls) return;
 
-    // Switch to Add Class tab
     switchClassTab('add-class');
 
     document.getElementById('edit-class-id').value       = cls.id;
@@ -1512,7 +2193,6 @@ function editClass(classId) {
     document.getElementById('cm-capacity').value         = cls.capacity || '';
     document.getElementById('cm-class-type').value       = cls.class_type || 'Regular';
 
-    // Restore day checkboxes
     document.querySelectorAll('input[name="class-day"]').forEach(cb => {
         cb.checked = cls.days && cls.days.includes(cb.value);
     });
@@ -1535,31 +2215,44 @@ function resetClassForm() {
     document.getElementById('cm-academic-year').value              = '2026-2027';
 }
 
-function deleteClass(classId) {
+async function deleteClass(classId) {
     if (!confirm('Are you sure you want to delete this class? This will also remove any teacher assignment for it.')) return;
-    let classes = cmGetClasses();
-    classes = classes.filter(c => c.id !== classId);
-    cmSaveClasses(classes);
 
-    // Remove any assignments for this class
-    let assignments = cmGetAssignments();
-    assignments = assignments.filter(a => a.class_id !== classId);
-    cmSaveAssignments(assignments);
+    try {
+        const res = await fetch(`${CM_API_BASE}/classes/${classId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Database delete failed');
 
-    showCmToast('Class deleted.', 'success');
-    loadClassList();
-    loadClassSelectForAssign();
-    loadAssignmentsTable();
+        await cmFetchClasses();
+        await cmFetchAssignments();
+
+        showCmToast('Class deleted.', 'success');
+        await loadClassList();
+        await loadClassSelectForAssign();
+        await loadAssignmentsTable();
+    } catch (err) {
+        showCmToast('Failed to delete class from database.', 'error');
+        console.error(err);
+    }
 }
 
 // ---- All Classes Table ----
 let _allClassesCache = [];
 
-function loadClassList() {
+async function loadClassList() {
     const tbody = document.getElementById('cm-classes-tbody');
     if (!tbody) return;
-    _allClassesCache = cmGetClasses();
+    _allClassesCache = await cmFetchClasses();
     renderClassTable(_allClassesCache);
+}
+
+function formatClassName(name) {
+    if (!name) return '';
+    return name.toString().startsWith('Class') ? name : `Class ${name}`;
+}
+
+function formatSectionName(sec) {
+    if (!sec) return '';
+    return sec.toString().replace(/^Section\s*/i, '');
 }
 
 function renderClassTable(classes) {
@@ -1577,12 +2270,14 @@ function renderClassTable(classes) {
             ? `<span class="cm-teacher-badge"><i class="fa-solid fa-user-tie"></i> ${cls.assigned_teacher_name}</span>`
             : '<span style="color:#94a3b8;font-style:italic;">Unassigned</span>';
         const typeBadgeColor = { Regular:'#3b82f6', Lab:'#8b5cf6', Extra:'#f59e0b', Exam:'#ef4444' }[cls.class_type] || '#3b82f6';
+        const cDisplay = formatClassName(cls.class_name);
+        const sDisplay = formatSectionName(cls.section);
 
         return `
         <tr>
             <td>${i + 1}</td>
-            <td><strong>${cls.class_name}</strong></td>
-            <td><span class="section-pill">${cls.section}</span></td>
+            <td><strong>${cDisplay}</strong></td>
+            <td><span class="section-pill">${sDisplay}</span></td>
             <td>${cls.subject} <span class="type-badge" style="background:${typeBadgeColor}">${cls.class_type || 'Regular'}</span></td>
             <td><span class="room-pill"><i class="fa-solid fa-door-open"></i> ${cls.room_number}</span></td>
             <td class="time-col">
@@ -1629,7 +2324,7 @@ async function loadTeachersForAssign() {
 
     select.innerHTML = '<option value="" disabled selected>Loading teachers...</option>';
     try {
-        const response = await fetch('http://localhost:3000/api/teacher/all');
+        const response = await fetch(`${CM_API_BASE}/teacher/all`);
         if (!response.ok) throw new Error('Server error');
         const teachers = await response.json();
 
@@ -1642,15 +2337,14 @@ async function loadTeachersForAssign() {
             teachers.map(t => `<option value="${t.teacher_id}" data-name="${t.full_name || ''}">${
                 t.full_name || t.teacher_id} — ${t.designation || 'Teacher'}</option>`).join('');
     } catch {
-        // Fallback: show empty state
         select.innerHTML = '<option value="" disabled selected>Could not load teachers (server offline)</option>';
     }
 }
 
-function loadClassSelectForAssign() {
+async function loadClassSelectForAssign() {
     const select = document.getElementById('at-class-select');
     if (!select) return;
-    const classes = cmGetClasses();
+    const classes = await cmFetchClasses();
 
     if (classes.length === 0) {
         select.innerHTML = '<option value="" disabled selected>No classes found — add a class first</option>';
@@ -1658,7 +2352,7 @@ function loadClassSelectForAssign() {
     }
 
     select.innerHTML = '<option value="" disabled selected>Select a class...</option>' +
-        classes.map(c => `<option value="${c.id}">${c.class_name} ${c.section} — ${c.subject} | ${cmFormatTime(c.start_time)}–${cmFormatTime(c.end_time)} | Room ${c.room_number}</option>`).join('');
+        classes.map(c => `<option value="${c.id}">${formatClassName(c.class_name)} ${formatSectionName(c.section)} — ${c.subject} | ${cmFormatTime(c.start_time)}–${cmFormatTime(c.end_time)} | Room ${c.room_number}</option>`).join('');
 }
 
 function onTeacherSelectChange() {
@@ -1724,7 +2418,6 @@ function checkAssignConflict() {
 
     if (!newCls) return;
 
-    // Check if already assigned
     const alreadyAssigned = assignments.find(a => a.teacher_id === teacherId && a.class_id === classId);
     if (alreadyAssigned) {
         conflictDiv.style.display = 'flex';
@@ -1734,7 +2427,6 @@ function checkAssignConflict() {
         return;
     }
 
-    // Check time conflicts
     const teacherClasses = assignments
         .filter(a => a.teacher_id === teacherId)
         .map(a => classes.find(c => c.id === a.class_id))
@@ -1749,7 +2441,6 @@ function checkAssignConflict() {
         const newStart   = newCls.start_time;
         const newEnd     = newCls.end_time;
 
-        // Overlap: new starts before existing ends AND new ends after existing starts
         if (newStart < existEnd && newEnd > existStart) {
             conflictDiv.style.display = 'flex';
             conflictMsg.textContent   =
@@ -1762,7 +2453,6 @@ function checkAssignConflict() {
         }
     }
 
-    // No conflict — show preview
     if (conflictDiv) conflictDiv.style.display = 'none';
     if (previewDiv)  {
         previewDiv.style.display = 'flex';
@@ -1783,14 +2473,13 @@ function clearAssignPreview() {
     if (assignBtn) assignBtn.disabled = false;
 }
 
-function handleAssignTeacher(event) {
+async function handleAssignTeacher(event) {
     event.preventDefault();
 
     const teacherId   = document.getElementById('at-teacher-select').value;
     const classId     = document.getElementById('at-class-select').value;
     const teacherName = document.getElementById('at-teacher-select').selectedOptions[0]?.text.split(' — ')[0] || teacherId;
 
-    // Re-run conflict check (safety guard)
     const classes     = cmGetClasses();
     const assignments = cmGetAssignments();
     const newCls      = classes.find(c => c.id === classId);
@@ -1813,54 +2502,63 @@ function handleAssignTeacher(event) {
         }
     }
 
-    // Save assignment
-    assignments.push({ teacher_id: teacherId, class_id: classId, teacher_name: teacherName });
-    cmSaveAssignments(assignments);
+    try {
+        const res = await fetch(`${CM_API_BASE}/classes/assign`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ teacher_id: teacherId, class_id: classId, teacher_name: teacherName })
+        });
 
-    // Update class record with teacher name
-    const classIdx = classes.findIndex(c => c.id === classId);
-    if (classIdx !== -1) {
-        classes[classIdx].assigned_teacher_id   = teacherId;
-        classes[classIdx].assigned_teacher_name = teacherName;
+        if (!res.ok) throw new Error('Failed to assign teacher');
+
+        await cmFetchClasses();
+        await cmFetchAssignments();
+
+        showCmToast(`Teacher "${teacherName}" successfully assigned!`, 'success');
+        document.getElementById('assign-teacher-form').reset();
+        clearAssignPreview();
+        await loadTeachersForAssign();
+        await loadClassSelectForAssign();
+        await loadAssignmentsTable();
+    } catch (err) {
+        showCmToast('Failed to save assignment to database.', 'error');
+        console.error(err);
     }
-    cmSaveClasses(classes);
-
-    showCmToast(`Teacher "${teacherName}" successfully assigned!`, 'success');
-    document.getElementById('assign-teacher-form').reset();
-    clearAssignPreview();
-    loadTeachersForAssign();
-    loadClassSelectForAssign();
-    loadAssignmentsTable();
 }
 
-function removeAssignment(teacherId, classId) {
+async function removeAssignment(teacherId, classId) {
     if (!confirm('Remove this teacher assignment?')) return;
 
-    let assignments = cmGetAssignments();
-    assignments = assignments.filter(a => !(a.teacher_id === teacherId && a.class_id === classId));
-    cmSaveAssignments(assignments);
+    try {
+        const queryParams = new URLSearchParams();
+        if (teacherId) queryParams.append('teacher_id', teacherId);
+        if (classId) queryParams.append('class_id', classId);
 
-    // Clear teacher from class record
-    const classes = cmGetClasses();
-    const idx = classes.findIndex(c => c.id === classId);
-    if (idx !== -1) {
-        classes[idx].assigned_teacher_id   = '';
-        classes[idx].assigned_teacher_name = '';
+        const res = await fetch(`${CM_API_BASE}/classes/assignments?${queryParams.toString()}`, {
+            method: 'DELETE'
+        });
+
+        if (!res.ok) throw new Error('Failed to remove assignment');
+
+        await cmFetchClasses();
+        await cmFetchAssignments();
+
+        showCmToast('Assignment removed.', 'success');
+        await loadAssignmentsTable();
+        await loadClassList();
+        checkAssignConflict();
+    } catch (err) {
+        showCmToast('Failed to remove assignment from database.', 'error');
+        console.error(err);
     }
-    cmSaveClasses(classes);
-
-    showCmToast('Assignment removed.', 'success');
-    loadAssignmentsTable();
-    loadClassList();
-    checkAssignConflict();
 }
 
-function loadAssignmentsTable() {
+async function loadAssignmentsTable() {
     const tbody = document.getElementById('at-assignments-tbody');
     if (!tbody) return;
 
-    const assignments = cmGetAssignments();
-    const classes     = cmGetClasses();
+    const assignments = await cmFetchAssignments();
+    const classes     = await cmFetchClasses();
 
     if (assignments.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" class="text-center">No assignments yet.</td></tr>';
@@ -1875,7 +2573,7 @@ function loadAssignmentsTable() {
         <tr>
             <td>${i + 1}</td>
             <td><span class="cm-teacher-badge"><i class="fa-solid fa-user-tie"></i> ${a.teacher_name || a.teacher_id}</span></td>
-            <td><strong>${cls.class_name}</strong> <span class="section-pill">${cls.section}</span></td>
+            <td><strong>${formatClassName(cls.class_name)}</strong> <span class="section-pill">${formatSectionName(cls.section)}</span></td>
             <td>${cls.subject}</td>
             <td><span class="time-badge"><i class="fa-solid fa-clock"></i> ${cmFormatTime(cls.start_time)}–${cmFormatTime(cls.end_time)}</span></td>
             <td>${daysHtml}</td>
@@ -1891,7 +2589,6 @@ function loadAssignmentsTable() {
     tbody.innerHTML = rows || '<tr><td colspan="8" class="text-center">No valid assignments found.</td></tr>';
 }
 
-// ---- Toast Notification ----
 function showCmToast(message, type = 'success') {
     let toast = document.getElementById('cm-toast');
     if (!toast) {
@@ -1903,4 +2600,545 @@ function showCmToast(message, type = 'success') {
     toast.innerHTML = `<i class="fa-solid fa-${type === 'success' ? 'circle-check' : 'circle-xmark'}"></i> ${message}`;
     clearTimeout(toast._timer);
     toast._timer = setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+// -------------------------------------------------------------------------
+// RFID CARD MANAGEMENT JS LOGIC
+// -------------------------------------------------------------------------
+
+function generateStudentIdForRfid() {
+    const input = document.getElementById('rfid-student-id-input');
+    if (input && !input.value) {
+        const rand = Math.floor(10000 + Math.random() * 90000);
+        input.value = `26-${rand}`;
+    }
+}
+
+function simulateCardTap(targetInputId = 'rfid-uid-input') {
+    const targetInput = document.getElementById(targetInputId) || document.getElementById('rfid-uid-input');
+    if (!targetInput) return;
+
+    const chars = '0123456789ABCDEF';
+    let mockUid = '';
+    for (let i = 0; i < 8; i++) {
+        mockUid += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    targetInput.value = mockUid;
+
+    const statusText = document.getElementById('status-text');
+    if (statusText) statusText.innerText = `Card Scanned: ${mockUid}`;
+
+    showCmToast(`Scanned Card UID: ${mockUid}`, 'success');
+}
+
+async function handleRfidRegister(event) {
+    if (event) event.preventDefault();
+
+    const uid = document.getElementById('rfid-uid-input')?.value;
+    const student_id = document.getElementById('rfid-student-id-input')?.value;
+    const name = document.getElementById('rfid-student-name-input')?.value;
+
+    if (!uid || !student_id || !name) {
+        alert('Please tap an RFID card and fill in the Student Name.');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${CM_API_BASE}/cards/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uid, student_id, name })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            alert(`Success! Card ${data.card.uid} registered for ${data.card.name} (${data.card.student_id}).`);
+            const nameInput = document.getElementById('rfid-student-name-input');
+            if (nameInput) nameInput.value = '';
+            const uidInput = document.getElementById('rfid-uid-input');
+            if (uidInput) uidInput.value = '';
+            generateStudentIdForRfid();
+            await loadRegisteredCards();
+            await loadExtendedCards();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to register card.'));
+        }
+    } catch (err) {
+        console.error('RFID Register Error:', err);
+        alert('Server error while registering card.');
+    }
+}
+
+async function searchStudentForReplace(event) {
+    if (event) event.preventDefault();
+
+    const query = (document.getElementById('replace-search-student-id')?.value || '').trim();
+    if (!query) {
+        alert('Please enter a Student ID or Card UID to search.');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${CM_API_BASE}/cards/search/${encodeURIComponent(query)}`);
+        const data = await res.json();
+
+        if (res.ok && data) {
+            const sidDisplay = document.getElementById('replace-student-id-display');
+            const snameInput = document.getElementById('replace-student-name-input');
+            const oldUidInput = document.getElementById('replace-old-uid-input');
+
+            if (sidDisplay) sidDisplay.value = data.student_id || '';
+            if (snameInput) snameInput.value = data.name || '';
+            if (oldUidInput) oldUidInput.value = data.uid || '';
+
+            showCmToast(`Found record for ${data.name} (${data.student_id})`, 'success');
+        } else {
+            alert('No card record found for: ' + query);
+        }
+    } catch (err) {
+        console.error('Search Student Error:', err);
+        alert('Server error while searching student card.');
+    }
+}
+
+async function handleRfidReplace(event) {
+    if (event) event.preventDefault();
+
+    const student_id = document.getElementById('replace-student-id-display')?.value;
+    const new_uid = document.getElementById('replace-new-uid-input')?.value || document.getElementById('rfid-uid-input')?.value;
+
+    if (!student_id) {
+        alert('Please search for a student card record first.');
+        return;
+    }
+    if (!new_uid) {
+        alert('Please scan or simulate a new RFID card UID.');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${CM_API_BASE}/cards/replace`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ student_id, new_uid })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            alert(`Success! Card replaced for ${data.card.name}. New UID is ${data.card.uid}.`);
+            await loadRegisteredCards();
+            await loadExtendedCards();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to replace card.'));
+        }
+    } catch (err) {
+        console.error('Replace Card Error:', err);
+        alert('Server error while replacing card.');
+    }
+}
+
+let _cardsCache = [];
+
+async function loadRegisteredCards() {
+    const bodies = [
+        document.getElementById('cards-table-body'),
+        document.getElementById('replace-cards-table-body')
+    ].filter(Boolean);
+
+    if (bodies.length === 0) return;
+
+    try {
+        const res = await fetch(`${CM_API_BASE}/cards/all`);
+        if (!res.ok) throw new Error('Failed to fetch cards');
+        _cardsCache = await res.json();
+
+        bodies.forEach(body => {
+            if (_cardsCache.length === 0) {
+                body.innerHTML = '<tr><td colspan="6" class="text-center">No registered RFID cards found.</td></tr>';
+                return;
+            }
+
+            body.innerHTML = _cardsCache.map((c, i) => `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td><code>${c.uid}</code></td>
+                    <td><strong>${c.student_id}</strong></td>
+                    <td>${c.name}</td>
+                    <td>${c.created_at || 'N/A'}</td>
+                    <td>
+                        <button onclick="deleteRfidCard('${c.student_id}', '${(c.name || '').replace(/'/g, "\\'")}')" style="background:#ef4444; color:#fff; border:none; padding:4px 10px; border-radius:5px; cursor:pointer; font-weight:600;">
+                            <i class="fa-solid fa-trash-can"></i> Revoke
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        });
+    } catch (err) {
+        console.error('Load Cards Error:', err);
+        bodies.forEach(b => b.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load cards. Make sure backend is running.</td></tr>');
+    }
+}
+
+async function loadExtendedCards() {
+    const body = document.getElementById('extended-cards-table-body');
+    if (!body) return;
+
+    try {
+        const res = await fetch(`${CM_API_BASE}/cards/all`);
+        if (!res.ok) throw new Error('Failed to fetch cards');
+        _cardsCache = await res.json();
+
+        renderExtendedCardsTable(_cardsCache);
+    } catch (err) {
+        console.error('Load Extended Cards Error:', err);
+        body.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Failed to load cards. Make sure backend is running.</td></tr>';
+    }
+}
+
+function renderExtendedCardsTable(cards) {
+    const body = document.getElementById('extended-cards-table-body');
+    if (!body) return;
+
+    if (!cards || cards.length === 0) {
+        body.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 24px; color: #64748b; font-weight: 500;">
+                    <i class="fa-solid fa-folder-open" style="font-size: 1.5rem; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+                    No matching registered cards found.
+                </td>
+            </tr>`;
+        return;
+    }
+
+    body.innerHTML = cards.map((c, i) => `
+        <tr>
+            <td>${i + 1}</td>
+            <td><code class="uid-tag">${c.uid}</code></td>
+            <td><strong class="student-id-tag">${c.student_id}</strong></td>
+            <td><strong>${c.name || 'N/A'}</strong></td>
+            <td>${formatClassName(c.class_name) || 'N/A'}</td>
+            <td>${formatSectionName(c.section) || 'N/A'}</td>
+            <td>${c.shift || 'N/A'}</td>
+            <td><small style="color:#64748b;">${c.created_at || 'N/A'}</small></td>
+            <td style="text-align:center;">
+                <button onclick="deleteRfidCard('${c.student_id}', '${(c.name || '').replace(/'/g, "\\'")}')" class="btn-delete-sm">
+                    <i class="fa-solid fa-trash-can"></i> Revoke
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+let _searchDebounceTimer = null;
+function filterRegisteredCards() {
+    clearTimeout(_searchDebounceTimer);
+    _searchDebounceTimer = setTimeout(() => {
+        const query = (document.getElementById('search-registered-cards')?.value || '').toLowerCase().trim();
+        if (!query) {
+            renderExtendedCardsTable(_cardsCache);
+            return;
+        }
+
+        const filtered = _cardsCache.filter(c => 
+            (c.student_id || '').toLowerCase().includes(query) ||
+            (c.name || '').toLowerCase().includes(query) ||
+            (c.uid || '').toLowerCase().includes(query) ||
+            (c.class_name || '').toLowerCase().includes(query) ||
+            (c.section || '').toLowerCase().includes(query)
+        );
+        renderExtendedCardsTable(filtered);
+    }, 120);
+}
+
+async function deleteRfidCard(studentId, name = '') {
+    if (!confirm(`Are you sure you want to revoke/delete RFID card for ${name ? `"${name}" (${studentId})` : studentId}?`)) return;
+
+    try {
+        const res = await fetch(`${CM_API_BASE}/cards/${studentId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok) {
+            alert('Card revoked successfully.');
+            await loadRegisteredCards();
+            await loadExtendedCards();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to delete card.'));
+        }
+    } catch (err) {
+        console.error('Delete RFID Card Error:', err);
+        alert('Server error while revoking card.');
+    }
+}
+
+// =========================================================================
+// DASHBOARD ANALYTICS & VISUAL CHARTS (Chart.js Integration)
+// =========================================================================
+let currentAnalyticsDays = 7;
+let trendsChartInstance = null;
+let genderChartInstance = null;
+let classChartInstance = null;
+
+async function loadAnalyticsDashboard(days = currentAnalyticsDays) {
+    currentAnalyticsDays = days;
+    const daysSelect = document.getElementById('analytics-days-select');
+    if (daysSelect) daysSelect.value = days;
+
+    const periodTag = document.getElementById('trends-period-tag');
+    if (periodTag) periodTag.textContent = `Last ${days} Days`;
+
+    try {
+        const response = await fetch(`${getApiHost()}/api/analytics/dashboard?days=${days}`);
+        if (!response.ok) throw new Error('Failed to load analytics dashboard data');
+        const data = await response.json();
+
+        updateAnalyticsKpis(data.summary);
+        renderAttendanceTrendsChart(data.trends || []);
+        renderGenderDistributionChart(data.genderDistribution || {});
+        renderClassWiseAttendanceChart(data.classWise || []);
+    } catch (err) {
+        console.error('Analytics dashboard load error:', err);
+    }
+}
+
+function changeAnalyticsDays(days) {
+    loadAnalyticsDashboard(parseInt(days) || 7);
+}
+
+function refreshAnalyticsDashboard() {
+    loadAnalyticsDashboard(currentAnalyticsDays);
+}
+
+function updateAnalyticsKpis(summary) {
+    if (!summary) return;
+    const totalStudentsElem = document.getElementById('kpi-total-students');
+    const presentTodayElem = document.getElementById('kpi-present-today');
+    const attendanceRateElem = document.getElementById('kpi-attendance-rate');
+    const totalTeachersElem = document.getElementById('kpi-total-teachers');
+
+    if (totalStudentsElem) totalStudentsElem.textContent = summary.totalStudents ?? 0;
+    if (presentTodayElem) presentTodayElem.textContent = summary.presentToday ?? 0;
+    if (attendanceRateElem) attendanceRateElem.textContent = `${summary.attendanceRate ?? 0}%`;
+    if (totalTeachersElem) totalTeachersElem.textContent = summary.totalTeachers ?? 0;
+}
+
+function renderAttendanceTrendsChart(trendsData) {
+    const canvas = document.getElementById('attendanceTrendsChart');
+    if (!canvas) return;
+
+    if (trendsChartInstance) {
+        trendsChartInstance.destroy();
+        trendsChartInstance = null;
+    }
+
+    const labels = trendsData.map(d => d.date_label || d.date);
+    const counts = trendsData.map(d => parseInt(d.present_count) || 0);
+
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+    gradient.addColorStop(0, 'rgba(2, 132, 199, 0.30)');
+    gradient.addColorStop(1, 'rgba(2, 132, 199, 0.01)');
+
+    trendsChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels.length > 0 ? labels : ['No Data'],
+            datasets: [{
+                label: 'Present Students',
+                data: counts.length > 0 ? counts : [0],
+                borderColor: '#0284c7',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                pointBackgroundColor: '#0284c7',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                fill: true,
+                tension: 0.35
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#0f172a',
+                    titleFont: { size: 13, weight: 'bold' },
+                    bodyFont: { size: 12 },
+                    padding: 10,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            return ` Present: ${context.parsed.y} Students`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { family: 'Open Sans', size: 12 }, color: '#64748b' }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0,
+                        font: { family: 'Open Sans', size: 12 },
+                        color: '#64748b'
+                    },
+                    grid: { color: '#f1f5f9' }
+                }
+            }
+        }
+    });
+}
+
+function renderGenderDistributionChart(genderData) {
+    const canvas = document.getElementById('genderDistributionChart');
+    if (!canvas) return;
+
+    if (genderChartInstance) {
+        genderChartInstance.destroy();
+        genderChartInstance = null;
+    }
+
+    const overallList = genderData.overall || [];
+    let maleCount = 0;
+    let femaleCount = 0;
+    let otherCount = 0;
+
+    overallList.forEach(item => {
+        const g = (item.gender || '').toLowerCase();
+        const cnt = parseInt(item.count) || 0;
+        if (g.includes('male') && !g.includes('female')) maleCount += cnt;
+        else if (g.includes('female')) femaleCount += cnt;
+        else otherCount += cnt;
+    });
+
+    const labels = [];
+    const values = [];
+    const colors = [];
+
+    if (maleCount > 0) { labels.push('Male'); values.push(maleCount); colors.push('#0284c7'); }
+    if (femaleCount > 0) { labels.push('Female'); values.push(femaleCount); colors.push('#ec4899'); }
+    if (otherCount > 0) { labels.push('Other/Unspecified'); values.push(otherCount); colors.push('#94a3b8'); }
+
+    if (values.length === 0) {
+        labels.push('No Data');
+        values.push(1);
+        colors.push('#cbd5e1');
+    }
+
+    const ctx = canvas.getContext('2d');
+    genderChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors,
+                borderWidth: 3,
+                borderColor: '#ffffff',
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: { family: 'Open Sans', size: 13, weight: '600' },
+                        padding: 16,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#0f172a',
+                    titleFont: { size: 13, weight: 'bold' },
+                    bodyFont: { size: 12 },
+                    padding: 10,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            const val = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                            return ` ${context.label}: ${val} (${pct}%)`;
+                        }
+                    }
+                }
+            },
+            cutout: '68%'
+        }
+    });
+}
+
+function renderClassWiseAttendanceChart(classData) {
+    const canvas = document.getElementById('classWiseAttendanceChart');
+    if (!canvas) return;
+
+    if (classChartInstance) {
+        classChartInstance.destroy();
+        classChartInstance = null;
+    }
+
+    const labels = classData.map(c => `Class ${c.class_name}`);
+    const rates = classData.map(c => parseFloat(c.attendance_rate) || 0);
+
+    const ctx = canvas.getContext('2d');
+    classChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels.length > 0 ? labels : ['No Classes'],
+            datasets: [{
+                label: 'Attendance Rate (%)',
+                data: rates.length > 0 ? rates : [0],
+                backgroundColor: '#10b981',
+                borderRadius: 6,
+                borderSkipped: false,
+                barThickness: 24
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#0f172a',
+                    titleFont: { size: 13, weight: 'bold' },
+                    bodyFont: { size: 12 },
+                    padding: 10,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            const raw = classData[context.dataIndex];
+                            if (raw) {
+                                return ` Rate: ${raw.attendance_rate}% (${raw.present_students}/${raw.total_students} Present)`;
+                            }
+                            return ` Rate: ${context.parsed.y}%`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { family: 'Open Sans', size: 12 }, color: '#64748b' }
+                },
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        font: { family: 'Open Sans', size: 12 },
+                        color: '#64748b',
+                        callback: function(val) { return val + '%'; }
+                    },
+                    grid: { color: '#f1f5f9' }
+                }
+            }
+        }
+    });
 }
