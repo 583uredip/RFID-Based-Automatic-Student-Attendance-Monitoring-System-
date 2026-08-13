@@ -76,10 +76,10 @@ const char* DEFAULT_WIFI_SSID = "5G";
 const char* DEFAULT_WIFI_PASS = "12345345";
 
 // Node.js Express Server API Endpoints (Port 3000)
-const char* SERVER_URL   = "http://192.168.0.200:3000/api/rfid/scan";
-const char* REGISTER_URL = "http://192.168.0.200:3000/api/rfid/register";
-const char* CARDREAD_URL = "http://192.168.0.200:3000/api/rfid/latest-scan";
-const char* SYNC_URL     = "http://192.168.0.200:3000/api/rfid/sync";
+const char* SERVER_URL   = "http://192.168.0.198:3000/api/rfid/scan";
+const char* REGISTER_URL = "http://192.168.0.198:3000/api/rfid/register";
+const char* CARDREAD_URL = "http://192.168.0.198:3000/api/rfid/latest-scan";
+const char* SYNC_URL     = "http://192.168.0.198:3000/api/rfid/sync";
 
 // Master Card UID (Change to your admin card UID)
 String MASTER_CARD_UID = "AA:BB:CC:DD";
