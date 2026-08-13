@@ -1,0 +1,519 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Open Sans', Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+    background-color: #f4f6fa;
+    color: #333333;
+    padding: 15px 20px;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.dashboard-container {
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Sidebar Overlay for Mobile Drawer */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    z-index: 998;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* Top Header Styling matching screenshot */
+.header {
+    background: #ffffff;
+    border: 2px solid #0056b3;
+    border-radius: 6px;
+    padding: 14px 24px;
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    position: relative;
+    width: 100%;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mobile-menu-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: #0056b3;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+}
+
+.mobile-menu-btn:hover {
+    color: #00366b;
+}
+
+.header-brand-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.header-brand-link:hover {
+    opacity: 0.88;
+}
+
+.logo-img {
+    height: 48px;
+    width: 48px;
+    object-fit: contain;
+    border-radius: 50%;
+}
+
+.brand-divider {
+    width: 1.5px;
+    height: 38px;
+    background-color: #d0d0d0;
+    margin: 0 2px;
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.brand-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #004b99;
+    letter-spacing: 0.5px;
+    line-height: 1;
+}
+
+.brand-subtitle {
+    font-size: 12px;
+    font-weight: 600;
+    color: #777777;
+    letter-spacing: 3px;
+    line-height: 1.2;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Welcome student name in header */
+.welcome-msg {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0099ff;
+    letter-spacing: 0.3px;
+    margin-right: 4px;
+    white-space: nowrap;
+}
+
+/* Icon buttons (bell, gear) */
+.header-icon-btn {
+    background: none;
+    border: none;
+    color: #0099ff;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.header-icon-btn:hover {
+    color: #0056b3;
+    transform: scale(1.15);
+}
+
+/* Logout Button */
+.logout-btn {
+    color: #0056b3;
+    font-size: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, color 0.15s ease;
+    padding: 6px;
+}
+
+.logout-btn:hover {
+    color: #dc3545;
+    transform: scale(1.1);
+}
+
+/* Layout Grid */
+.main-layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 18px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Sidebar Styling matching sidebar screenshots */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.menu-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 18px;
+    background-color: #00509e;
+    color: #ffffff;
+    border: none;
+    border-radius: 1px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.sidebar-btn:hover {
+    background-color: #003e7e;
+}
+
+.sidebar-btn-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sidebar-icon {
+    font-size: 18px;
+    width: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.caret-icon {
+    font-size: 14px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-btn.active .caret-icon {
+    transform: rotate(180deg);
+}
+
+/* Expanded Submenu Box with Smooth Accordion Animation */
+.sidebar-menu-content {
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+    border: 0 solid #d0d7de;
+    border-bottom-left-radius: 1px;
+    border-bottom-right-radius: 1px;
+    overflow: hidden;
+    margin-top: 1px;
+    max-height: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.25s ease,
+                border-width 0.2s ease,
+                visibility 0.35s ease;
+}
+
+.sidebar-menu-content.open {
+    max-height: 500px;
+    opacity: 1;
+    visibility: visible;
+    border-width: 1px;
+    border-top: none;
+}
+
+.sidebar-subitem {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 16px;
+    color: #333333;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 400;
+    line-height: 1.35;
+    border-bottom: 1px solid #e5e7eb;
+    transform: translateY(-4px);
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.25s ease;
+}
+
+.sidebar-menu-content.open .sidebar-subitem {
+    transform: translateY(0);
+}
+
+.sidebar-subitem:last-child {
+    border-bottom: none;
+}
+
+.sidebar-subitem:hover, .sidebar-subitem.active {
+    background-color: #f3f4f6;
+    color: #00509e;
+    font-weight: 500;
+}
+
+.subitem-icon {
+    font-size: 14px;
+    color: #4b5563;
+    width: 18px;
+    flex-shrink: 0;
+    text-align: center;
+    margin-top: 2px;
+}
+
+/* Main Content Styling */
+.main-content {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 24px;
+    min-height: 600px;
+}
+
+/* Responsive Styles */
+@media (max-width: 992px) {
+    .mobile-menu-btn {
+        display: flex;
+    }
+
+    .main-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 260px;
+        height: 100vh;
+        background-color: #ffffff;
+        z-index: 999;
+        padding: 20px 16px;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+    }
+
+    .sidebar.active {
+        left: 0;
+    }
+}
+.schedule-badge-info {
+    font-size: 12.5px;
+    color: #4b5563;
+    font-weight: 600;
+    background: #f1f5f9;
+    padding: 4px 12px;
+    border-radius: 12px;
+    border: 1px solid #cbd5e1;
+}
+
+.schedule-date-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 16px 4px;
+    border-bottom: 1px solid #eef2f6;
+    gap: 24px;
+}
+
+.schedule-date-row:last-child {
+    border-bottom: none;
+}
+
+.schedule-date-label {
+    width: 130px;
+    flex-shrink: 0;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #1e293b;
+    padding-top: 2px;
+}
+
+.schedule-items-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px 24px;
+}
+
+.schedule-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.schedule-subject {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0099ff;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    line-height: 1.3;
+}
+
+.schedule-details {
+    font-size: 12px;
+    color: #333333;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+/* Responsive Styles */
+@media (max-width: 992px) {
+    .mobile-menu-btn {
+        display: flex;
+    }
+
+    .main-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 260px;
+        height: 100vh;
+        background-color: #ffffff;
+        z-index: 999;
+        padding: 20px 16px;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+    }
+
+    .sidebar.active {
+        left: 0;
+    }
+}
+
+
+/* -- CLASS SCHEDULE --------------------------------------- */
+.schedule-date-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px 20px;
+    gap: 24px;
+    border-bottom: 1px solid #eeeeee;
+}
+.schedule-date-row:last-child { border-bottom: none; }
+
+.schedule-date-label {
+    min-width: 105px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+    padding-top: 3px;
+    flex-shrink: 0;
+}
+
+.schedule-today-tag {
+    display: inline-block;
+    background: #0056b3;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin-left: 5px;
+    vertical-align: middle;
+    letter-spacing: 0.8px;
+}
+
+.schedule-items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px 20px;
+    flex: 1;
+}
+
+.schedule-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.schedule-subject {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0077cc;
+}
+
+.schedule-meta {
+    font-size: 11.5px;
+    color: #666;
+    line-height: 1.5;
+}
+
+.schedule-empty-day {
+    font-size: 12px;
+    color: #bbb;
+    font-style: italic;
+    padding: 2px 0;
+}
+
+.schedule-no-class .schedule-date-label {
+    color: #bbb;
+}
+
+.schedule-loading {
+    padding: 32px;
+    text-align: center;
+    color: #999;
+    font-size: 13px;
+}

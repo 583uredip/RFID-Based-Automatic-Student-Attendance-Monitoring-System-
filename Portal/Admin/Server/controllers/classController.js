@@ -88,3 +88,22 @@ exports.deleteClass = async (req, res) => {
         return res.status(500).json({ error: 'Failed to delete class.' });
     }
 };
+
+/**
+ * GET /api/student/schedule/:student_id
+ * Returns class schedule for the logged-in student by matching their
+ * class_name and section from StudentAcademicInformation against classes table.
+ */
+exports.getStudentSchedule = async (req, res) => {
+    try {
+        const { student_id } = req.params;
+        if (!student_id) {
+            return res.status(400).json({ error: 'student_id is required.' });
+        }
+        const data = await Class.getStudentSchedule(student_id);
+        return res.status(200).json({ status: 'success', ...data });
+    } catch (err) {
+        console.error('Error fetching student schedule:', err.message);
+        return res.status(500).json({ error: 'Failed to fetch student schedule.' });
+    }
+};

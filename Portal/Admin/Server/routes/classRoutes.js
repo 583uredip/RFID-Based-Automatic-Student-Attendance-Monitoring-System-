@@ -9,5 +9,6 @@ router.post('/classes/assign', classController.assignTeacher);
 router.delete('/classes/assignments', classController.deleteAssignment);
 router.put('/classes/:id', classController.updateClass);
 router.delete('/classes/:id', classController.deleteClass);
+router.get('/student/schedule/:student_id', classController.getStudentSchedule);
 
 module.exports = router;

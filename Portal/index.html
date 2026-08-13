@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kapataksha High School Portal - Sign In</title>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Open Sans', Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #ebebeb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 420px;
+            padding: 38px 36px 30px 36px;
+            border-radius: 2px;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+            border: 1px solid #d8d8d8;
+            text-align: center;
+        }
+
+        /* Header section matching AIUB design */
+        .header-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding-bottom: 6px;
+        }
+
+        .brand-logo {
+            width: 62px;
+            height: 62px;
+            object-fit: contain;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .brand-text-container {
+            text-align: left;
+        }
+
+        .brand-title {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: #222222;
+            letter-spacing: 0.3px;
+            line-height: 1.25;
+            text-transform: uppercase;
+        }
+
+        .brand-subtitle {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: #222222;
+            letter-spacing: 0.3px;
+            line-height: 1.25;
+            text-transform: uppercase;
+        }
+
+        .brand-slogan {
+            font-size: 11px;
+            color: #666666;
+            margin-top: 6px;
+            font-weight: 500;
+            display: block;
+        }
+
+        /* Instruction prompt text */
+        .instruction-text {
+            font-size: 13px;
+            color: #333333;
+            font-weight: 600;
+            margin-top: 24px;
+            margin-bottom: 18px;
+        }
+
+        /* Form Inputs with exact light-blue style */
+        .form-group {
+            margin-bottom: 12px;
+            text-align: left;
+            position: relative;
+        }
+
+        .form-input {
+            width: 100%;
+            height: 38px;
+            background-color: #e8f0fe;
+            border: 1px solid #386e99;
+            border-radius: 2px;
+            padding: 0 12px;
+            font-size: 13.5px;
+            color: #1a1a1a;
+            outline: none;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .form-input:focus {
+            background-color: #e2edf8;
+            border-color: #1d527a;
+            box-shadow: 0 0 0 2px rgba(56, 110, 153, 0.15);
+        }
+
+        .toggle-pwd {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #555;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        /* Inline error message style matching red screenshot text */
+        .error-message {
+            display: none;
+            color: #d93025;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: -4px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .success-message {
+            display: none;
+            color: #166534;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: -4px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        /* Log In Button matching screenshot button */
+        .login-btn {
+            width: 100%;
+            height: 38px;
+            background-color: #386e99;
+            color: #ffffff;
+            border: none;
+            border-radius: 2px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: background-color 0.15s ease;
+        }
+
+        .login-btn:hover {
+            background-color: #2b577a;
+        }
+
+        .login-btn:disabled {
+            background-color: #8da9c4;
+            cursor: not-allowed;
+        }
+
+        /* Can't access your account? Link */
+        .access-link {
+            display: inline-block;
+            margin-top: 22px;
+            color: #2b7bb9;
+            font-size: 12.5px;
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .access-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Quick Demo Accounts Helper Bar */
+        .demo-bar {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px dashed #dcdcdc;
+        }
+
+        .demo-title {
+            font-size: 11px;
+            color: #777777;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .demo-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .demo-chip {
+            background: #f5f5f5;
+            border: 1px solid #cccccc;
+            padding: 4px 10px;
+            font-size: 11px;
+            border-radius: 2px;
+            cursor: pointer;
+            color: #444444;
+            font-weight: 600;
+        }
+
+        .demo-chip:hover {
+            background: #e5e5e5;
+            color: #386e99;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <!-- Header Branding matching screenshot -->
+        <div class="header-brand">
+            <img src="Photos/KSHS.png" alt="KSHS Emblem" class="brand-logo" onerror="this.src='../Photos/KSHS.png'">
+            <div class="brand-text-container">
+                <div class="brand-title">KAPATAKSHA HIGH SCHOOL</div>
+                <div class="brand-subtitle">PORTAL</div>
+                <span class="brand-slogan">— where leaders are created.</span>
+            </div>
+        </div>
+
+        <!-- Instruction Prompt -->
+        <div class="instruction-text">Sign in with your organizational id number.</div>
+
+        <!-- Form -->
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <!-- User ID / Username Field -->
+            <div class="form-group">
+                <input 
+                    type="text" 
+                    id="identifier" 
+                    name="identifier" 
+                    class="form-input" 
+                    placeholder="26-00001 or Username"
+                    required
+                    autocomplete="username"
+                    oninput="hideAlert()"
+                >
+            </div>
+
+            <!-- Validation Error / Success Line -->
+            <div id="error-message" class="error-message">The User Name field is required.</div>
+            <div id="success-message" class="success-message">Login successful! Redirecting...</div>
+
+            <!-- Password Field -->
+            <div class="form-group">
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-input" 
+                    placeholder="••••••••••••••••"
+                    required
+                    autocomplete="current-password"
+                    oninput="hideAlert()"
+                >
+                <button type="button" class="toggle-pwd" onclick="togglePasswordVisibility()" title="Toggle Password">
+                    <i id="eye-icon" class="fa-solid fa-eye"></i>
+                </button>
+            </div>
+
+            <!-- Log In Button -->
+            <button type="submit" id="login-btn" class="login-btn">Log In</button>
+        </form>
+
+        <!-- Help Link -->
+        <div>
+            <a href="#" class="access-link" onclick="alert('Please contact your portal administrator for password reset.')">Can't access your account?</a>
+        </div>
+
+        <!-- Quick Demo Quick-Fill Bar -->
+        <div class="demo-bar">
+            <div class="demo-title">Quick Demo Login</div>
+            <div class="demo-buttons">
+                <button type="button" class="demo-chip" onclick="fillDemo('student')">
+                    <i class="fa-solid fa-user-graduate"></i> Student
+                </button>
+                <button type="button" class="demo-chip" onclick="fillDemo('teacher')">
+                    <i class="fa-solid fa-chalkboard-user"></i> Teacher
+                </button>
+                <button type="button" class="demo-chip" onclick="fillDemo('admin')">
+                    <i class="fa-solid fa-user-shield"></i> Admin
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Resolve API Base Host
+        function getApiHost() {
+            if (window.location.port === '3000') return window.location.origin;
+            const hostname = (window.location.hostname && window.location.hostname !== '') ? window.location.hostname : 'localhost';
+            return `http://${hostname}:3000`;
+        }
+
+        // Toggle Password Visibility
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eye-icon');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        // Show Error or Success Message
+        function showAlert(msg, isSuccess = false) {
+            const errElem = document.getElementById('error-message');
+            const succElem = document.getElementById('success-message');
+            if (isSuccess) {
+                errElem.style.display = 'none';
+                succElem.textContent = msg;
+                succElem.style.display = 'block';
+            } else {
+                succElem.style.display = 'none';
+                errElem.textContent = msg;
+                errElem.style.display = 'block';
+            }
+        }
+
+        function hideAlert() {
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('success-message').style.display = 'none';
+        }
+
+        // Fill Demo Credentials
+        function fillDemo(role) {
+            hideAlert();
+            const identifierInput = document.getElementById('identifier');
+            const passwordInput = document.getElementById('password');
+
+            if (role === 'student') {
+                identifierInput.value = '26-00001';
+                passwordInput.value = 'student1212';
+            } else if (role === 'teacher') {
+                identifierInput.value = 'TEACH001';
+                passwordInput.value = 'teacher123';
+            } else if (role === 'admin') {
+                identifierInput.value = 'ADMIN001';
+                passwordInput.value = 'admin123';
+            }
+        }
+
+        // Handle Login Submission
+        async function handleLogin(event) {
+            event.preventDefault();
+            hideAlert();
+
+            const identifier = document.getElementById('identifier').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!identifier) {
+                showAlert('The User Name field is required.');
+                return;
+            }
+            if (!password) {
+                showAlert('The Password field is required.');
+                return;
+            }
+
+            const loginBtn = document.getElementById('login-btn');
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Verifying...';
+
+            try {
+                const response = await fetch(`${getApiHost()}/api/user/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showAlert(`Login successful! Redirecting...`, true);
+
+                    localStorage.setItem('currentUser', JSON.stringify(data.user));
+                    localStorage.setItem('userRole', data.user.role);
+                    localStorage.setItem('selectedTestStudentId', data.user.user_id);
+
+                    setTimeout(() => {
+                        if (data.user.role === 'Student') {
+                            window.location.href = 'Student/StudentDashboard.html';
+                        } else {
+                            window.location.href = 'Admin/AdminDashboard.html';
+                        }
+                    }, 800);
+                } else {
+                    const msg = data.message || data.error || 'Invalid User ID / Username or Password.';
+                    showAlert(msg);
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Log In';
+                }
+            } catch (err) {
+                console.error('Login error:', err);
+
+                // Fallback verification for demo users
+                const cleanId = identifier.toUpperCase();
+                let fallbackUser = null;
+
+                if (cleanId.startsWith('26-') || /^26-\d+$/i.test(cleanId) || /^24-\d+-\d+$/i.test(cleanId) || cleanId === 'STUDENT') {
+                    if (password === 'student1212') fallbackUser = { user_id: cleanId, username: cleanId, role: 'Student', account_status: 'Active' };
+                } else if (cleanId === 'TEACH001' || cleanId === 'TEACHER') {
+                    if (password === 'teacher123') fallbackUser = { user_id: 'TEACH001', username: 'teacher', role: 'Teacher', account_status: 'Active' };
+                } else if (cleanId === 'ADMIN001' || cleanId === 'ADMIN') {
+                    if (password === 'admin123') fallbackUser = { user_id: 'ADMIN001', username: 'admin', role: 'Admin', account_status: 'Active' };
+                }
+
+                if (fallbackUser) {
+                    showAlert(`Offline mode login successful! Redirecting...`, true);
+                    localStorage.setItem('currentUser', JSON.stringify(fallbackUser));
+                    localStorage.setItem('userRole', fallbackUser.role);
+                    localStorage.setItem('selectedTestStudentId', fallbackUser.user_id);
+
+                    setTimeout(() => {
+                        if (fallbackUser.role === 'Student') {
+                            window.location.href = 'Student/StudentDashboard.html';
+                        } else {
+                            window.location.href = 'Admin/AdminDashboard.html';
+                        }
+                    }, 800);
+                } else {
+                    showAlert('Invalid User ID / Username or Password.');
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Log In';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

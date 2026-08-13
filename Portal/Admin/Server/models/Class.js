@@ -46,7 +46,25 @@ class ClassModel {
                     UNIQUE(teacher_id, class_id)
                 );
             `);
-            console.log('Class management tables (classes, class_assignments) ready.');
+
+            // Seed exact database schedules matching student curriculum
+            const seedClasses = [
+                { id: 'CLS-16-1', class_name: 'Ten', section: 'M', subject: 'MICROPROCESSOR AND EMBEDDED SYSTEMS', room_number: '9405', start_time: '08:00', end_time: '10:00', days: ['Sun'], shift: 'Morning', academic_year: '2026' },
+                { id: 'CLS-16-2', class_name: 'Ten', section: 'J', subject: 'COMPILER DESIGN', room_number: 'DS0106', start_time: '10:20', end_time: '12:40', days: ['Sun'], shift: 'Morning', academic_year: '2026' },
+                { id: 'CLS-16-3', class_name: 'Ten', section: 'N', subject: 'SOFTWARE ENGINEERING', room_number: '9306', start_time: '12:40', end_time: '14:40', days: ['Sun'], shift: 'Morning', academic_year: '2026' },
+                { id: 'CLS-17-1', class_name: 'Ten', section: 'N', subject: 'DATA COMMUNICATION', room_number: '9401', start_time: '08:00', end_time: '10:00', days: ['Mon'], shift: 'Morning', academic_year: '2026' },
+                { id: 'CLS-17-2', class_name: 'Ten', section: 'M', subject: 'COMPUTER AIDED DESIGN & DRAFTING', room_number: 'DN0210', start_time: '12:40', end_time: '15:00', days: ['Mon'], shift: 'Morning', academic_year: '2026' },
+                { id: 'CLS-18-1', class_name: 'Ten', section: 'M', subject: 'MICROPROCESSOR AND EMBEDDED SYSTEMS', room_number: 'DN0310', start_time: '08:00', end_time: '10:20', days: ['Tue'], shift: 'Morning', academic_year: '2026' },
+                { id: 'CLS-18-2', class_name: 'Ten', section: 'J', subject: 'COMPILER DESIGN', room_number: '9205', start_time: '10:20', end_time: '12:20', days: ['Tue'], shift: 'Morning', academic_year: '2026' },
+                { id: 'CLS-18-3', class_name: 'Ten', section: 'N', subject: 'SOFTWARE ENGINEERING', room_number: 'DS0206', start_time: '12:40', end_time: '15:00', days: ['Tue'], shift: 'Morning', academic_year: '2026' },
+                { id: 'CLS-19-1', class_name: 'Ten', section: 'N', subject: 'DATA COMMUNICATION', room_number: 'DS0406', start_time: '08:00', end_time: '10:20', days: ['Wed'], shift: 'Morning', academic_year: '2026' }
+            ];
+
+            for (const c of seedClasses) {
+                await this.createClass(c);
+            }
+
+            console.log('Class management tables initialized and seeded with exact schedules.');
         } catch (err) {
             console.error('Error initializing class management tables:', err.message);
         }
@@ -66,6 +84,83 @@ class ClassModel {
         `;
         const result = await pool.query(query);
         return result.rows;
+    }
+
+    /**
+     * Gets matching class schedule for a specific student based on StudentAcademicInformation and database classes.
+     */
+    static async getStudentSchedule(studentId) {
+        let className = '';
+        let section = '';
+
+        try {
+            const academicResult = await pool.query(
+                'SELECT class_name, section, shift, academic_year FROM StudentAcademicInformation WHERE student_id = $1',
+                [studentId]
+            );
+            if (academicResult.rows.length > 0) {
+                className = (academicResult.rows[0].class_name || '').trim();
+                section = (academicResult.rows[0].section || '').trim();
+            }
+        } catch (e) {}
+
+        try {
+            // Build query: if we have class_name+section, match exactly; otherwise return all
+            let query;
+            let params;
+
+            if (className && section) {
+                query = `
+                    SELECT 
+                        id, class_name, section, subject, room_number,
+                        TO_CHAR(start_time, 'FMHH12:MI') as start_time_formatted,
+                        TO_CHAR(end_time, 'FMHH12:MI') as end_time_formatted,
+                        TO_CHAR(start_time, 'AM') as start_ampm,
+                        TO_CHAR(end_time, 'AM') as end_ampm,
+                        shift, academic_year, class_type, days,
+                        COALESCE(assigned_teacher_name, 'TBA') as teacher_name
+                    FROM classes
+                    WHERE UPPER(class_name) = UPPER($1)
+                      AND UPPER(section) = UPPER($2)
+                    ORDER BY
+                        CASE 
+                            WHEN 'Sun' = ANY(days) THEN 1
+                            WHEN 'Mon' = ANY(days) THEN 2
+                            WHEN 'Tue' = ANY(days) THEN 3
+                            WHEN 'Wed' = ANY(days) THEN 4
+                            WHEN 'Thu' = ANY(days) THEN 5
+                            ELSE 6
+                        END,
+                        start_time ASC;
+                `;
+                params = [className, section];
+            } else {
+                query = `
+                    SELECT 
+                        id, class_name, section, subject, room_number,
+                        TO_CHAR(start_time, 'FMHH12:MI') as start_time_formatted,
+                        TO_CHAR(end_time, 'FMHH12:MI') as end_time_formatted,
+                        TO_CHAR(start_time, 'AM') as start_ampm,
+                        TO_CHAR(end_time, 'AM') as end_ampm,
+                        shift, academic_year, class_type, days,
+                        COALESCE(assigned_teacher_name, 'TBA') as teacher_name
+                    FROM classes
+                    ORDER BY start_time ASC;
+                `;
+                params = [];
+            }
+
+            const result = await pool.query(query, params);
+            return {
+                student_id: studentId,
+                class_name: className || '',
+                section: section || '',
+                classes: result.rows
+            };
+        } catch (err) {
+            console.error('Error fetching student schedule:', err.message);
+            return { student_id: studentId, class_name: className, section: section, classes: [] };
+        }
     }
 
     static async createClass(data) {
@@ -90,6 +185,11 @@ class ClassModel {
                 class_type, days, assigned_teacher_id, assigned_teacher_name
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            ON CONFLICT (id) DO UPDATE SET
+                class_name = EXCLUDED.class_name, section = EXCLUDED.section,
+                subject = EXCLUDED.subject, room_number = EXCLUDED.room_number,
+                start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time,
+                days = EXCLUDED.days, updated_at = CURRENT_TIMESTAMP
             RETURNING id, class_name, section, subject, room_number,
                       TO_CHAR(start_time, 'HH24:MI') as start_time,
                       TO_CHAR(end_time, 'HH24:MI') as end_time,
@@ -99,7 +199,7 @@ class ClassModel {
         `;
         const result = await pool.query(query, [
             classId, class_name, section, subject, room_number,
-            sTime, eTime, shift || 'Morning', academic_year || '2026-2027', cap,
+            sTime, eTime, shift || 'Morning', academic_year || '2026', cap,
             class_type || 'Regular', daysArr, teacherId, teacherName
         ]);
         return result.rows[0];

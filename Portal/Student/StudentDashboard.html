@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Kapataksha High School Portal</title>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- External CSS -->
+    <link rel="stylesheet" href="StudentDashboard.css">
+</head>
+<body>
+
+    <!-- Mobile Drawer Overlay Backdrop -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
+    <div class="dashboard-container">
+
+        <!-- Top Header Navigation Bar -->
+        <header class="header">
+            <div class="header-left">
+                <!-- Mobile Hamburger Toggle inside Header -->
+                <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" title="Toggle Navigation Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
+                <!-- Clickable logo linking to Student Dashboard Homepage -->
+                <a href="StudentDashboard.html" class="header-brand-link" title="Student Dashboard Home">
+                    <img src="../Photos/KSHS.png" alt="KSHS Emblem" class="logo-img">
+                    <div class="brand-divider"></div>
+                    <div class="brand-text">
+                        <span class="brand-title">KSHS</span>
+                        <span class="brand-subtitle">PORTAL</span>
+                    </div>
+                </a>
+            </div>
+
+            <div class="header-right">
+                <!-- Logged-in Student Welcome Name -->
+                <span class="welcome-msg" id="welcome-username">STUDENT</span>
+
+                <!-- Notification Bell -->
+                <button class="header-icon-btn" onclick="toggleNotifications()" title="Notifications">
+                    <i class="fa-solid fa-bell"></i>
+                </button>
+
+                <!-- Settings Gear -->
+                <button class="header-icon-btn" onclick="toggleSettingsModal()" title="Settings">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+
+                <!-- Logout Button -->
+                <a href="#" class="logout-btn" onclick="handleLogout(event)" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+            </div>
+
+        </header>
+
+        <!-- Main Body Layout -->
+        <div class="main-layout">
+
+            <!-- Left Navigation Sidebar -->
+            <aside class="sidebar" id="sidebar-menu">
+
+                <!-- 1. Academics -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-academics', this)">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-square-poll-vertical sidebar-icon"></i>
+                            <span>Academics</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-academics" class="sidebar-menu-content">
+                        <a href="#" class="sidebar-subitem">
+                            <i class="fa-solid fa-list-ul subitem-icon"></i>
+                            <span>Courses & Results</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem">
+                            <i class="fa-solid fa-sliders subitem-icon"></i>
+                            <span>My Curriculum</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 2. Grade Reports -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-grade-reports', this)">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-certificate sidebar-icon"></i>
+                            <span>Grade Reports</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-grade-reports" class="sidebar-menu-content">
+                        <a href="#" class="sidebar-subitem">
+                            <i class="fa-solid fa-certificate subitem-icon"></i>
+                            <span>By Curriculum</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem">
+                            <i class="fa-solid fa-certificate subitem-icon"></i>
+                            <span>By Semester</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 3. Library -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-library', this)">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-pen-to-square sidebar-icon"></i>
+                            <span>Library</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-library" class="sidebar-menu-content">
+                        <a href="#" class="sidebar-subitem">
+                            <i class="fa-solid fa-magnifying-glass subitem-icon"></i>
+                            <span>Search Book</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem">
+                            <i class="fa-solid fa-star subitem-icon"></i>
+                            <span>Current Borrows</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem">
+                            <i class="fa-regular fa-star subitem-icon"></i>
+                            <span>Borrow History</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem">
+                            <i class="fa-solid fa-dollar-sign subitem-icon"></i>
+                            <span>Financial</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 4. Others -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-others', this)">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-image sidebar-icon"></i>
+                            <span>Others</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-others" class="sidebar-menu-content">
+                        <a href="#" class="sidebar-subitem">
+                            <i class="fa-solid fa-file-lines subitem-icon"></i>
+                            <span>Applications</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem">
+                            <i class="fa-regular fa-circle-down subitem-icon"></i>
+                            <span>Download Forms</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 5. Messages -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-messages', this)">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-table-cells sidebar-icon"></i>
+                            <span>Messages</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-messages" class="sidebar-menu-content">
+                        <a href="#" class="sidebar-subitem">
+                            <i class="fa-solid fa-envelope subitem-icon"></i>
+                            <span>Mail Box</span>
+                        </a>
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <h2 class="dashboard-title">Student Portal Dashboard</h2>
+
+                <!-- Class Schedule Section -->
+                <div class="schedule-container">
+                    <div class="schedule-header">
+                        <div class="schedule-title-row">
+                            <i class="fa-solid fa-calendar-days schedule-title-icon"></i>
+                            <h3 class="schedule-title">Class Schedule &amp; Routine</h3>
+                        </div>
+                        <span class="schedule-badge" id="student-academic-badge">Loading academic info...</span>
+                    </div>
+
+                    <!-- Schedule rows rendered by JS -->
+                    <div class="schedule-body" id="schedule-rows-wrapper">
+                        <div class="schedule-loading">
+                            <i class="fa-solid fa-circle-notch fa-spin"></i>
+                            Loading schedule from database...
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+        </div>
+
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="StudentDashboard.js"></script>
+</body>
+</html>
