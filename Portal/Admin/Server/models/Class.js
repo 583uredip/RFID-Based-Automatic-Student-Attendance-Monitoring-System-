@@ -49,15 +49,15 @@ class ClassModel {
 
             // Seed exact database schedules matching student curriculum
             const seedClasses = [
-                { id: 'CLS-16-1', class_name: 'Ten', section: 'M', subject: 'MICROPROCESSOR AND EMBEDDED SYSTEMS', room_number: '9405', start_time: '08:00', end_time: '10:00', days: ['Sun'], shift: 'Morning', academic_year: '2026' },
+                { id: 'CLS-16-1', class_name: 'Ten', section: 'M', subject: 'MICROPROCESSOR AND EMBEDDED SYSTEMS', room_number: '9405', start_time: '08:00', end_time: '10:00', days: ['Sun'], shift: 'Morning', academic_year: '2026', assigned_teacher_id: 'TEACH001', assigned_teacher_name: 'Anisur Rahman' },
                 { id: 'CLS-16-2', class_name: 'Ten', section: 'J', subject: 'COMPILER DESIGN', room_number: 'DS0106', start_time: '10:20', end_time: '12:40', days: ['Sun'], shift: 'Morning', academic_year: '2026' },
-                { id: 'CLS-16-3', class_name: 'Ten', section: 'N', subject: 'SOFTWARE ENGINEERING', room_number: '9306', start_time: '12:40', end_time: '14:40', days: ['Sun'], shift: 'Morning', academic_year: '2026' },
-                { id: 'CLS-17-1', class_name: 'Ten', section: 'N', subject: 'DATA COMMUNICATION', room_number: '9401', start_time: '08:00', end_time: '10:00', days: ['Mon'], shift: 'Morning', academic_year: '2026' },
+                { id: 'CLS-16-3', class_name: 'Ten', section: 'N', subject: 'SOFTWARE ENGINEERING', room_number: '9306', start_time: '12:40', end_time: '14:40', days: ['Sun'], shift: 'Morning', academic_year: '2026', assigned_teacher_id: 'TEACH001', assigned_teacher_name: 'Anisur Rahman' },
+                { id: 'CLS-17-1', class_name: 'Ten', section: 'N', subject: 'DATA COMMUNICATION', room_number: '9401', start_time: '08:00', end_time: '10:00', days: ['Mon'], shift: 'Morning', academic_year: '2026', assigned_teacher_id: 'TEACH001', assigned_teacher_name: 'Anisur Rahman' },
                 { id: 'CLS-17-2', class_name: 'Ten', section: 'M', subject: 'COMPUTER AIDED DESIGN & DRAFTING', room_number: 'DN0210', start_time: '12:40', end_time: '15:00', days: ['Mon'], shift: 'Morning', academic_year: '2026' },
-                { id: 'CLS-18-1', class_name: 'Ten', section: 'M', subject: 'MICROPROCESSOR AND EMBEDDED SYSTEMS', room_number: 'DN0310', start_time: '08:00', end_time: '10:20', days: ['Tue'], shift: 'Morning', academic_year: '2026' },
+                { id: 'CLS-18-1', class_name: 'Ten', section: 'M', subject: 'MICROPROCESSOR AND EMBEDDED SYSTEMS', room_number: 'DN0310', start_time: '08:00', end_time: '10:20', days: ['Tue'], shift: 'Morning', academic_year: '2026', assigned_teacher_id: 'TEACH001', assigned_teacher_name: 'Anisur Rahman' },
                 { id: 'CLS-18-2', class_name: 'Ten', section: 'J', subject: 'COMPILER DESIGN', room_number: '9205', start_time: '10:20', end_time: '12:20', days: ['Tue'], shift: 'Morning', academic_year: '2026' },
-                { id: 'CLS-18-3', class_name: 'Ten', section: 'N', subject: 'SOFTWARE ENGINEERING', room_number: 'DS0206', start_time: '12:40', end_time: '15:00', days: ['Tue'], shift: 'Morning', academic_year: '2026' },
-                { id: 'CLS-19-1', class_name: 'Ten', section: 'N', subject: 'DATA COMMUNICATION', room_number: 'DS0406', start_time: '08:00', end_time: '10:20', days: ['Wed'], shift: 'Morning', academic_year: '2026' }
+                { id: 'CLS-18-3', class_name: 'Ten', section: 'N', subject: 'SOFTWARE ENGINEERING', room_number: 'DS0206', start_time: '12:40', end_time: '15:00', days: ['Tue'], shift: 'Morning', academic_year: '2026', assigned_teacher_id: 'TEACH001', assigned_teacher_name: 'Anisur Rahman' },
+                { id: 'CLS-19-1', class_name: 'Ten', section: 'N', subject: 'DATA COMMUNICATION', room_number: 'DS0406', start_time: '08:00', end_time: '10:20', days: ['Wed'], shift: 'Morning', academic_year: '2026', assigned_teacher_id: 'TEACH001', assigned_teacher_name: 'Anisur Rahman' }
             ];
 
             for (const c of seedClasses) {
@@ -160,6 +160,51 @@ class ClassModel {
         } catch (err) {
             console.error('Error fetching student schedule:', err.message);
             return { student_id: studentId, class_name: className, section: section, classes: [] };
+        }
+    }
+
+    /**
+     * Gets matching class schedule for a specific teacher based on assigned classes and teacher profile.
+     */
+    static async getTeacherSchedule(teacherId) {
+        let teacherInfo = null;
+        try {
+            const teacherResult = await pool.query(
+                `SELECT teacher_id, full_name, first_name, last_name, department, designation, photo_url, mobile_number, email_address
+                 FROM TeacherPersonalData 
+                 WHERE UPPER(teacher_id) = UPPER($1)`,
+                [teacherId]
+            );
+            if (teacherResult.rows.length > 0) {
+                teacherInfo = teacherResult.rows[0];
+            }
+        } catch (e) {}
+
+        try {
+            const query = `
+                SELECT 
+                    c.id, c.class_name, c.section, c.subject, c.room_number,
+                    TO_CHAR(c.start_time, 'FMHH12:MI') as start_time_formatted,
+                    TO_CHAR(c.end_time, 'FMHH12:MI') as end_time_formatted,
+                    TO_CHAR(c.start_time, 'AM') as start_ampm,
+                    TO_CHAR(c.end_time, 'AM') as end_ampm,
+                    c.shift, c.academic_year, c.class_type, c.days,
+                    COALESCE(c.assigned_teacher_name, 'Teacher') as teacher_name
+                FROM classes c
+                WHERE UPPER(COALESCE(c.assigned_teacher_id, '')) = UPPER($1)
+                   OR c.id IN (SELECT class_id FROM class_assignments WHERE UPPER(COALESCE(teacher_id, '')) = UPPER($1))
+                ORDER BY c.start_time ASC;
+            `;
+            const result = await pool.query(query, [teacherId]);
+
+            return {
+                teacher_id: teacherId,
+                teacher_info: teacherInfo,
+                classes: result.rows
+            };
+        } catch (err) {
+            console.error('Error fetching teacher schedule:', err.message);
+            return { teacher_id: teacherId, teacher_info: teacherInfo, classes: [] };
         }
     }
 

@@ -3,6 +3,17 @@
  * Handles sidebar accordion toggle, user personal data loading, and class schedule rendering
  */
 
+function toggleHeaderMobileMenu() {
+    const menu = document.getElementById('header-mobile-menu');
+    const toggleBtn = document.getElementById('mobile-toggle-btn');
+    if (menu) {
+        menu.classList.toggle('open');
+    }
+    if (toggleBtn) {
+        toggleBtn.classList.toggle('active');
+    }
+}
+
 function toggleMobileSidebar() {
     const sidebar = document.getElementById('sidebar-menu');
     const overlay = document.getElementById('sidebar-overlay');
@@ -90,7 +101,12 @@ async function fetchPostgresStudentUsers() {
 
 async function loadLoggedStudentPersonalData() {
     const welcomeElem = document.getElementById('welcome-username');
-    if (!welcomeElem) return;
+    const mobileWelcomeElem = document.getElementById('mobile-welcome-username');
+
+    function setWelcome(nameText) {
+        if (welcomeElem) welcomeElem.textContent = nameText;
+        if (mobileWelcomeElem) mobileWelcomeElem.textContent = nameText;
+    }
 
     let studentId = localStorage.getItem('selectedTestStudentId') || '26-00001';
     const currentUserStr = localStorage.getItem('currentUser');
@@ -100,7 +116,7 @@ async function loadLoggedStudentPersonalData() {
             const user = JSON.parse(currentUserStr);
             if (user.user_id) studentId = user.user_id;
             if (user.last_name && user.first_name) {
-                welcomeElem.textContent = `Welcome, ${user.last_name.toUpperCase()}, ${user.first_name.toUpperCase()}`;
+                setWelcome(`Welcome ${user.last_name.toUpperCase()}, ${user.first_name.toUpperCase()}`);
             }
         } catch (e) {}
     }
@@ -111,7 +127,7 @@ async function loadLoggedStudentPersonalData() {
         if (response.ok) {
             const studentData = await response.json();
             if (studentData && studentData.last_name && studentData.first_name) {
-                welcomeElem.textContent = `Welcome, ${studentData.last_name.toUpperCase()}, ${studentData.first_name.toUpperCase()}`;
+                setWelcome(`Welcome ${studentData.last_name.toUpperCase()}, ${studentData.first_name.toUpperCase()}`);
                 return;
             }
         }
@@ -120,8 +136,8 @@ async function loadLoggedStudentPersonalData() {
     }
 
     // Fallback default format if no PersonalData record is found
-    if (!welcomeElem.textContent || welcomeElem.textContent === 'STUDENT' || welcomeElem.textContent === '') {
-        welcomeElem.textContent = 'Welcome, MONDAL, SHOVAN';
+    if (!welcomeElem || !welcomeElem.textContent || welcomeElem.textContent === 'STUDENT' || welcomeElem.textContent === '') {
+        setWelcome('Welcome MONDAL, SHOVAN');
     }
 }
 
@@ -185,7 +201,7 @@ async function loadStudentSchedule(studentId) {
             if (dayClasses.length === 0) {
                 html += `
                     <div class="schedule-date-row schedule-no-class">
-                        <div class="schedule-date-label">${label}${todayBadge}</div>
+                        <div class="schedule-date-label"><i class="fa-regular fa-calendar"></i> ${label}${todayBadge}</div>
                         <div class="schedule-items-grid">
                             <div class="schedule-empty-day">No class scheduled</div>
                         </div>
@@ -197,13 +213,16 @@ async function loadStudentSchedule(studentId) {
                     return `
                         <div class="schedule-card">
                             <div class="schedule-subject">${cls.subject} [${cls.section}]</div>
-                            <div class="schedule-meta">Time: ${dayAbbr} ${sTime} &ndash; ${eTime} &nbsp; Room: ${cls.room_number || 'TBA'}</div>
+                            <div class="schedule-meta">
+                                <span class="schedule-meta-item"><i class="fa-regular fa-clock"></i> ${sTime} &ndash; ${eTime}</span>
+                                <span class="schedule-meta-item"><i class="fa-solid fa-door-open"></i> Room: ${cls.room_number || 'TBA'}</span>
+                            </div>
                         </div>`;
                 }).join('');
 
                 html += `
                     <div class="schedule-date-row">
-                        <div class="schedule-date-label">${label}${todayBadge}</div>
+                        <div class="schedule-date-label"><i class="fa-regular fa-calendar"></i> ${label}${todayBadge}</div>
                         <div class="schedule-items-grid">${cards}</div>
                     </div>`;
             }

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - Kapataksha High School Portal</title>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- External CSS -->
+    <link rel="stylesheet" href="TeacherDashboard.css">
+</head>
+<body>
+
+    <!-- Mobile Drawer Overlay Backdrop -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
+    <div class="dashboard-container">
+
+        <!-- Top Left Mobile Sidebar Menu Toggle Button (Phone Mode) -->
+        <button class="top-sidebar-btn" onclick="toggleMobileSidebar()" title="Toggle Navigation Sidebar">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <!-- Top Header Navigation Bar -->
+        <header class="header" id="dashboard-header">
+            <div class="header-top-bar">
+                <!-- Left: Clickable logo linking to Teacher Dashboard Homepage -->
+                <a href="TeacherDashboard.html" class="header-brand-link" title="Teacher Dashboard Home">
+                    <img src="../Photos/KSHS.png" alt="KSHS Emblem" class="logo-img" onerror="this.src='../../Photos/KSHS.png'">
+                    <div class="brand-divider"></div>
+                    <div class="brand-text">
+                        <span class="brand-title">KSHS</span>
+                        <span class="brand-subtitle">PORTAL</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Right Nav Items -->
+                <div class="header-right desktop-nav">
+                    <!-- Logged-in Teacher Welcome Name -->
+                    <span class="welcome-msg" id="welcome-username">TEACHER</span>
+
+                    <!-- Notification Bell -->
+                    <button class="header-icon-btn" onclick="toggleNotifications()" title="Notifications">
+                        <i class="fa-solid fa-bell"></i>
+                    </button>
+
+                    <!-- Settings Gear -->
+                    <button class="header-icon-btn" onclick="toggleSettingsModal()" title="Settings">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+
+                    <!-- Logout Button -->
+                    <a href="#" class="logout-btn" onclick="handleLogout(event)" title="Logout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </a>
+                </div>
+
+                <!-- Mobile Hamburger Toggle inside Header on Right -->
+                <button class="mobile-menu-btn" id="mobile-toggle-btn" onclick="toggleHeaderMobileMenu()" title="Toggle Navigation Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+
+            <!-- Mobile Collapsible Menu (matching phone reference) -->
+            <div class="header-mobile-dropdown" id="header-mobile-menu">
+                <a href="#" class="mobile-nav-link" onclick="toggleNotifications()">
+                    <i class="fa-solid fa-bell"></i>
+                    <span>Notifications</span>
+                </a>
+                <a href="#" class="mobile-nav-link" onclick="toggleSettingsModal()">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="#" class="mobile-nav-link" onclick="handleLogout(event)">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Log Out</span>
+                </a>
+                <div class="mobile-welcome-msg" id="mobile-welcome-username">
+                    Welcome TEACHER
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Body Layout -->
+        <div class="main-layout">
+
+            <!-- Left Navigation Sidebar (Demo Accordion Navigation) -->
+            <aside class="sidebar" id="sidebar-menu">
+
+                <!-- 1. Teaching & Classes -->
+                <div class="menu-group">
+                    <button class="sidebar-btn active" onclick="toggleMenu('menu-teaching', this)">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-chalkboard-user sidebar-icon"></i>
+                            <span>Teaching &amp; Classes</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-teaching" class="sidebar-menu-content open">
+                        <a href="#" class="sidebar-subitem active" onclick="event.preventDefault();">
+                            <i class="fa-solid fa-calendar-week subitem-icon"></i>
+                            <span>My Class Schedule</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Daily Attendance Roster')">
+                            <i class="fa-solid fa-clipboard-user subitem-icon"></i>
+                            <span>Take Attendance</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Class Routine Matrix')">
+                            <i class="fa-solid fa-table-list subitem-icon"></i>
+                            <span>Weekly Routine</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Enrolled Student List')">
+                            <i class="fa-solid fa-users subitem-icon"></i>
+                            <span>Student Roster</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 2. Examinations & Marks -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-exams', this)">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-file-pen sidebar-icon"></i>
+                            <span>Exams &amp; Results</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-exams" class="sidebar-menu-content">
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Enter Exam Marks')">
+                            <i class="fa-solid fa-square-poll-vertical subitem-icon"></i>
+                            <span>Enter Marks / Grades</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Tabulation Sheet')">
+                            <i class="fa-solid fa-certificate subitem-icon"></i>
+                            <span>Grade Reports</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Exam Duty Schedule')">
+                            <i class="fa-solid fa-clipboard-list subitem-icon"></i>
+                            <span>Invigilation Duty</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 3. Academic Resources -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-resources', this)">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-book-open sidebar-icon"></i>
+                            <span>Academic Resources</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-resources" class="sidebar-menu-content">
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Lesson Plan Manager')">
+                            <i class="fa-solid fa-list-check subitem-icon"></i>
+                            <span>Lesson Plans</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Syllabus & Curriculum')">
+                            <i class="fa-solid fa-sliders subitem-icon"></i>
+                            <span>Curriculum Syllabus</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Study Material Uploads')">
+                            <i class="fa-solid fa-cloud-arrow-up subitem-icon"></i>
+                            <span>Upload Materials</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 4. Leaves & Applications -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-leaves', this)">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-file-signature sidebar-icon"></i>
+                            <span>Leaves &amp; Forms</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-leaves" class="sidebar-menu-content">
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Apply for Leave Form')">
+                            <i class="fa-solid fa-pen-to-square subitem-icon"></i>
+                            <span>Apply for Leave</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Leave History & Balance')">
+                            <i class="fa-solid fa-clock-rotate-left subitem-icon"></i>
+                            <span>Leave Status</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Official Application Downloads')">
+                            <i class="fa-regular fa-circle-down subitem-icon"></i>
+                            <span>Download Forms</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 5. Communication & Messages -->
+                <div class="menu-group">
+                    <button class="sidebar-btn" onclick="toggleMenu('menu-comm', this)">
+                        <div class="sidebar-btn-left">
+                            <i class="fa-solid fa-envelope-open-text sidebar-icon"></i>
+                            <span>Communication</span>
+                        </div>
+                        <i class="fa-solid fa-caret-down caret-icon"></i>
+                    </button>
+                    <div id="menu-comm" class="sidebar-menu-content">
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Teacher Mailbox')">
+                            <i class="fa-solid fa-envelope subitem-icon"></i>
+                            <span>Mail Box</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Parent Messaging')">
+                            <i class="fa-solid fa-comments subitem-icon"></i>
+                            <span>Parent Messages</span>
+                        </a>
+                        <a href="#" class="sidebar-subitem" onclick="demoSubitemClick('Staff Notice Board')">
+                            <i class="fa-solid fa-bullhorn subitem-icon"></i>
+                            <span>Notice Board</span>
+                        </a>
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <h2 class="dashboard-title">Teacher Portal Dashboard</h2>
+
+                <!-- Teacher Overview Stat Cards -->
+                <div class="teacher-stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper bg-blue">
+                            <i class="fa-solid fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-details">
+                            <span class="stat-label">Assigned Classes</span>
+                            <span class="stat-value" id="stat-total-classes">6 Classes</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper bg-green">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div class="stat-details">
+                            <span class="stat-label">Classes Today</span>
+                            <span class="stat-value" id="stat-today-classes">2 Today</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper bg-purple">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <div class="stat-details">
+                            <span class="stat-label">Teaching Level</span>
+                            <span class="stat-value" id="stat-class-level">Class 9 &amp; 10</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper bg-amber">
+                            <i class="fa-solid fa-id-badge"></i>
+                        </div>
+                        <div class="stat-details">
+                            <span class="stat-label">Teacher ID</span>
+                            <span class="stat-value" id="stat-teacher-id">TEACH001</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assigned Class Schedule Section -->
+                <div class="schedule-container">
+                    <div class="schedule-header">
+                        <div class="schedule-title-row">
+                            <i class="fa-solid fa-calendar-days schedule-title-icon"></i>
+                            <h3 class="schedule-title">Assigned Class Schedule &amp; Routine</h3>
+                        </div>
+                        <span class="schedule-badge" id="teacher-profile-badge">Loading teacher academic info...</span>
+                    </div>
+
+                    <!-- Schedule rows rendered dynamically by JS -->
+                    <div class="schedule-body" id="schedule-rows-wrapper">
+                        <div class="schedule-loading">
+                            <i class="fa-solid fa-circle-notch fa-spin"></i>
+                            Loading assigned classes from database...
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+        </div>
+
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="TeacherDashboard.js"></script>
+</body>
+</html>

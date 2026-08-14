@@ -17,15 +17,15 @@
 
     <div class="dashboard-container">
 
-        <!-- Top Header Navigation Bar -->
-        <header class="header">
-            <div class="header-left">
-                <!-- Mobile Hamburger Toggle inside Header -->
-                <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" title="Toggle Navigation Menu">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
+        <!-- Top Left Mobile Sidebar Menu Toggle Button (Phone Mode) -->
+        <button class="top-sidebar-btn" onclick="toggleMobileSidebar()" title="Toggle Navigation Sidebar">
+            <i class="fa-solid fa-bars"></i>
+        </button>
 
-                <!-- Clickable logo linking to Student Dashboard Homepage -->
+        <!-- Top Header Navigation Bar -->
+        <header class="header" id="dashboard-header">
+            <div class="header-top-bar">
+                <!-- Left: Clickable logo linking to Student Dashboard Homepage -->
                 <a href="StudentDashboard.html" class="header-brand-link" title="Student Dashboard Home">
                     <img src="../Photos/KSHS.png" alt="KSHS Emblem" class="logo-img">
                     <div class="brand-divider"></div>
@@ -34,28 +34,52 @@
                         <span class="brand-subtitle">PORTAL</span>
                     </div>
                 </a>
+
+                <!-- Desktop Right Nav Items -->
+                <div class="header-right desktop-nav">
+                    <!-- Logged-in Student Welcome Name -->
+                    <span class="welcome-msg" id="welcome-username">STUDENT</span>
+
+                    <!-- Notification Bell -->
+                    <button class="header-icon-btn" onclick="toggleNotifications()" title="Notifications">
+                        <i class="fa-solid fa-bell"></i>
+                    </button>
+
+                    <!-- Settings Gear -->
+                    <button class="header-icon-btn" onclick="toggleSettingsModal()" title="Settings">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+
+                    <!-- Logout Button -->
+                    <a href="#" class="logout-btn" onclick="handleLogout(event)" title="Logout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </a>
+                </div>
+
+                <!-- Mobile Hamburger Toggle inside Header on Right -->
+                <button class="mobile-menu-btn" id="mobile-toggle-btn" onclick="toggleHeaderMobileMenu()" title="Toggle Navigation Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
             </div>
 
-            <div class="header-right">
-                <!-- Logged-in Student Welcome Name -->
-                <span class="welcome-msg" id="welcome-username">STUDENT</span>
-
-                <!-- Notification Bell -->
-                <button class="header-icon-btn" onclick="toggleNotifications()" title="Notifications">
+            <!-- Mobile Collapsible Menu (as shown in phone reference) -->
+            <div class="header-mobile-dropdown" id="header-mobile-menu">
+                <a href="#" class="mobile-nav-link" onclick="toggleNotifications()">
                     <i class="fa-solid fa-bell"></i>
-                </button>
-
-                <!-- Settings Gear -->
-                <button class="header-icon-btn" onclick="toggleSettingsModal()" title="Settings">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
-
-                <!-- Logout Button -->
-                <a href="#" class="logout-btn" onclick="handleLogout(event)" title="Logout">
-                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Notifications</span>
                 </a>
+                <a href="#" class="mobile-nav-link" onclick="toggleSettingsModal()">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="#" class="mobile-nav-link" onclick="handleLogout(event)">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Log Out</span>
+                </a>
+                <div class="mobile-welcome-msg" id="mobile-welcome-username">
+                    Welcome MONDAL, SHOVAN
+                </div>
             </div>
-
         </header>
 
         <!-- Main Body Layout -->

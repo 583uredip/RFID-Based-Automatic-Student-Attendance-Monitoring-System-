@@ -406,6 +406,8 @@
                     setTimeout(() => {
                         if (data.user.role === 'Student') {
                             window.location.href = 'Student/StudentDashboard.html';
+                        } else if (data.user.role === 'Teacher') {
+                            window.location.href = 'Teacher/TeacherDashboard.html';
                         } else {
                             window.location.href = 'Admin/AdminDashboard.html';
                         }
@@ -424,9 +426,11 @@
                 let fallbackUser = null;
 
                 if (cleanId.startsWith('26-') || /^26-\d+$/i.test(cleanId) || /^24-\d+-\d+$/i.test(cleanId) || cleanId === 'STUDENT') {
-                    if (password === 'student1212') fallbackUser = { user_id: cleanId, username: cleanId, role: 'Student', account_status: 'Active' };
-                } else if (cleanId === 'TEACH001' || cleanId === 'TEACHER') {
-                    if (password === 'teacher123') fallbackUser = { user_id: 'TEACH001', username: 'teacher', role: 'Teacher', account_status: 'Active' };
+                    if (password === 'student1212') fallbackUser = { user_id: cleanId, username: cleanId, role: 'Student', account_status: 'Active', first_name: 'Shovan', last_name: 'Mondal' };
+                } else if (cleanId.startsWith('T-') || cleanId.startsWith('TEACH') || /^T-\d+$/i.test(cleanId) || cleanId === 'TEACH001' || cleanId === 'TEACHER') {
+                    if (password === 'teacher1212' || password === 'teacher123') {
+                        fallbackUser = { user_id: cleanId, username: cleanId, role: 'Teacher', account_status: 'Active', first_name: 'Anisur', last_name: 'Rahman', full_name: 'Anisur Rahman', designation: 'Senior Teacher', department: 'Computer Science & Technology' };
+                    }
                 } else if (cleanId === 'ADMIN001' || cleanId === 'ADMIN') {
                     if (password === 'admin123') fallbackUser = { user_id: 'ADMIN001', username: 'admin', role: 'Admin', account_status: 'Active' };
                 }
@@ -440,6 +444,8 @@
                     setTimeout(() => {
                         if (fallbackUser.role === 'Student') {
                             window.location.href = 'Student/StudentDashboard.html';
+                        } else if (fallbackUser.role === 'Teacher') {
+                            window.location.href = 'Teacher/TeacherDashboard.html';
                         } else {
                             window.location.href = 'Admin/AdminDashboard.html';
                         }

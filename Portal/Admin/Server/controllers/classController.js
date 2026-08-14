@@ -107,3 +107,22 @@ exports.getStudentSchedule = async (req, res) => {
         return res.status(500).json({ error: 'Failed to fetch student schedule.' });
     }
 };
+
+/**
+ * GET /api/teacher/schedule/:teacher_id
+ * Returns class schedule for the logged-in teacher by matching their
+ * teacher_id against classes and class_assignments tables.
+ */
+exports.getTeacherSchedule = async (req, res) => {
+    try {
+        const { teacher_id } = req.params;
+        if (!teacher_id) {
+            return res.status(400).json({ error: 'teacher_id is required.' });
+        }
+        const data = await Class.getTeacherSchedule(teacher_id);
+        return res.status(200).json({ status: 'success', ...data });
+    } catch (err) {
+        console.error('Error fetching teacher schedule:', err.message);
+        return res.status(500).json({ error: 'Failed to fetch teacher schedule.' });
+    }
+};
