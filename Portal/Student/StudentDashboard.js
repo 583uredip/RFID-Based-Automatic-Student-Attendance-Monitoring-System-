@@ -48,8 +48,10 @@ function toggleMenu(id, btnElement) {
 // Helper function to resolve API Base Host
 function getApiHost() {
     if (window.location.port === '3000') return window.location.origin;
-    const hostname = (window.location.hostname && window.location.hostname !== '') ? window.location.hostname : 'localhost';
-    return `http://${hostname}:3000`;
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return `http://${window.location.hostname}:3000`;
+    }
+    return window.location.origin;
 }
 
 function toggleNotifications() {

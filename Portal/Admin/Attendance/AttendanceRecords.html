@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -292,7 +292,10 @@
         function getApiBase() {
             if (window.location.port === '3000') return window.location.origin;
             const hostname = (window.location.hostname && window.location.hostname !== '') ? window.location.hostname : 'localhost';
-            return `http://${hostname}:3000`;
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                return `http://${hostname}:3000`;
+            }
+            return window.location.origin;
         }
 
         function clearDateFilter() {
