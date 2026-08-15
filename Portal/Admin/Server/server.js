@@ -21,9 +21,14 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static File Serving
-const adminStaticPath = path.join(__dirname, '..');
-app.use(express.static(adminStaticPath));
+// Static File Serving — serve entire Portal directory
+const portalStaticPath = path.join(__dirname, '..', '..');
+app.use(express.static(portalStaticPath));
+
+// Root redirect → Portal index
+app.get('/', (req, res) => {
+    res.sendFile(path.join(portalStaticPath, 'index.html'));
+});
 
 // Initialize Class Tables
 ClassModel.initTables();
