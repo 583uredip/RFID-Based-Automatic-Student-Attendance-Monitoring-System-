@@ -565,7 +565,7 @@
             document.getElementById('loading-overlay').style.display = 'flex';
             document.getElementById('search-container').style.display = 'none';
             
-            const API_BASE = 'http://localhost:3000/api';
+            const API_BASE = '/api';
             
             try {
                 // Fetch data from all 3 endpoints concurrently
@@ -681,7 +681,7 @@
         async function startCardScanner() {
             try {
                 // Fetch initial state so we don't trigger on an old scan
-                const res = await fetch('http://localhost:3000/api/rfid/latest-scan?active=true');
+                const res = await fetch('/api/rfid/latest-scan?active=true');
                 if (res.ok) {
                     const data = await res.json();
                     lastScanTimestamp = data.timestamp;
@@ -690,7 +690,7 @@
 
             scanPollInterval = setInterval(async () => {
                 try {
-                    const res = await fetch('http://localhost:3000/api/rfid/latest-scan?active=true');
+                    const res = await fetch('/api/rfid/latest-scan?active=true');
                     if (res.ok) {
                         const data = await res.json();
                         if (data && data.uid && data.timestamp !== lastScanTimestamp) {

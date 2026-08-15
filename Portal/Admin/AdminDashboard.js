@@ -1,8 +1,13 @@
 // Server Base API URL
 function getApiHost() {
+    // Local dev: if running directly on port 3000
     if (window.location.port === '3000') return window.location.origin;
-    const hostname = (window.location.hostname && window.location.hostname !== '') ? window.location.hostname : 'localhost';
-    return `http://${hostname}:3000`;
+    // Local dev: localhost with a different port (e.g. Live Server on 5500)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return `http://${window.location.hostname}:3000`;
+    }
+    // Production (Render, etc.): use same origin — server handles both API and static files
+    return window.location.origin;
 }
 const API_BASE_URL = `${getApiHost()}/api/rfid`;
 const STUDENT_API_BASE_URL = `${getApiHost()}/api/student`;
@@ -1928,7 +1933,7 @@ async function makeStudentUser() {
     }
 
     try {
-        const response = await fetch('http://localhost:3000/api/user/make-student-user', {
+        const response = await fetch(`${getApiHost()}/api/user/make-student-user`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ student_id: selectedStudentIdForUser })
@@ -1959,9 +1964,7 @@ async function makeStudentUser() {
 const CM_CLASSES_KEY = 'kshs_classes';
 const CM_ASSIGNMENTS_KEY = 'kshs_teacher_assignments';
 
-const CM_API_BASE = (window.location.protocol.startsWith('http') && window.location.port === '3000')
-    ? '/api'
-    : 'http://localhost:3000/api';
+const CM_API_BASE = `${getApiHost()}/api`;
 
 let _cmClassesCache = [];
 let _cmAssignmentsCache = [];

@@ -295,7 +295,7 @@
                         const startDate = document.getElementById('start-date').value;
                         const endDate = document.getElementById('end-date').value;
                         
-                        let url = 'http://localhost:3000/api/attendance/report?';
+                        let url = '/api/attendance/report?';
                         if (startDate) url += `startDate=${startDate}&`;
                         if (endDate) url += `endDate=${endDate}&`;
 
