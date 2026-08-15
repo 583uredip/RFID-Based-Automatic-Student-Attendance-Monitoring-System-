@@ -1,0 +1,14 @@
+# Environment Variables (contains secrets - never commit!)
+Portal/Admin/Server/.env
+.env
+
+# Node modules
+node_modules/
+Portal/Admin/Server/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/settings.json
